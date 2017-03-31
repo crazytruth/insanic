@@ -49,3 +49,5 @@ HTTP_503_SERVICE_UNAVAILABLE = 503
 HTTP_504_GATEWAY_TIMEOUT = 504
 HTTP_505_HTTP_VERSION_NOT_SUPPORTED = 505
 HTTP_511_NETWORK_AUTHENTICATION_REQUIRED = 511
+
+REVERSE_STATUS = {code: " ".join(ref.split('_')[2:]).title() for ref, code in locals().items() if ref.isupper()}

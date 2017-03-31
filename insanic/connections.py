@@ -4,15 +4,15 @@ from peewee_async import Manager, PooledMySQLDatabase
 
 from . import app
 
-MYSQL_DATABASE = app.config.MYSQL_DATABASE
-MYSQL_HOST = app.config.MYSQL_HOST
-MYSQL_PORT = app.config.MYSQL_PORT
-MYSQL_USER = app.config.MYSQL_USER
-MYSQL_PWD = app.config.MYSQL_PWD
+MYSQL_DATABASE = app.config['MYSQL_DATABASE']
+MYSQL_HOST = app.config['MYSQL_HOST']
+MYSQL_PORT = app.config['MYSQL_PORT']
+MYSQL_USER = app.config['MYSQL_USER']
+MYSQL_PWD = app.config['MYSQL_PWD']
 
-REDIS_HOST = app.config.REDIS_HOST
-REDIS_PORT = app.config.REDIS_PORT
-REDIS_DB = app.config.REDIS_DB
+REDIS_HOST = app.config['REDIS_HOST']
+REDIS_PORT = app.config['REDIS_PORT']
+REDIS_DB = app.config['REDIS_DB']
 
 database = PooledMySQLDatabase(MYSQL_DATABASE, host=MYSQL_HOST, port=MYSQL_PORT, user=MYSQL_USER,
                                password=MYSQL_PWD, min_connections=5, max_connections=10)

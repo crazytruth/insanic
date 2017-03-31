@@ -36,8 +36,8 @@ class ErrorHandler(SanicErrorHandler):
         self.log(format_exc())
         if issubclass(type(exception), SanicException):
             return json(
-                {"message": getattr(exception, 'default_detail', dir(exception)),
-                 "description": getattr(exception, 'detail', dir(exception)),
+                {"message": getattr(exception, 'default_detail', status.REVERSE_STATUS[exception.status_code]),
+                 "description": getattr(exception, 'detail', exception.args[0]),
                  "error_code": getattr(exception, 'error_code', 9999)},
                 status=getattr(exception, 'status_code', status.HTTP_500_INTERNAL_SERVER_ERROR),
                 headers=getattr(exception, 'headers', dict())
