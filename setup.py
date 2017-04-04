@@ -4,9 +4,13 @@ def readme():
     with open('README.rst') as f:
         return f.read()
 
+def version():
+    with open('VERSION') as f:
+        return f.read().strip()
+
 setup(
     name='insanic',
-    version='0.0.2',
+    version=version(),
     description='API framework for sanic',
     long_description=readme(),
     classifiers=[
