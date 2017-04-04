@@ -7,9 +7,10 @@ RUN mkdir -p $INSTALL_PATH
 
 WORKDIR $INSTALL_PATH
 
-COPY requirements.txt /tmp
+ONBUILD ARG SERVICE
+ONBUILD COPY $SERVICE/requirements.txt /tmp
 
-RUN apk add --update --no-cache --virtual .build-deps  \
+ONBUILD RUN apk add --update --no-cache --virtual .build-deps  \
         build-base gcc libffi-dev openssl-dev && \
     pip install --upgrade --extra-index-url http://pypi.mmt.local/ --trusted-host pypi.mmt.local -r /tmp/requirements.txt && \
     find /usr/local \
@@ -29,6 +30,6 @@ RUN apk add --update --no-cache --virtual .build-deps  \
     rm /tmp/requirements.txt && \
     adduser -D -u 1001 noroot
 
-USER noroot
+ONBUILD USER noroot
 
 CMD ["/bin/sh"]
