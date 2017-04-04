@@ -209,7 +209,7 @@ class MMTBaseView(HTTPMethodView):
         required_params = getattr(self, "{0}_params".format(request.method.lower()), [])
         data = {}
         if len(required_params):
-            if request.headers.get('Content-Type') == "application/json":
+            if request.headers.get('Content-Type', "").startswith('application/json'):
                 try:
                     body_data = request.json
                 except exceptions.SanicException as e:
