@@ -1,5 +1,6 @@
 import math
 from sanic.exceptions import SanicException
+from .errors import GlobalErrorCodes
 from . import status
 
 class APIException(SanicException):
@@ -9,7 +10,7 @@ class APIException(SanicException):
     """
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     default_detail = 'An unknown error occurred'
-    error_code = 9999
+    error_code = GlobalErrorCodes.unknown_error
 
     def __init__(self, detail=None, error_code=None, status_code=None):
         if detail is not None:
@@ -36,6 +37,7 @@ class InvalidUsage(APIException):
 
 class ValidationError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = "Validation Error"
 
 
 class NotFound(APIException):
