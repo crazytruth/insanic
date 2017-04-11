@@ -3,6 +3,7 @@ from sanic.response import json, html
 from sanic.handlers import ErrorHandler as SanicErrorHandler, format_exc, SanicException, INTERNAL_SERVER_ERROR_HTML
 
 from . import status
+from .errors import GlobalErrorCodes
 
 class ErrorHandler(SanicErrorHandler):
 
@@ -38,7 +39,7 @@ class ErrorHandler(SanicErrorHandler):
             return json(
                 {"message": getattr(exception, 'default_detail', status.REVERSE_STATUS[exception.status_code]),
                  "description": getattr(exception, 'detail', exception.args[0]),
-                 "error_code": getattr(exception, 'error_code', 9999)},
+                 "error_code": getattr(exception, 'error_code', GlobalErrorCodes.unknown_error)},
                 status=getattr(exception, 'status_code', status.HTTP_500_INTERNAL_SERVER_ERROR),
                 headers=getattr(exception, 'headers', dict())
             )
