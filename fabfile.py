@@ -4,6 +4,8 @@ from configparser import ConfigParser
 
 config = None
 
+DOCKER_USERNAME = "199574976045.dkr.ecr.ap-northeast-1.amazonaws.com"
+
 def _load_config(mmt_server_path):
     global config
     if config is None:
@@ -28,3 +30,10 @@ def bumpversion_insanic(bump_part="patch"):
     local('bumpversion --verbose --search "insanic=={{current_version}}" --replace "insanic=={{new_version}}" '
           '--no-commit --no-tag --allow-dirty {0} {1}'.format(bump_part, " ".join(requirements)))
     local('python setup.py sdist upload -r http://pypi.mmt.local/')
+
+
+
+def build_insanic():
+    local('docker build --no-cache -t {0}/insanic -f Dockerfile .'.format(DOCKER_USERNAME))
+    local('$(aws ecr get-login)')
+    local('docker push {0}/insanic:latest'.format(DOCKER_USERNAME))
