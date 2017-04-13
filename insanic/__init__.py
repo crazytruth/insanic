@@ -3,16 +3,7 @@ from sanic_useragent import SanicUserAgent
 
 from peewee_async import PooledMySQLDatabase
 
-try:
-    import config
-except ImportError:
-    config = {}
-
-try:
-    import instance
-except ImportError:
-    instance = {}
-
+from . import global_settings
 from .conf import settings
 from .handlers import ErrorHandler
 from .utils import attach_middleware
@@ -26,12 +17,7 @@ class Insanic(Sanic):
 
         super().__init__(name, router, error_handler)
         self.config = settings
-
-        SanicUserAgent.init_app(self)
-        attach_middleware(self)
-
-        self.config.from_object(config)
-        self.config.from_object(instance)
+        self.config.from_object(global_settings)
 
         for c in app_config:
             try:
@@ -40,6 +26,9 @@ class Insanic(Sanic):
                 self.config.from_object(c)
             except FileNotFoundError:
                 pass
+
+        SanicUserAgent.init_app(self)
+        attach_middleware(self)
 
         self.database = PooledMySQLDatabase(self.config['MYSQL_DATABASE'],
                                             host=self.config['MYSQL_HOST'],
