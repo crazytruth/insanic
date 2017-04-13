@@ -38,6 +38,8 @@ class Insanic(Sanic):
                 self.config.from_pyfile(c)
             except TypeError:
                 self.config.from_object(c)
+            except FileNotFoundError:
+                pass
 
         self.database = PooledMySQLDatabase(self.config['MYSQL_DATABASE'],
                                             host=self.config['MYSQL_HOST'],
