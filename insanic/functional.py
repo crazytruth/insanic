@@ -12,3 +12,4 @@ class cached_property(object):
             return self
         res = instance.__dict__[self.func.__name__] = self.func(instance)
         return res
+

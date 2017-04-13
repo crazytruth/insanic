@@ -3,15 +3,16 @@ import peewee
 
 from cryptography.fernet import Fernet as BaseFernet, MultiFernet, InvalidToken
 
-from . import app
 from .exceptions import FieldError
 from .functional import cached_property
 
-SECRET_KEY = app.config.SECRET_KEY
+from .conf import settings
+SECRET_KEY = settings.SECRET_KEY
 
 class Fernet(BaseFernet):
 
     def encrypt(self, data):
+
         rnd = random.Random()
         rnd.seed(SECRET_KEY, 1)
         # current_time = int(time.time())

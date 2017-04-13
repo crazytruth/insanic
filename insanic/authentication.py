@@ -4,7 +4,6 @@ Provides various authentication policies.
 import jwt
 
 from . import exceptions
-from . import app
 
 
 UNUSABLE_PASSWORD_PREFIX = '!'
@@ -119,4 +118,4 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         header in a `401 Unauthenticated` response, or `None` if the
         authentication scheme should return `403 Permission Denied` responses.
         """
-        return '{0} realm="{1}"'.format(app.config.JWT_AUTH_HEADER_PREFIX, self.www_authenticate_realm)
+        return '{0} realm="{1}"'.format(request.app.config.JWT_AUTH_HEADER_PREFIX, self.www_authenticate_realm)
