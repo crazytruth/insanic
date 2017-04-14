@@ -18,7 +18,7 @@ class DockerSecretsConfig(Config):
     def _load_secrets(self):
         try:
             with open('/run/secrets/{0}'.format(os.environ['MMT_SERVICE'])) as f:
-                docker_secrets = json.decode(f)
+                docker_secrets = json.load(f)
             for k, v in docker_secrets:
                 self.update({k: v})
         except FileNotFoundError as e:
