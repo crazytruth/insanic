@@ -3,7 +3,6 @@ from sanic_useragent import SanicUserAgent
 
 from peewee_async import PooledMySQLDatabase
 
-from . import global_settings
 from .conf import settings
 from .handlers import ErrorHandler
 from .utils import attach_middleware
@@ -17,7 +16,6 @@ class Insanic(Sanic):
 
         super().__init__(name, router, error_handler)
         self.config = settings
-        self.config.from_object(global_settings)
 
         for c in app_config:
             try:
@@ -30,11 +28,11 @@ class Insanic(Sanic):
         SanicUserAgent.init_app(self)
         attach_middleware(self)
 
-        self.database = PooledMySQLDatabase(self.config['MYSQL_DATABASE'],
-                                            host=self.config['MYSQL_HOST'],
-                                            port=self.config['MYSQL_PORT'],
-                                            user=self.config['MYSQL_USER'],
-                                            password=self.config['MYSQL_PWD'],
+        self.database = PooledMySQLDatabase(self.config['WEB_MYSQL_DATABASE'],
+                                            host=self.config['WEB_MYSQL_HOST'],
+                                            port=self.config['WEB_MYSQL_PORT'],
+                                            user=self.config['WEB_MYSQL_USER'],
+                                            password=self.config['WEB_MYSQL_PWD'],
                                             min_connections=5, max_connections=10)
 #
 #

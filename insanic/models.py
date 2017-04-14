@@ -7,14 +7,14 @@ from .exceptions import FieldError
 from .functional import cached_property
 
 from .conf import settings
-SECRET_KEY = settings.SECRET_KEY
+WEB_SECRET_KEY = settings.WEB_SECRET_KEY
 
 class Fernet(BaseFernet):
 
     def encrypt(self, data):
 
         rnd = random.Random()
-        rnd.seed(SECRET_KEY, 1)
+        rnd.seed(WEB_SECRET_KEY, 1)
         # current_time = int(time.time())
         current_time = int(rnd.random() * 10000000000)
         iv = bytes(bytearray(rnd.getrandbits(8) for i in range(16)))
