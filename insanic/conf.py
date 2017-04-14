@@ -21,7 +21,8 @@ class DockerSecretsConfig(Config):
                 docker_secrets = json.decode(f)
             for k, v in docker_secrets:
                 self.update({k: v})
-        except FileNotFoundError:
+        except FileNotFoundError as e:
+            sys.stderr.write("File not found %s" % e.strerror)
             filename = os.path.join(os.getcwd(), 'instance.py')
             module = types.ModuleType('config')
             module.__file__ = filename
@@ -37,7 +38,7 @@ class DockerSecretsConfig(Config):
                     self[key] = getattr(module, key)
 
 settings = DockerSecretsConfig()
-print(settings)
+
 
 
 
