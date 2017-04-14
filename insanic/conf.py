@@ -41,6 +41,6 @@ class DockerSecretsConfig(Config):
 
 settings = DockerSecretsConfig()
 
-
+print(settings)
 
 
