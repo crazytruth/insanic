@@ -22,6 +22,11 @@ class DockerSecretsConfig(Config):
 
             for e in docker_secrets.split(' '):
                 k, v = e.split(':', 1)
+                try:
+                    v = int(v)
+                except ValueError:
+                    pass
+
                 self.update({k: v})
         except FileNotFoundError as e:
             sys.stderr.write("File not found %s" % e.strerror)
