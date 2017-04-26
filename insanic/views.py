@@ -3,11 +3,8 @@ from inspect import isawaitable
 from sanic.views import HTTPMethodView
 from sanic.response import json, HTTPResponse
 
-from . import authentication
-from . import exceptions
-from . import permissions
-from . import status
-
+from insanic import authentication, exceptions, permissions, status
+from insanic.errors import GlobalErrorCodes
 
 def exception_handler(exc):
     """
@@ -47,6 +44,28 @@ class MMTBaseView(HTTPMethodView):
     throttle_classes = []
     authentication_classes = [authentication.JSONWebTokenAuthentication,]
 
+    def key(self, key, **kwargs):
+        try:
+            return self._key[key].format(**kwargs)
+        except KeyError:
+            raise KeyError("{0} key doesn't exist.".format(key))
+
+    def get_fields(self):
+        # fields = None means all
+        fields = None
+        if "fields" in self.request.query_params:
+            fields = [f.strip() for f in self.request.query_params.get('fields').split(',') if f]
+            if len(fields) == 0:
+                fields = None
+        return fields
+
+    def get_schema_class(self, **kwargs):
+        fields = self.get_fields()
+        if fields is not None:
+            kwargs.update({"only": fields})
+
+        return self.schema_class(**kwargs)
+
     def _allowed_methods(self):
         return [m.upper() for m in self.http_method_names if hasattr(self, m)]
 
@@ -63,6 +82,12 @@ class MMTBaseView(HTTPMethodView):
             'Allow': ', '.join(self.allowed_methods),
         }
         return headers
+
+    @property
+    def route(self):
+
+
+        return ""
 
     def _get_device_info(self, ua):
 
@@ -84,7 +109,7 @@ class MMTBaseView(HTTPMethodView):
         """
         raise json({}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    def perform_authentication(self, request):
+    async def perform_authentication(self, request):
         """
         Perform authentication on the incoming request.
 
@@ -92,24 +117,36 @@ class MMTBaseView(HTTPMethodView):
         will instead be performed lazily, the first time either
         `request.user` or `request.auth` is accessed.
         """
-        pass
+        await request.user
 
-    def check_permissions(self, request):
+    async def check_permissions(self, request):
         """
         Check if the request should be permitted.
         Raises an appropriate exception if the request is not permitted.
         """
         for permission in self.get_permissions():
-            if not permission.has_permission(request, self):
+            if not await permission.has_permission(request, self):
                 self.permission_denied(request)
 
-    def permission_denied(self, request):
+    async def check_object_permissions(self, request, obj):
+        """
+        Check if the request should be permitted for a given object.
+        Raises an appropriate exception if the request is not permitted.
+        """
+        for permission in self.get_permissions():
+            if not await permission.has_object_permission(request, self, obj):
+                self.permission_denied(
+                    request, message=getattr(permission, 'message', None)
+                )
+
+
+    def permission_denied(self, request, message=None):
         """
         If request is not permitted, determine what kind of exception to raise.
         """
         if not request.successful_authenticator:
-            raise exceptions.NotAuthenticated()
-        raise exceptions.PermissionDenied()
+            raise exceptions.NotAuthenticated(error_code=GlobalErrorCodes.authentication_credentials_missing)
+        raise exceptions.PermissionDenied(message, error_code=GlobalErrorCodes.permission_denied)
 
     def get_permissions(self):
         """
@@ -187,6 +224,9 @@ class MMTBaseView(HTTPMethodView):
         response.exception = True
         return response
 
+    async def convert_keywords(self):
+        pass
+
     async def dispatch_request(self, request, *args, **kwargs):
         """
         `.dispatch()` is pretty much the same as Django's regular dispatch,
@@ -195,27 +235,35 @@ class MMTBaseView(HTTPMethodView):
         self.args = args
         self.kwargs = kwargs
         self.request = request
+        self.request.authenticators = self.get_authenticators()
         self.headers = self.default_response_headers  # deprecate?
 
-        self.initial(request, *args, **kwargs)
+        await self.perform_authentication(self.request)
+
+        await self.check_permissions(self.request)
+        self.check_throttles(self.request)
+
+        await self.convert_keywords()
+
+        # self.initial(request, *args, **kwargs)
 
         # Get the appropriate handler method
-        if request.method.lower() in self.http_method_names:
-            handler = getattr(self, request.method.lower(),
+        if self.request.method.lower() in self.http_method_names:
+            handler = getattr(self, self.request.method.lower(),
                               self.http_method_not_allowed)
         else:
             handler = self.http_method_not_allowed
 
-        required_params = getattr(self, "{0}_params".format(request.method.lower()), [])
+        required_params = getattr(self, "{0}_params".format(self.request.method.lower()), [])
         data = {}
         if len(required_params):
-            if request.headers.get('Content-Type', "").startswith('application/json'):
+            if self.request.headers.get('Content-Type', "").startswith('application/json'):
                 try:
-                    body_data = request.json
+                    body_data = self.request.json
                 except exceptions.SanicException as e:
                     raise exceptions.APIException(e.args[0], 1000, e.status_code)
             else:
-                raise exceptions.UnsupportedMediaType(request.headers.get('Content-Type'))
+                raise exceptions.UnsupportedMediaType(self.request.headers.get('Content-Type'))
 
             if body_data is None:
                 data.update({"is_valid": False})
@@ -224,7 +272,7 @@ class MMTBaseView(HTTPMethodView):
                     data.update({p: body_data.get(p, None)})
 
         if all(data.values()):
-            response = handler(request, data, *args, **kwargs)
+            response = handler(self.request, data, *self.args, **self.kwargs)
         else:
             missing_parameters = [p for p, v in data.items() if v is None]
             msg = "Must include '"
@@ -241,15 +289,7 @@ class MMTBaseView(HTTPMethodView):
         if isawaitable(response):
             response = await response
 
-
-        # while True:
-        #     if isawaitable(response):
-        #         response = await response
-        #     else:
-        #         break
-
-
-        self.response = self.finalize_response(request, response, *args, **kwargs)
+        self.response = self.finalize_response(self.request, response, *self.args, **self.kwargs)
         return self.response
 
 
@@ -270,3 +310,8 @@ class MMTBaseView(HTTPMethodView):
 
         return response
 
+
+
+class ServiceOptions(MMTBaseView):
+    permission_classes = []
+    authentication_classes = []

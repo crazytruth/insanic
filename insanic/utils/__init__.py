@@ -1,5 +1,5 @@
 import sys
-from . import middleware
+from insanic import middleware
 
 def import_string(import_name, silent=False):
     """Imports an object based on a string.  This is useful if you want to
@@ -69,6 +69,23 @@ def force_str(val):
         val = str(val)
     return val
 
+def to_object(item):
+    """
+    Convert a dictionary to an object (recursive).
+    """
 
+    def convert(item):
+        if isinstance(item, dict):
+            return type('mmt', (), {k: convert(v) for k, v in item.items()})
+        if isinstance(item, list):
+            def yield_convert(item):
+                for index, value in enumerate(item):
+                    yield convert(value)
+
+            return list(yield_convert(item))
+        else:
+            return item
+
+    return convert(item)
 
 

@@ -3,9 +3,10 @@ from sanic_useragent import SanicUserAgent
 
 from peewee_async import PooledMySQLDatabase
 
-from .conf import settings
-from .handlers import ErrorHandler
-from .utils import attach_middleware
+from insanic.conf import settings
+from insanic.handlers import ErrorHandler
+from insanic.protocol import InsanicHttpProtocol
+from insanic.utils import attach_middleware
 
 class Insanic(Sanic):
 
@@ -34,21 +35,10 @@ class Insanic(Sanic):
                                             user=self.config['WEB_MYSQL_USER'],
                                             password=self.config['WEB_MYSQL_PWD'],
                                             min_connections=5, max_connections=10)
-#
-#
-# apps = {}
-#
-# def get_app(service):
-#     if service in apps:
-#         return apps[service]
-#
-#     app = Sanic(__name__, error_handler=ErrorHandler())
-#
-#     SanicUserAgent.init_app(app)
-#     attach_middleware(app)
-#
-#     app.config.from_object(config)
-#     app.config.from_object(instance)
-#
-#     apps[service] = app
-#     return apps[service]
+        # self.database.set_allow_sync(False)
+
+    def _helper(self, **kwargs):
+        """Helper function used by `run` and `create_server`."""
+        server_settings = super()._helper(**kwargs)
+        server_settings['protocol'] = InsanicHttpProtocol
+        return server_settings

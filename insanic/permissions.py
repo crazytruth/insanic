@@ -9,13 +9,13 @@ class BasePermission(object):
     A base class from which all permission classes should inherit.
     """
 
-    def has_permission(self, request, view):
+    async def has_permission(self, request, view):
         """
         Return `True` if permission is granted, `False` otherwise.
         """
         return True
 
-    def has_object_permission(self, request, view, obj):
+    async def has_object_permission(self, request, view, obj):
         """
         Return `True` if permission is granted, `False` otherwise.
         """
@@ -38,8 +38,10 @@ class IsAuthenticated(BasePermission):
     Allows access only to authenticated users.
     """
 
-    def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated()
+    async def has_permission(self, request, view):
+        user = await request.user
+
+        return user and user.is_authenticated
 
 
 class IsAdminUser(BasePermission):
@@ -60,7 +62,28 @@ class IsAuthenticatedOrReadOnly(BasePermission):
         return (
             request.method in SAFE_METHODS or
             request.user and
-            request.user.is_authenticated()
+            request.user.is_authenticated
         )
 
+class IsOwnerOrAdmin(BasePermission):
+    """
+    Custom permission to only allow owners of an object to view or edit it.
+    """
+
+    async def has_object_permission(self, request, view, obj):
+        user = await request.user
+        if user.is_superuser:
+            return True
+        # Write permissions are only allowed to the owner of the snippet.
+        if isinstance(obj, dict):
+            if "user_id" in obj:
+                return obj['user_id'] == user.id
+            else:
+                return obj['id'] == user.id
+        else:
+
+            if hasattr(obj, "user_id"):
+                return obj.user_id == user.id
+            else:
+                return obj.id == user.id
 

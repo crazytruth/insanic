@@ -10,13 +10,17 @@ async def connect_database(app, loop, **kwargs):
 
     app.conn = {}
     app.conn['redis'] = await aioredis.create_pool((REDIS_HOST, REDIS_PORT),
-                                                   encoding='utf-8', db=REDIS_DB, loop=loop, minsize=5,
-                                                   maxsize=10)
+                                                   encoding='utf-8', db=REDIS_DB, loop=loop, minsize=1,
+                                                   maxsize=1)
+
+    app.conn['redis_client'] = await aioredis.create_reconnecting_redis((REDIS_HOST, REDIS_PORT),
+                                                                        encoding='utf-8', db=REDIS_DB, loop=loop)
 
     app.objects = Manager(app.database, loop=loop)
-
 
 async def close_database(app, loop, **kwargs):
 
     app.conn['redis'].close()
+    # app.conn['redis_client'].close()
     app.objects.close()
+

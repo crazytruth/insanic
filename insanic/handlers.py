@@ -2,8 +2,8 @@ from sanic.log import log
 from sanic.response import json, html
 from sanic.handlers import ErrorHandler as SanicErrorHandler, format_exc, SanicException, INTERNAL_SERVER_ERROR_HTML
 
-from . import status
-from .errors import GlobalErrorCodes
+from insanic import status
+from insanic.errors import GlobalErrorCodes
 
 class ErrorHandler(SanicErrorHandler):
 
@@ -15,13 +15,18 @@ class ErrorHandler(SanicErrorHandler):
         :param exception: Exception to handle
         :return: Response object
         """
-        handler = self.handlers.get(type(exception), self.default)
+        # handler = self.handlers.get(type(exception), self.default)
+        handler = self.lookup(exception)
+        response = None
         try:
-            response = handler(request=request, exception=exception)
+            if handler:
+                response = handler(request=request, exception=exception)
+            if response is None:
+                response = self.default(request=request, exception=exception)
         except Exception:
             self.log(format_exc())
             if self.debug:
-                url = getattr(request, 'url', 'unknown')
+                url = getattr(request, 'path', 'unknown')
                 response_message = (
                     'Exception raised in exception handler "{}" '
                     'for uri: "{}"\n{}').format(
@@ -48,7 +53,7 @@ class ErrorHandler(SanicErrorHandler):
 
             response_message = (
                 'Exception occurred while handling uri: "{}"\n{}'.format(
-                    request.url, format_exc()))
+                    request.path, format_exc()))
             log.error(response_message)
             return html(html_output, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:

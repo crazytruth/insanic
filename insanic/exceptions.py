@@ -28,6 +28,10 @@ class APIException(SanicException):
     def __str__(self):
         return self.detail
 
+class ParseError(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = 'Malformed request.'
+
 class BadRequest(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = "Bad request."
@@ -112,3 +116,20 @@ class Throttled(APIException):
 class FieldError(Exception):
     """Some kind of problem with a model field."""
     pass
+
+
+class RawPostDataException(Exception):
+    """
+    You cannot access raw_post_data from a request that has
+    multipart/* POST data if it has been accessed via POST,
+    FILES, etc..
+    """
+    pass
+
+class ServiceUnavailable503Error(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = "Service unavailable."
+
+class UnprocessableEntity422Error(APIException):
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    default_detail = "Unprocessable Entity"

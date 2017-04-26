@@ -2,11 +2,10 @@ import os
 import sys
 import types
 
-import ujson as json
-
 from sanic.config import Config
+from configparser import ConfigParser
 
-from . import global_settings
+from insanic import global_settings
 
 class DockerSecretsConfig(Config):
 
@@ -14,6 +13,10 @@ class DockerSecretsConfig(Config):
         super().__init__(defaults)
         self.from_object(global_settings)
         self._load_secrets()
+
+        services_location = self._locate_service_ini()
+        self._load_service_locations(services_location)
+
 
     def _load_secrets(self):
         try:
@@ -44,8 +47,19 @@ class DockerSecretsConfig(Config):
                 if key.isupper():
                     self[key] = getattr(module, key)
 
+    def _locate_service_ini(self):
+
+        for root, dirs, files in os.walk('..'):
+            if "services.ini" in files:
+                return os.path.join(root, "services.ini")
+
+    def _load_service_locations(self, path):
+        config = ConfigParser()
+        config.read(path)
+
+        services = {section: config[section] for section in config.sections()
+                    if config[section].getboolean('isService', False)}
+
+        self['SERVICES'] = services
+
 settings = DockerSecretsConfig()
-
-print(settings)
-
-
