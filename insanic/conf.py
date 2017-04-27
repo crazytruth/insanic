@@ -19,7 +19,8 @@ class DockerSecretsConfig(Config):
         if services_location is not None:
             self._load_service_locations(services_location)
         else:
-            self._initiate_from_service_discovery()
+            pass
+            # self._initiate_from_service_discovery()
 
 
     def _load_secrets(self):
