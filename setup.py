@@ -33,7 +33,8 @@ setup(
         'cryptography',
         'peewee-async',
         'PyJWT',
-        'marshmallow'
+        'marshmallow',
+        'docker'
     ],
     # test_suite='nose.collector',
     # tests_require=['nose', 'nose-cover3'],

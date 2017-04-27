@@ -18,6 +18,8 @@ class DockerSecretsConfig(Config):
 
         if services_location is not None:
             self._load_service_locations(services_location)
+        else:
+            self._initiate_from_service_discovery()
 
 
     def _load_secrets(self):
@@ -65,5 +67,6 @@ class DockerSecretsConfig(Config):
                     if config[section].getboolean('isService', False)}
 
         self['SERVICES'] = services
+
 
 settings = DockerSecretsConfig()
