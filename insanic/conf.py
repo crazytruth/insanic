@@ -15,7 +15,9 @@ class DockerSecretsConfig(Config):
         self._load_secrets()
 
         services_location = self._locate_service_ini()
-        self._load_service_locations(services_location)
+
+        if services_location is not None:
+            self._load_service_locations(services_location)
 
 
     def _load_secrets(self):
@@ -52,6 +54,8 @@ class DockerSecretsConfig(Config):
         for root, dirs, files in os.walk('..'):
             if "services.ini" in files:
                 return os.path.join(root, "services.ini")
+
+        return None
 
     def _load_service_locations(self, path):
         config = ConfigParser()
