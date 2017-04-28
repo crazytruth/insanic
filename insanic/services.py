@@ -17,12 +17,14 @@ class Service:
         self._service_type = service_type
         self._session = None
         self._url_scheme = settings.API_GATEWAY_SCHEME
+        if service_type not in settings.SERVICES.keys():
+            raise AssertionError("Invalid service type.")
         if settings.MMT_ENV == "local":
-            if service_type not in settings.SERVICES.keys():
-                raise AssertionError("Invalid service type.")
-            self._url_netloc = "{0}:{1}".format(settings.API_GATEWAY_HOST, settings.SERVICES[service_type].get('externalserviceport'))
+            api_host = settings.API_GATEWAY_HOST
         else:
-            self._url_netloc = "{0}:{1}".format("mmt-server-{0}".format(service_type), 8000)
+            api_host = "mmt-server-{0}".format(service_type)
+
+        self._url_netloc = "{0}:{1}".format(api_host, settings.SERVICES[service_type].get('externalserviceport'))
         self._url_partial_path = "/api/v1/{0}".format(service_type)
         self._base_url = urlunsplit((self._url_scheme, self._url_netloc, self._url_partial_path, "", ""))
         self.remove_headers = ["content-length", 'user-agent', 'host', 'postman-token']
