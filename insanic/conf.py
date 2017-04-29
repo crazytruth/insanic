@@ -26,10 +26,12 @@ class DockerSecretsConfig(Config):
 
 
     def _load_secrets(self):
+
         try:
             with open('/run/secrets/{0}'.format(os.environ['MMT_SERVICE'])) as f:
                 docker_secrets = f.read()
 
+            print(docker_secrets)
             for e in docker_secrets.split(' '):
                 k, v = e.split(':', 1)
                 try:
