@@ -32,8 +32,9 @@ class DockerSecretsConfig(Config):
                 docker_secrets = f.read()
 
             print(docker_secrets)
-            for e in docker_secrets.split(' '):
-                k, v = e.split(':', 1)
+            docker_secrets = json.loads(docker_secrets)
+
+            for k, v in docker_secrets.items():
                 try:
                     v = int(v)
                 except ValueError:
