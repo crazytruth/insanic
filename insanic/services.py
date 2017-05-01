@@ -29,6 +29,9 @@ class Service:
         self._base_url = urlunsplit((self._url_scheme, self._url_netloc, self._url_partial_path, "", ""))
         self.remove_headers = ["content-length", 'user-agent', 'host', 'postman-token']
 
+        print(settings)
+        print(self._url_netloc)
+
     @property
     def session(self):
         if self._session is None:

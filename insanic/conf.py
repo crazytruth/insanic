@@ -24,8 +24,6 @@ class DockerSecretsConfig(Config):
         else:
             self._initiate_from_swarm()
 
-        print(self)
-
 
     def _load_secrets(self):
 
