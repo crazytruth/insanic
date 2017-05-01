@@ -34,7 +34,7 @@ class Insanic(Sanic):
                                             port=self.config['WEB_MYSQL_PORT'],
                                             user=self.config['WEB_MYSQL_USER'],
                                             password=self.config['WEB_MYSQL_PWD'],
-                                            min_connections=5, max_connections=10)
+                                            min_connections=5, max_connections=10, charset='utf8', use_unicode=True)
         # self.database.set_allow_sync(False)
 
     def _helper(self, **kwargs):
