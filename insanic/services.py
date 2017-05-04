@@ -1,4 +1,5 @@
 import aiohttp
+import hashlib
 import ujson as json
 
 from asyncio import get_event_loop
@@ -29,9 +30,6 @@ class Service:
         self._base_url = urlunsplit((self._url_scheme, self._url_netloc, self._url_partial_path, "", ""))
         self.remove_headers = ["content-length", 'user-agent', 'host', 'postman-token']
 
-        print(settings)
-        print(self._url_netloc)
-
     @property
     def session(self):
         if self._session is None:
@@ -55,16 +53,25 @@ class Service:
                 del headers[h]
 
         headers.update({"accept": "application/json"})
+
+        m = hashlib.sha256()
+        m.update('mmt-server-{0}'.format(self._service_type).encode())
+        m.update(settings.WEB_SECRET_KEY.encode())
+
+        headers.update({"mmt-token": m.hexdigest()})
         return headers
 
 
-    async def _dispatch(self, method, endpoint, payload={}, headers={}):
+    async def _dispatch(self, method, endpoint, payload={}, headers={}, return_obj=True):
         request_method = getattr(self.session, method.lower(), None)
         url = self._construct_url(endpoint)
         headers = self._prepare_headers(headers)
+
+        if not isinstance(payload, str):
+            payload = json.dumps(payload)
+
         try:
-            async with request_method(url, headers=headers) as resp:
-                assert resp.status == 200
+            async with request_method(url, headers=headers, data=payload) as resp:
                 response = await resp.json()
         except aiohttp.client_exceptions.ClientConnectionError:
             if settings.MMT_ENV == "production":
@@ -75,4 +82,7 @@ class Service:
                 raise
             raise ServiceUnavailable503Error(msg, GlobalErrorCodes.service_unavailable)
 
-        return to_object(response)
+        if return_obj:
+            return to_object(response)
+        else:
+            return response

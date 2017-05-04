@@ -1,8 +1,10 @@
+import hashlib
 import io
 
 from sanic.request import Request as SanicRequest
 
 from insanic import exceptions
+from insanic.conf import settings
 from insanic.models import AnonymousUser
 from insanic.utils.mediatypes import parse_header, HTTP_HEADER_ENCODING
 
@@ -44,7 +46,7 @@ class Request(SanicRequest):
         'parsed_json', 'parsed_args', 'parsed_form', 'parsed_files',
         '_ip',
         'authenticators', '_data', '_files', '_full_data', '_content_type',
-        '_stream', '_authenticator', '_user', '_auth',
+        '_stream', '_authenticator', '_user', '_auth', '_is_service', '_service_hosts'
     )
 
     def __init__(self, url_bytes, headers, version, method, transport,
@@ -58,6 +60,8 @@ class Request(SanicRequest):
         self._full_data = Empty
         self._content_type = Empty
         self._stream = Empty
+        self._is_service = Empty
+        self._service_hosts = Empty
 
         self.authenticators = authenticators or ()
 
@@ -87,6 +91,26 @@ class Request(SanicRequest):
         if not _hasattr(self, '_full_data'):
             self._load_data_and_files()
         return self._full_data
+
+    @property
+    def is_service(self):
+
+        if not _hasattr(self, "_is_service"):
+            if "mmt-token" not in self.headers:
+                self._is_service = False
+            elif not _hasattr(self, '_service_hosts'):
+                self._service_hosts = {c.get('externalserviceport'): s for s, c in settings.SERVICES.items()}
+                try:
+                    _port = int(self.headers.get('host').split(':')[-1])
+                except ValueError:
+                    _port = 80
+                m = hashlib.sha256()
+                m.update('mmt-server-{0}'.format(self._service_hosts.get(_port, '')).encode())
+                m.update(settings.WEB_SECRET_KEY.encode())
+                self._is_service = m.hexdigest() == self.headers.get('mmt-token')
+            else:
+                self._is_service = False
+        return self._is_service
 
     @property
     async def user(self):

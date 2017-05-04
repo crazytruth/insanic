@@ -12,7 +12,7 @@ from insanic.utils.jwt import jwt_decode_handler, jwt_get_username_from_payload_
 
 
 try:
-    from user.models import UserModel
+    from user.models import LegacyUserModel
 except ImportError:
     pass
 
@@ -92,8 +92,8 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
         # else go ask user service
         if settings.SERVICE_TYPE == "user":
             try:
-                user = await request.app.objects.get(UserModel, email='kwangjinkim@gmail.com')
-            except UserModel.DoesNotExist:
+                user = await request.app.objects.get(LegacyUserModel, email='kwangjinkim@gmail.com')
+            except LegacyUserModel.DoesNotExist:
                 msg = 'Invalid signature.'
                 raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.invalid_signature)
         else:

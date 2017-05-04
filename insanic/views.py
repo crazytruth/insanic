@@ -59,11 +59,13 @@ class MMTBaseView(HTTPMethodView):
                 fields = None
         return fields
 
-    def get_schema_class(self, **kwargs):
-        fields = self.get_fields()
-        if fields is not None:
-            kwargs.update({"only": fields})
+    def get_schema_class(self, all_fields=False, **kwargs):
+        if not all_fields:
+            fields = self.get_fields()
+            if fields is not None:
+                kwargs.update({"only": fields})
 
+        kwargs.update({"strict": True})
         return self.schema_class(**kwargs)
 
     def _allowed_methods(self):

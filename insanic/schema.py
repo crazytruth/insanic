@@ -63,7 +63,7 @@ class AsyncField(fields.Field):
         return await serialize
 
 
-class AsyncListFiend(AsyncField, fields.List):
+class AsyncListField(AsyncField, fields.List):
 
     async def _aserialize(self, value, attr, obj):
         if value is None:
