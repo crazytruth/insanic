@@ -34,6 +34,7 @@ setup(
         'peewee-async',
         'PyJWT',
         'marshmallow',
+        'Marshmallow-Peewee',
         'docker'
     ],
     # test_suite='nose.collector',
