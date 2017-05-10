@@ -268,7 +268,7 @@ class MMTBaseView(HTTPMethodView):
                 for p in required_params:
                     data.update({p: body_data.get(p, None)})
 
-        if all(data.values()):
+        if None not in data.values():
             response = handler(self.request, data, *self.args, **self.kwargs)
         else:
             missing_parameters = [p for p, v in data.items() if v is None]
