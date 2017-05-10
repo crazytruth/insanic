@@ -92,7 +92,7 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
         # else go ask user service
         if settings.SERVICE_TYPE == "user":
             try:
-                user = await request.app.objects.get(LegacyUserModel, email='kwangjinkim@gmail.com')
+                user = await request.app.objects.get(LegacyUserModel, email=payload['email'])
             except LegacyUserModel.DoesNotExist:
                 msg = 'Invalid signature.'
                 raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.invalid_signature)
