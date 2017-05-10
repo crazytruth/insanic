@@ -35,7 +35,8 @@ setup(
         'PyJWT',
         'marshmallow',
         'Marshmallow-Peewee',
-        'docker'
+        'docker',
+        'boto3'
     ],
     # test_suite='nose.collector',
     # tests_require=['nose', 'nose-cover3'],

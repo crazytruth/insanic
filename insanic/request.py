@@ -1,7 +1,7 @@
 import hashlib
 import io
 
-from sanic.request import Request as SanicRequest
+from sanic.request import Request as SanicRequest, RequestParameters
 
 from insanic import exceptions
 from insanic.conf import settings
@@ -169,7 +169,7 @@ class Request(SanicRequest):
         if not _hasattr(self, '_data'):
             self._data, self._files = self._parse()
             if self._files:
-                self._full_data = self._data.copy()
+                self._full_data = RequestParameters(self._data.copy())
                 self._full_data.update(self._files)
             else:
                 self._full_data = self._data
@@ -213,7 +213,7 @@ class Request(SanicRequest):
 
         if media_type == "application/json":
             return self.json, self.files
-        elif media_type == 'application/x-www-form-urlencoded' or media_type == 'multipart/form-data':
+        elif media_type == 'application/x-www-form-urlencoded' or media_type.startswith('multipart/form-data'):
             return self.form, self.files
         else:
             raise exceptions.UnsupportedMediaType(media_type)
