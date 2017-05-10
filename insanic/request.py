@@ -1,6 +1,8 @@
 import hashlib
 import io
 
+from httptools import parse_url
+
 from sanic.request import Request as SanicRequest, RequestParameters
 
 from insanic import exceptions
@@ -41,12 +43,12 @@ class Request(SanicRequest):
     """
 
     __slots__ = (
-        'app', 'url', 'headers', 'version', 'method', '_cookies', 'transport',
+        'app', 'headers', 'version', 'method', '_cookies', 'transport',
         'body',
         'parsed_json', 'parsed_args', 'parsed_form', 'parsed_files',
         '_ip',
         'authenticators', '_data', '_files', '_full_data', '_content_type',
-        '_stream', '_authenticator', '_user', '_auth', '_is_service', '_service_hosts'
+        '_stream', '_authenticator', '_user', '_auth', '_is_service', '_service_hosts', '_parsed_url', 'uri_template'
     )
 
     def __init__(self, url_bytes, headers, version, method, transport,
@@ -54,6 +56,7 @@ class Request(SanicRequest):
 
         super().__init__(url_bytes, headers, version, method, transport)
         # self._request = request
+        self._parsed_url = parse_url(url_bytes)
 
         self._data = Empty
         self._files = Empty

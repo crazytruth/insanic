@@ -4,6 +4,7 @@ from sanic_useragent import SanicUserAgent
 from peewee_async import PooledMySQLDatabase
 
 from insanic.conf import settings
+from insanic.connections import connect_database, close_database
 from insanic.handlers import ErrorHandler
 from insanic.protocol import InsanicHttpProtocol
 from insanic.utils import attach_middleware
@@ -35,6 +36,8 @@ class Insanic(Sanic):
                                             user=self.config['WEB_MYSQL_USER'],
                                             password=self.config['WEB_MYSQL_PWD'],
                                             min_connections=5, max_connections=10, charset='utf8', use_unicode=True)
+
+        self.add_task(connect_database(self))
         # self.database.set_allow_sync(False)
 
     def _helper(self, **kwargs):

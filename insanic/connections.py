@@ -2,7 +2,7 @@ import aioredis
 
 from peewee_async import Manager, PooledMySQLDatabase
 
-async def connect_database(app, loop, **kwargs):
+async def connect_database(app, loop=None, **kwargs):
 
     REDIS_HOST = app.config['REDIS_HOST']
     REDIS_PORT = app.config['REDIS_PORT']
