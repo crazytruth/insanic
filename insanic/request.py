@@ -214,9 +214,9 @@ class Request(SanicRequest):
         """
         media_type = self.content_type
 
-        if media_type == "application/json":
+        if media_type.startswith("application/json"):
             return self.json, self.files
-        elif media_type == 'application/x-www-form-urlencoded' or media_type.startswith('multipart/form-data'):
+        elif media_type.startswith('application/x-www-form-urlencoded') or media_type.startswith('multipart/form-data'):
             return self.form, self.files
         else:
             raise exceptions.UnsupportedMediaType(media_type)
