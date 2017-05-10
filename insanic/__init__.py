@@ -1,4 +1,5 @@
 from sanic import Sanic
+from sanic.config import LOGGING
 from sanic_useragent import SanicUserAgent
 
 from peewee_async import PooledMySQLDatabase
@@ -9,6 +10,9 @@ from insanic.handlers import ErrorHandler
 from insanic.protocol import InsanicHttpProtocol
 from insanic.utils import attach_middleware
 
+LOGGING['handlers']['accessTimedRotatingFile']['filename'] = "/tmp/access.log"
+LOGGING['handlers']['errorTimedRotatingFile']['filename'] = "/tmp/error.log"
+
 class Insanic(Sanic):
 
     def __init__(self, name, router=None, error_handler=None, app_config=()):
@@ -16,7 +20,9 @@ class Insanic(Sanic):
         if error_handler is None:
             error_handler = ErrorHandler()
 
-        super().__init__(name, router, error_handler)
+
+
+        super().__init__(name, router, error_handler, log_config=LOGGING)
         self.config = settings
 
         for c in app_config:
