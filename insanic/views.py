@@ -259,13 +259,8 @@ class MMTBaseView(HTTPMethodView):
         required_params = getattr(self, "{0}_params".format(self.request.method.lower()), [])
         data = {}
         if len(required_params):
-            # if self.request.headers.get('Content-Type', "").startswith('application/json'):
-            #     try:
-            #         body_data = self.request.json
-            #     except exceptions.SanicException as e:
-            #         raise exceptions.APIException(e.args[0], 1000, e.status_code)
-            # else:
-            #     raise exceptions.UnsupportedMediaType(self.request.headers.get('Content-Type'))
+
+            body_data = self.request.data
 
             if body_data is None:
                 data.update({"is_valid": False})
