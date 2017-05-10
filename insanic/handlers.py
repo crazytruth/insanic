@@ -5,6 +5,16 @@ from sanic.handlers import ErrorHandler as SanicErrorHandler, format_exc, SanicE
 from insanic import status
 from insanic.errors import GlobalErrorCodes
 
+INTERNAL_SERVER_ERROR_JSON = {
+  "message": "Server Error",
+  "description": "Something has blown up really bad. Somebody should be notified?",
+  "error_code": {
+      "name": "unknown_error",
+      "value": 99999
+  }
+}
+
+
 class ErrorHandler(SanicErrorHandler):
 
     def response(self, request, exception):
@@ -57,4 +67,4 @@ class ErrorHandler(SanicErrorHandler):
             log.error(response_message)
             return html(html_output, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
-            return html(INTERNAL_SERVER_ERROR_HTML, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return json(INTERNAL_SERVER_ERROR_JSON, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
