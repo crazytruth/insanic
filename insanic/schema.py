@@ -12,15 +12,6 @@ from marshmallow.utils import is_collection, missing as missing_, set_value
 from marshmallow.compat import text_type, iteritems
 
 
-class RedisMarshaller(Marshaller):
-
-
-    def save(self):
-
-
-        pass
-
-
 #
 # class AsyncInt(fields.Int):
 #
