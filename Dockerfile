@@ -11,7 +11,7 @@ ONBUILD ARG SERVICE
 ONBUILD COPY $SERVICE/requirements.txt /tmp
 
 ONBUILD RUN apk add --update --no-cache --virtual .build-deps  \
-        build-base gcc libffi-dev openssl-dev && \
+        build-base gcc libffi-dev openssl-dev libjpeg-dev && \
     pip install --upgrade --extra-index-url http://pypi.mmt.local/ --trusted-host pypi.mmt.local -r /tmp/requirements.txt && \
     find /usr/local \
         \( -type d -a -name test -o -name tests \) \
