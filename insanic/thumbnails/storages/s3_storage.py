@@ -76,7 +76,7 @@ class Storage:
     connection_response_error = ClientError
     location = ""
     default_content_type = 'application/octet-stream'
-    custom_domain = settings.AWS_S3_CUSTOM_DOMAIN
+    custom_domain = settings.get('AWS_S3_CUSTOM_DOMAIN', '')
     url_protocol = settings.get('AWS_S3_URL_PROTOCOL', 'http:')
     querystring_expire = settings.get('AWS_QUERYSTRING_EXPIRE', 3600)
     querystring_auth = settings.get('AWS_QUERYSTRING_AUTH', True)
@@ -88,7 +88,7 @@ class Storage:
         self._bucket = None
         self._connection = None
         self._entries = {}
-        self.bucket_name = settings.AWS_S3_BUCKET_NAME
+        self.bucket_name = settings.get('AWS_S3_BUCKET_NAME', '')
 
         self.location = (self.location or '').lstrip('/')
 

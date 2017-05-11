@@ -36,7 +36,8 @@ setup(
         'marshmallow',
         'Marshmallow-Peewee',
         'docker',
-        'boto3'
+        'boto3',
+        'Pillow'
     ],
     # test_suite='nose.collector',
     # tests_require=['nose', 'nose-cover3'],
