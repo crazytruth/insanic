@@ -29,7 +29,7 @@ def bumpversion_insanic(bump_part="patch"):
 
     local('bumpversion --verbose --search "insanic=={{current_version}}" --replace "insanic=={{new_version}}" '
           '--no-commit --no-tag --allow-dirty {0} {1}'.format(bump_part, " ".join(requirements)))
-    local('python setup.py sdist upload -r http://pypi.mmt.local/')
+    local('python setup.py sdist upload -r host')
 
 
 

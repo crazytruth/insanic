@@ -1,15 +1,17 @@
-import asyncio
+import aiobotocore
 import os
 import ujson as json
 
-from urllib.parse import urlsplit
+from io import BytesIO
+
+from PIL import Image
+from sanic.request import File
 
 from insanic.conf import settings
 from insanic.thumbnails.helpers import tokey
-from insanic.thumbnails.images import ImageFile
-from insanic.thumbnails.kvstores import kvstore
-from insanic.thumbnails.engines.pil_engine import engine
-from insanic.thumbnails.storages.s3_storage import storage
+
+from insanic.thumbnails.engines import engine
+
 from insanic.thumbnails.parsers import parse_geometry
 
 EXTENSIONS = {
@@ -18,6 +20,8 @@ EXTENSIONS = {
 }
 
 class ThumbnailBackend:
+    _session = None
+
     default_options = {
         'format': settings.get('THUMBNAIL_FORMAT', 'JPEG'),
         'quality': settings.get('THUMBNAIL_QUALITY', 95),
@@ -80,61 +84,122 @@ class ThumbnailBackend:
     #     thumbnail.s_url = new_url
     #     return thumbnail
 
-    async def get_thumbnail(self, file_, geometry_string, **options):
-        """
-        Returns thumbnail as an ImageFile instance for file with geometry and
-        options given. First it will try to get it from the key value store,
-        secondly it will create it.
-        """
+    # async def get_thumbnail(self, file_, geometry_string, **options):
+    #     """
+    #     Returns thumbnail as an ImageFile instance for file with geometry and
+    #     options given. First it will try to get it from the key value store,
+    #     secondly it will create it.
+    #     """
+    #
+    #     if file_:
+    #         source = ImageFile(file_)
+    #     else:
+    #         return None
+    #
+    #     # preserve image filetype
+    #     options.setdefault('format', self._get_format(source))
+    #
+    #     for key, value in self.default_options.items():
+    #         options.setdefault(key, value)
+    #
+    #     name = self._get_thumbnail_filename(source, geometry_string, options)
+    #     thumbnail = ImageFile(name, storage)
+    #     cached = await kvstore.get(thumbnail)
+    #
+    #     if cached:
+    #         # cached = self._get_correct_url(cached)
+    #         return cached
+    #
+    #     # We have to check exists() because the Storage backend does not
+    #     # overwrite in some implementations.
+    #     thumbnail_exists = await thumbnail.exists()
+    #     if not thumbnail_exists:
+    #         try:
+    #             source_image = await engine.get_image(source)
+    #         except IOError:
+    #             return thumbnail
+    #
+    #         # We might as well set the size since we have the image in memory
+    #         image_info = engine.get_image_info(source_image)
+    #         options['image_info'] = image_info
+    #         size = engine.get_image_size(source_image)
+    #         await source.set_size(size)
+    #
+    #         try:
+    #             await self._create_thumbnail(source_image, geometry_string, options, thumbnail)
+    #             # self._create_alternative_resolutions(source_image, geometry_string,
+    #             #                                      options, thumbnail.name)
+    #         except:
+    #             raise
+    #         finally:
+    #             engine.cleanup(source_image)
+    #
+    #     # If the thumbnail exists we don't create it, the other option is
+    #     # to delete and write but this could lead to race conditions so I
+    #     # will just leave that out for now.
+    #     asyncio.ensure_future(kvstore.get_or_set(source))
+    #     asyncio.ensure_future(kvstore.set(thumbnail, source))
+    #     # thumbnail = await self._get_correct_url(thumbnail)
+    #
+    #     return thumbnail
 
-        if file_:
-            source = ImageFile(file_)
+
+    @property
+    def session(self):
+        if self._session is None:
+            self._session = aiobotocore.get_session()
+
+        return self._session
+
+    async def upload_photo(self, file, dimension=None):
+        try:
+
+            if dimension is not None:
+                file = self.generate_thumbnail(file, dimension)
+            else:
+                pass
+
+            if file is None:
+                return None
+
+            async with self.session.create_client('s3', region_name=settings.AWS_S3_REGION,
+                                                  aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                                                  aws_access_key_id=settings.AWS_ACCESS_KEY_ID) as client:
+                resp = await client.put_object(Bucket=settings.AWS_S3_BUCKET_NAME, Key=file.name, Body=file.body)
+                print(resp)
+        except Exception as e:
+            raise e
+
+
+
+    def generate_thumbnail(self, file, dimension, **options):
+        if dimension == "blur":
+            dimension = "500x500"
+            options.update({"crop": "center"})
+            options.update({"blur": 10})
         else:
-            return None
+            options.update({"crop": "center"})
+            options.update({"quality": 95})
 
-        # preserve image filetype
-        options.setdefault('format', self._get_format(source))
 
+        options.setdefault('format', self._get_format(file))
         for key, value in self.default_options.items():
             options.setdefault(key, value)
 
-        name = self._get_thumbnail_filename(source, geometry_string, options)
-        thumbnail = ImageFile(name, storage)
-        cached = await kvstore.get(thumbnail)
+        buffer = BytesIO(file.body)
+        source_image = Image.open(buffer)
 
-        if cached:
-            # cached = self._get_correct_url(cached)
-            return cached
+        x, y = source_image.size
+        ratio = float(x) / y
 
-        # We have to check exists() because the Storage backend does not
-        # overwrite in some implementations.
-        thumbnail_exists = await thumbnail.exists()
-        if not thumbnail_exists:
-            try:
-                source_image = await engine.get_image(source)
-            except IOError:
-                return thumbnail
+        geometry = parse_geometry(dimension, ratio)
 
-            # We might as well set the size since we have the image in memory
-            image_info = engine.get_image_info(source_image)
-            options['image_info'] = image_info
-            size = engine.get_image_size(source_image)
-            await source.set_size(size)
-
-            try:
-                await self._create_thumbnail(source_image, geometry_string, options, thumbnail)
-                # self._create_alternative_resolutions(source_image, geometry_string,
-                #                                      options, thumbnail.name)
-            except:
-                raise
-            finally:
-                engine.cleanup(source_image)
-
-        # If the thumbnail exists we don't create it, the other option is
-        # to delete and write but this could lead to race conditions so I
-        # will just leave that out for now.
-        asyncio.ensure_future(kvstore.get_or_set(source))
-        asyncio.ensure_future(kvstore.set(thumbnail, source))
-        # thumbnail = await self._get_correct_url(thumbnail)
+        try:
+            image = engine.create(source_image, geometry, options)
+            raw_data = engine.write_sync(image, options)
+            thumbnail = File(type=file.type, body=raw_data, name=file.name)
+        except IOError:
+            thumbnail = None
 
         return thumbnail
+

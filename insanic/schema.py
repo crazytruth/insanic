@@ -1,42 +1,143 @@
 import asyncio
+import datetime
+import imghdr
+import os
 import warnings
+
 from collections import Mapping
 from inspect import isawaitable
+from uuid import uuid4
 
 from marshmallow import utils, Schema, MarshalResult, fields
 from marshmallow.exceptions import ValidationError
-from marshmallow.decorators import (PRE_DUMP, POST_DUMP, PRE_LOAD, POST_LOAD,
-                                    VALIDATES, VALIDATES_SCHEMA)
+from marshmallow.decorators import (PRE_DUMP, POST_DUMP)
 from marshmallow.marshalling import Marshaller
-from marshmallow.utils import is_collection, missing as missing_, set_value
-from marshmallow.compat import text_type, iteritems
+from marshmallow.utils import missing as missing_
+from marshmallow.compat import iteritems
+from marshmallow_peewee.convert import ModelConverter as MPModelConverter
+from sanic.request import File
+
+from insanic.conf import settings
+from insanic.thumbnails import generator
+from insanic.thumbnails.backends import EXTENSIONS
+from insanic.thumbnails.helpers import tokey
+
+class ImageField(fields.FormattedString):
+    _CHECK_ATTRIBUTE = True
+
+    def __init__(self, upload_to, dimension=None, *args, **kwargs):
+        self.upload_to = upload_to
+
+        if dimension:
+            self.dimension = dimension
+        src_str = "https://{0}/{{photo}}".format(settings.AWS_S3_CUSTOM_DOMAIN)
+        super().__init__(src_str, *args, **kwargs)
+
+    def _deserialize(self, value, attr, obj):
+
+        if isinstance(value, dict):
+            return value['original']
+        elif isinstance(value, File):
+
+            file_type = imghdr.what(None, value.body)
+
+            if file_type is None:
+                raise ValidationError("Not a valid image type.")
+            elif file_type.upper() not in EXTENSIONS.keys():
+                raise ValidationError("Not a valid image type. Only jpg's or png's are allowed.")
+
+            rename_file = File(type=value.type, body=value.body, name=self._get_filename(value.name))
+            # upload file to s3
+
+            tasks = []
+            tasks.append(generator.upload_photo(rename_file, None))
+            # asyncio.ensure_future(upload_user_photo(rename_file, getattr(self, 'dimension', None)))
+            for thumb_type, thumb_dimension in settings.USER_THUMBNAIL_DIMENSION.items():
+                thumbnail_file = File(type=value.type, body=value.body, name=self._get_filename(value.name, thumb_dimension))
+                tasks.append(generator.upload_photo(thumbnail_file, thumb_dimension))
+
+            if tasks:
+                asyncio.gather(*tasks)
+
+            value = rename_file.name
+
+        return value
+
+    def _serialize(self, value, attr, obj):
+        value = self._get_filename(value)
+        return self.src_str.format(photo=value)
+
+    def _get_filename(self, value, dimension=None):
+        filename = os.path.basename(value)
+
+        filename_base, extension = os.path.splitext(filename)
+        if dimension is not None:
+            dimension = dimension
+        elif hasattr(self, 'dimension'):
+            dimension = self.dimension
 
 
-#
-# class AsyncInt(fields.Int):
-#
-#     def serialize(self, attr, obj, accessor=None):
-#         """Pulls the value for the given key from the object, applies the
-#         field's formatting and returns the result.
-#
-#         :param str attr: The attibute or key to get from the object.
-#         :param str obj: The object to pull the key from.
-#         :param callable accessor: Function used to pull values from ``obj``.
-#         :raise ValidationError: In case of formatting problem
-#         """
-#         if self._CHECK_ATTRIBUTE:
-#             value = self.get_value(attr, obj, accessor=accessor)
-#             if value is missing_:
-#                 if hasattr(self, 'default'):
-#                     if callable(self.default):
-#                         return self.default()
-#                     else:
-#                         return self.default
-#         else:
-#             value = None
-#         return self._serialize(value, attr, obj)
-#
-#
+        if dimension:
+            filename = "{filename}.{dimension}{extension}".format(filename=filename_base, dimension=dimension, extension=extension)
+        else:
+            filename = "{filename}{extension}".format(filename=filename_base, extension=extension)
+
+        return os.path.join(self.upload_to, filename)
+
+
+class ModelConverter(MPModelConverter):
+
+    def convert_BooleanField(self, field, validate=None, **params):
+        return fields.Int(**params)
+
+    def convert_DecimalField(self, field, validate=None, **params):
+        return fields.Float(**params)
+
+
+class ThumbnailsField(fields.Field):
+# class ThumbnailsField(Schema):
+#     original = ImageField(required=False, upload_to=settings.AWS_S3_USER_PHOTO_LOCATION)
+
+    def __init__(self, upload_to, *args, **kwargs):
+        self.upload_to = upload_to
+        self.structure = {}
+        self.structure.update({"original": ImageField(upload_to=upload_to, required=False)})
+
+        for thumbnail_type, dimension in settings.USER_THUMBNAIL_DIMENSION.items():
+            self.structure.update({thumbnail_type: ImageField(upload_to, dimension=dimension)})
+
+        super().__init__(*args, **kwargs)
+
+    def _deserialize(self, value, attr, data):
+
+        if isinstance(value, File):
+            upload_file = File(type=value.type, body=value.body, name=self._set_image_name(value.name))
+
+            value = self.structure['original']._deserialize(upload_file, 'original', data)
+
+        return value
+
+
+    def _serialize(self, value, attr, obj):
+
+        if isinstance(value, File):
+            value = File(type=value.type, body=value.body, name=self._set_image_name(value.name))
+            # format_data = {t: rename_file for t in self.fields.keys()}
+
+        format_data = {k: f._serialize(value, k, obj) for k, f in self.structure.items()}
+        return format_data
+
+
+    def _set_image_name(self, filename):
+        ext = filename.split('.')[-1]
+        # get filename
+        now = str(datetime.datetime.now())
+        key = tokey(uuid4().hex, ext, now)
+        filename = '{}.{}'.format(key, ext)
+        # return the whole path to the file
+        return os.path.join(self.upload_to, filename)
+
+
 class AsyncField(fields.Field):
 
     async def aserialize(self, attr, obj, accessor=None):

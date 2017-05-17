@@ -1,3 +1,4 @@
+import aiobotocore
 import hashlib
 import math
 import time
@@ -5,6 +6,8 @@ import random
 import ujson as json
 
 from importlib import import_module
+
+from sanic.request import File
 
 try:
     random = random.SystemRandom()
@@ -85,3 +88,6 @@ def get_module_class(class_path):
         raise ImproperlyConfigured(('Error importing module %s: "%s"' % (mod_name, e)))
 
     return getattr(mod, cls_name)
+
+
+

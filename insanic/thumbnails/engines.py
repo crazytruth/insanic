@@ -43,33 +43,12 @@ class Engine:
         """
         Processing conductor, returns the thumbnail as an image engine instance
         """
-        image = self.cropbox(image, geometry, options)
-        image = self.orientation(image, geometry, options)
+
         image = self.colorspace(image, geometry, options)
-        image = self.remove_border(image, options)
         image = self.scale(image, geometry, options)
         image = self.crop(image, geometry, options)
-        image = self.rounded(image, geometry, options)
         image = self.blur(image, geometry, options)
         image = self.padding(image, geometry, options)
-        return image
-
-    def cropbox(self, image, geometry, options):
-        """
-        Wrapper for ``_cropbox``
-        """
-        cropbox = options['cropbox']
-        if not cropbox:
-            return image
-        x, y, x2, y2 = parse_cropbox(cropbox)
-        return self._cropbox(image, x, y, x2, y2)
-
-    def orientation(self, image, geometry, options):
-        """
-        Wrapper for ``_orientation``
-        """
-        if options.get('orientation', settings.get('THUMBNAIL_ORIENTATION', True)):
-            return self._orientation(image)
         return image
 
     def colorspace(self, image, geometry, options):
@@ -78,14 +57,6 @@ class Engine:
         """
         colorspace = options['colorspace']
         return self._colorspace(image, colorspace)
-
-    def remove_border(self, image, options):
-
-        if options.get('remove_border', False):
-            x_image, y_image = self.get_image_size(image)
-            image = self._remove_border(image, x_image, y_image)
-
-        return image
 
     def _calculate_scaling_factor(self, x_image, y_image, geometry, options):
         crop = options['crop']
@@ -126,14 +97,6 @@ class Engine:
         x_offset, y_offset = parse_crop(crop, (x_image, y_image), geometry)
         return self._crop(image, geometry[0], geometry[1], x_offset, y_offset)
 
-    def rounded(self, image, geometry, options):
-        """
-        Wrapper for ``_rounded``
-        """
-        r = options['rounded']
-        if not r:
-            return image
-        return self._rounded(image, int(r))
 
     def blur(self, image, geometry, options):
         """
@@ -166,6 +129,20 @@ class Engine:
             progressive=progressive
         )
         await thumbnail.write(raw_data)
+
+    def write_sync(self, image, options):
+        format_ = options['format']
+        quality = options['quality']
+        image_info = options.get('image_info', {})
+        # additional non-default-value options:
+        progressive = options.get('progressive', settings.get('THUMBNAIL_PROGRESSIVE', True))
+        raw_data = self._get_raw_data(
+            image, format_, quality,
+            image_info=image_info,
+            progressive=progressive
+        )
+        # await thumbnail.write(raw_data)
+        return raw_data
 
     def cleanup(self, image):
         """Some backends need to manually cleanup after thumbnails are created"""
@@ -247,41 +224,6 @@ class Engine:
         if colorspace == 'GRAY':
             return image.convert('L')
         return image
-
-    def _remove_border(self, image, image_width, image_height):
-        borders = {
-            'top': lambda iy, dy, y: (dy, dy + y),
-            'right': lambda ix, dx, x: (ix - dx - x, ix - dx),
-            'bottom': lambda iy, dy, y: (iy - dy - y, iy - dy),
-            'left': lambda ix, dx, x: (dx, dx + x),
-        }
-
-        offset = {'top': 0, 'right': 0, 'bottom': 0, 'left': 0, }
-
-        for border in ['top', 'bottom']:
-            # Don't remove too much, the image may just be plain
-            while offset[border] < image_height / 3.5:
-                slice_size = min(image_width / 20, 10)
-                y_range = borders[border](image_height, offset[border], slice_size)
-                section = image.crop((0, y_range[0], image_width, y_range[1]))
-                # If this section is below the threshold; remove it
-                if self._get_image_entropy(section) < 2.0:
-                    offset[border] += slice_size
-                else:
-                    break
-
-        for border in ['left', 'right']:
-            while offset[border] < image_width / 3.5:
-                slice_size = min(image_height / 20, 10)
-                x_range = borders[border](image_width, offset[border], slice_size)
-                section = image.crop((x_range[0], 0, x_range[1], image_height))
-                if self._get_image_entropy(section) < 2.0:
-                    offset[border] += slice_size
-                else:
-                    break
-
-        return image.crop((offset['left'], offset['top'], image_width - offset['right'],
-                           image_height - offset['bottom']))
 
     # Credit to chrisopherhan https://github.com/christopherhan/pycrop
     # This is just a slight rework of pycrops implimentation
