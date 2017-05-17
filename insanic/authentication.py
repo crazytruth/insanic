@@ -7,7 +7,7 @@ import jwt
 from insanic import exceptions
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
-from insanic.services import Service
+from insanic.loading import get_service
 from insanic.utils.jwt import jwt_decode_handler, jwt_get_username_from_payload_handler
 
 
@@ -15,6 +15,8 @@ try:
     from user.models import LegacyUserModel
 except ImportError:
     pass
+
+user_service = get_service('user')
 
 UNUSABLE_PASSWORD_PREFIX = '!'
 
@@ -97,8 +99,8 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
                 msg = 'Invalid signature.'
                 raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.invalid_signature)
         else:
-            service = Service('user')
-            user = await service.http_dispatch("GET", "/api/v1/user/self", headers=request.headers)
+
+            user = await user_service.http_dispatch("GET", "/api/v1/user/self", headers=request.headers)
 
         if not user.is_active:
             msg = 'User account is disabled.'

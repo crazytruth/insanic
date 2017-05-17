@@ -11,6 +11,30 @@ from insanic.errors import GlobalErrorCodes
 from insanic.exceptions import ServiceUnavailable503Error
 from insanic.utils import to_object
 
+
+class ServiceRegistry(dict):
+    def __init__(self, *args, **kwargs):
+
+        self._registry = {s: None for s in settings.SERVICES.keys()}
+
+        super().__init__(*args, **kwargs)
+
+    def __setitem__(self, key, value):
+        raise RuntimeError("Unable to set new service.")
+
+    def __getitem__(self, item):
+
+        if item not in self._registry:
+            raise RuntimeError("{0} service does not exist. Only the following: {1}"
+                               .format(item, ", ".join(self._registry.keys())))
+
+        if self._registry[item] is None:
+            self._registry[item] = Service(item)
+
+        return self._registry[item]
+
+registry = ServiceRegistry()
+
 class Service:
 
     def __init__(self, service_type):
@@ -78,11 +102,13 @@ class Service:
                 msg = "Service unavailable. Please try again later."
             else:
                 msg = "Cannot connect to {0}. Please try again later".format(self._service_type)
-                print(msg)
-                raise
+
             raise ServiceUnavailable503Error(msg, GlobalErrorCodes.service_unavailable)
 
         if return_obj:
             return to_object(response)
         else:
             return response
+
+
+
