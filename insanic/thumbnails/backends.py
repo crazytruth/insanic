@@ -168,6 +168,7 @@ class ThumbnailBackend:
                 resp = await client.put_object(Bucket=settings.AWS_S3_BUCKET_NAME, Key=file.name, Body=file.body)
                 print(resp)
         except Exception as e:
+            print(e)
             raise e
 
 
