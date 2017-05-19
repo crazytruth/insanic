@@ -21,8 +21,6 @@ class Insanic(Sanic):
         if error_handler is None:
             error_handler = ErrorHandler()
 
-
-
         super().__init__(name, router, error_handler, log_config=LOGGING)
         self.config = settings
 
