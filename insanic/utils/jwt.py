@@ -29,6 +29,12 @@ def jwt_get_username_from_payload_handler(payload):
     return payload.get('email')
 
 
+def jwt_get_user_id_from_payload_handler(payload):
+    """
+    Override this function if username is formatted differently in payload
+    """
+    return payload.get('user_id')
+
 def jwt_response_payload_handler(token, user=None, request=None):
     return {
         'token': token,

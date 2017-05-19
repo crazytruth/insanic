@@ -8,7 +8,7 @@ from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.loading import get_service
 from insanic.request import Request
-from insanic.utils.jwt import jwt_decode_handler, jwt_get_username_from_payload_handler
+from insanic.utils.jwt import jwt_decode_handler, jwt_get_username_from_payload_handler, jwt_get_user_id_from_payload_handler
 
 try:
     from user.models import LegacyUserModel
@@ -96,9 +96,10 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
         """
         # TODO: this get user model stuff
         # User = get_user_model()
-        username = jwt_get_username_from_payload_handler(payload)
+        # username = jwt_get_username_from_payload_handler(payload)
+        user_id = jwt_get_user_id_from_payload_handler(payload)
 
-        if not username:
+        if not user_id:
             msg = 'Invalid payload.'
             raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.invalid_payload)
 
@@ -108,8 +109,8 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
 
             try:
                 dummy_request = Request(request.url.encode(), {}, "1.1", "GET", request.transport)
-                view = self.get_user_view(request, 647616)()
-                view.set_for_authentication(dummy_request, {"user_id": 647616})
+                view = self.get_user_view(request, user_id)()
+                view.set_for_authentication(dummy_request, {"user_id": user_id})
                 user = await view._get_object()
             except LegacyUserModel.DoesNotExist:
                 msg = 'Invalid signature.'
