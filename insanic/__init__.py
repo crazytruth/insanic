@@ -1,3 +1,4 @@
+import asyncio
 from sanic import Sanic
 from sanic.config import LOGGING
 from sanic_useragent import SanicUserAgent
@@ -43,7 +44,8 @@ class Insanic(Sanic):
                                             password=self.config['WEB_MYSQL_PWD'],
                                             min_connections=5, max_connections=10, charset='utf8', use_unicode=True)
 
-        self.add_task(connect_database(self))
+        self.listeners['after_server_start'].append(connect_database)
+        self.listeners['before_server_stop'].append(close_database)
         # self.database.set_allow_sync(False)
 
     def _helper(self, **kwargs):

@@ -1,6 +1,7 @@
 import aiobotocore
 import os
 import ujson as json
+import logging
 
 from io import BytesIO
 
@@ -18,6 +19,8 @@ EXTENSIONS = {
     'JPEG': 'jpg',
     'PNG': 'png',
 }
+
+logger = logging.getLogger('sanic')
 
 class ThumbnailBackend:
     _session = None
@@ -161,14 +164,15 @@ class ThumbnailBackend:
 
             if file is None:
                 return None
+            print(file)
 
             async with self.session.create_client('s3', region_name=settings.AWS_S3_REGION,
                                                   aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
                                                   aws_access_key_id=settings.AWS_ACCESS_KEY_ID) as client:
                 resp = await client.put_object(Bucket=settings.AWS_S3_BUCKET_NAME, Key=file.name, Body=file.body)
-                print(resp)
+                logger.debug(resp)
         except Exception as e:
-            print(e)
+            logger.debug(e)
             raise e
 
 

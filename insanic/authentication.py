@@ -1,23 +1,24 @@
 """
 Provides various authentication policies.
 """
-import asyncio
 import jwt
 
 from insanic import exceptions
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.loading import get_service
+from insanic.request import Request
 from insanic.utils.jwt import jwt_decode_handler, jwt_get_username_from_payload_handler
-
 
 try:
     from user.models import LegacyUserModel
+
 except ImportError:
     pass
 
 user_service = get_service('user')
 
+UserView = None
 UNUSABLE_PASSWORD_PREFIX = '!'
 
 def get_authorization_header(request):
@@ -78,6 +79,17 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
 
         return (user, jwt_value)
 
+
+    def get_user_view(self, request, user_id):
+        global UserView
+        if UserView is None:
+            uri, route = request.app.router.find_route_by_view_name('user.UserView')
+            UserView = route[0].view_class
+        return UserView
+
+
+
+
     async def authenticate_credentials(self, request, payload):
         """
         Returns an active user that matches the payload's user id and email.
@@ -93,8 +105,12 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
         # if user service just lookup
         # else go ask user service
         if settings.SERVICE_TYPE == "user":
+
             try:
-                user = await request.app.objects.get(LegacyUserModel, email=payload['email'])
+                dummy_request = Request(request.url.encode(), {}, "1.1", "GET", request.transport)
+                view = self.get_user_view(request, 647616)()
+                view.set_for_authentication(dummy_request, {"user_id": 647616})
+                user = await view._get_object()
             except LegacyUserModel.DoesNotExist:
                 msg = 'Invalid signature.'
                 raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.invalid_signature)
