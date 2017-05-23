@@ -50,15 +50,24 @@ class ImageField(fields.FormattedString):
             # upload file to s3
 
             tasks = []
-            tasks.append(generator.upload_photo(rename_file, None))
+            tasks.append((rename_file, None))
             # asyncio.ensure_future(upload_user_photo(rename_file, getattr(self, 'dimension', None)))
             for thumb_type, thumb_dimension in settings.USER_THUMBNAIL_DIMENSION.items():
                 thumbnail_file = File(type=value.type, body=value.body, name=self._get_filename(value.name, thumb_dimension))
-                tasks.append(generator.upload_photo(thumbnail_file, thumb_dimension))
+                tasks.append((thumbnail_file, thumb_dimension))
 
-            if tasks:
-                asyncio.gather(*tasks)
+            # loop = asyncio.get_event_loop()
+            # upload = loop.call_later(1, generator.upload_photo_multiple(tasks))
 
+            #
+            asyncio.ensure_future(generator.upload_photo_multiple(tasks))
+
+            # asyncio.ensure_future(generator.upload_photo(rename_file, None))
+            # for thumb_type, thumb_dimension in settings.USER_THUMBNAIL_DIMENSION.items():
+            #     thumbnail_file = File(type=value.type, body=value.body,
+            #                           name=self._get_filename(value.name, thumb_dimension))
+            #     asyncio.ensure_future(generator.upload_photo(thumbnail_file, thumb_dimension))
+            #
             value = rename_file.name
 
         return value

@@ -1,12 +1,15 @@
 import aiobotocore
+import asyncio
 import os
 import ujson as json
 import logging
+import uvloop
 
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from io import BytesIO
-
 from PIL import Image
 from sanic.request import File
+from threading import Thread
 
 from insanic.conf import settings
 from insanic.thumbnails.helpers import tokey
@@ -21,6 +24,81 @@ EXTENSIONS = {
 }
 
 logger = logging.getLogger('sanic')
+
+class ThumbnailGenerator:
+
+    default_options = {
+        'format': settings.get('THUMBNAIL_FORMAT', 'JPEG'),
+        'quality': settings.get('THUMBNAIL_QUALITY', 95),
+        'colorspace': settings.get('THUMBNAIL_COLORSPACE', 'RGB'),
+        'upscale': settings.get('THUMBNAIL_UPSCALE', True),
+        'crop': False,
+        'cropbox': None,
+        'rounded': None,
+        'padding': settings.get('THUMBNAIL_PADDING', False),
+        'padding_color': settings.get('THUMBNAIL_PADDING_COLOR', '#ffffff')
+    }
+
+    def make_thumbnail(self, file, dimension=None):
+        log = logging.getLogger('threads')
+        log.debug('starting make_thumbnail')
+
+        try:
+            if dimension is not None:
+                file = self.generate_thumbnail(file, dimension)
+
+            if file is None:
+                return None
+        except Exception as e:
+            log.debug(e)
+            raise e
+
+        return file
+
+    def _get_format(self, source):
+        file_extension = self.file_extension(source)
+
+        if file_extension == '.jpg' or file_extension == '.jpeg':
+            return 'JPEG'
+        else:
+            return 'PNG'
+
+    def file_extension(self, source):
+        return os.path.splitext(source.name)[1].lower()
+
+
+    def generate_thumbnail(self, file, dimension, **options):
+        if dimension == "blur":
+            dimension = "500x500"
+            options.update({"crop": "center"})
+            options.update({"blur": 10})
+        else:
+            options.update({"crop": "center"})
+            options.update({"quality": 95})
+
+
+        options.setdefault('format', self._get_format(file))
+        for key, value in self.default_options.items():
+            options.setdefault(key, value)
+
+        buffer = BytesIO(file.body)
+        source_image = Image.open(buffer)
+
+        x, y = source_image.size
+        ratio = float(x) / y
+
+        geometry = parse_geometry(dimension, ratio)
+
+        try:
+            image = engine.create(source_image, geometry, options)
+            raw_data = engine.write_sync(image, options)
+            thumbnail = File(type=file.type, body=raw_data, name=file.name)
+        except IOError:
+            thumbnail = None
+
+        return thumbnail
+
+
 
 class ThumbnailBackend:
     _session = None
@@ -37,16 +115,7 @@ class ThumbnailBackend:
         'padding_color': settings.get('THUMBNAIL_PADDING_COLOR', '#ffffff')
     }
 
-    def file_extension(self, source):
-        return os.path.splitext(source.name)[1].lower()
 
-    def _get_format(self, source):
-        file_extension = self.file_extension(source)
-
-        if file_extension == '.jpg' or file_extension == '.jpeg':
-            return 'JPEG'
-        else:
-            return 'PNG'
 
     def _get_thumbnail_filename(self, source, geometry_string, options):
         """
@@ -154,57 +223,35 @@ class ThumbnailBackend:
 
         return self._session
 
-    async def upload_photo(self, file, dimension=None):
+    async def upload_to_s3(self, file):
+        log = logging.getLogger('threads')
+        log.debug('starting upload_to_s3')
         try:
-
-            if dimension is not None:
-                file = self.generate_thumbnail(file, dimension)
-            else:
-                pass
-
-            if file is None:
-                return None
-            print(file)
-
             async with self.session.create_client('s3', region_name=settings.AWS_S3_REGION,
                                                   aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
                                                   aws_access_key_id=settings.AWS_ACCESS_KEY_ID) as client:
                 resp = await client.put_object(Bucket=settings.AWS_S3_BUCKET_NAME, Key=file.name, Body=file.body)
-                logger.debug(resp)
+                log.debug(resp)
         except Exception as e:
-            logger.debug(e)
+            log.debug(e)
             raise e
 
 
+    async def upload_photo_multiple(self, file_list):
+        loop = asyncio.get_event_loop()
 
-    def generate_thumbnail(self, file, dimension, **options):
-        if dimension == "blur":
-            dimension = "500x500"
-            options.update({"crop": "center"})
-            options.update({"blur": 10})
-        else:
-            options.update({"crop": "center"})
-            options.update({"quality": 95})
+        logger.debug('Running uploading in processes...')
 
+        make_thumbnail_tasks = []
+        thumbnail_generator = ThumbnailGenerator()
 
-        options.setdefault('format', self._get_format(file))
-        for key, value in self.default_options.items():
-            options.setdefault(key, value)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            for f, d in file_list:
+                make_thumbnail_tasks.append(loop.run_in_executor(executor, thumbnail_generator.make_thumbnail, f, d))
 
-        buffer = BytesIO(file.body)
-        source_image = Image.open(buffer)
+        results = await asyncio.gather(*make_thumbnail_tasks)
 
-        x, y = source_image.size
-        ratio = float(x) / y
+        upload_tasks = [asyncio.ensure_future(self.upload_to_s3(t)) for t in results]
+        # asyncio.gather(*upload_tasks)
 
-        geometry = parse_geometry(dimension, ratio)
-
-        try:
-            image = engine.create(source_image, geometry, options)
-            raw_data = engine.write_sync(image, options)
-            thumbnail = File(type=file.type, body=raw_data, name=file.name)
-        except IOError:
-            thumbnail = None
-
-        return thumbnail
 

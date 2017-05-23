@@ -92,10 +92,15 @@ class ConnectionHandler:
                                               minsize=1, maxsize=1)
 
             return _PersistentAsyncConnectionContextManager(_pool)
+        elif alias == 'mysql_legacy':
 
-            # return await aioredis.create_pool((settings.REDIS_HOST, settings.REDIS_PORT),
-            #                                   encoding='utf-8', db=settings.REDIS_DB, loop=self._loop, minsize=1,
-            #                                   maxsize=1)
+            _pool = PooledMySQLDatabase(settings['WEB_MYSQL_DATABASE'],
+                                        host=settings['WEB_MYSQL_HOST'],
+                                        port=settings['WEB_MYSQL_PORT'],
+                                        user=settings['WEB_MYSQL_USER'],
+                                        password=settings['WEB_MYSQL_PWD'],
+                                        min_connections=5, max_connections=10, charset='utf8', use_unicode=True)
+            return _pool
 
 
     def __getitem__(self, alias):
@@ -174,7 +179,6 @@ async def get_connection(alias):
 
 async def close_database(app, loop, **kwargs):
 
-
     _connections.close_all()
 
     app.objects.close()
@@ -183,4 +187,6 @@ async def connect_database(app, loop=None, **kwargs):
 
     _connections.loop = loop
 
-    app.objects = Manager(app.database, loop=loop)
+    mysql = await get_connection('mysql_legacy')
+
+    app.objects = Manager(mysql, loop=loop)

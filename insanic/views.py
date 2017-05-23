@@ -1,7 +1,7 @@
 from inspect import isawaitable
 
 from sanic.views import HTTPMethodView
-from sanic.response import json, HTTPResponse
+from sanic.response import json, HTTPResponse, BaseHTTPResponse
 
 from insanic import authentication, exceptions, permissions, status
 from insanic.errors import GlobalErrorCodes
@@ -297,7 +297,7 @@ class MMTBaseView(HTTPMethodView):
         # Make the error obvious if a proper response is not returned
 
 
-        assert isinstance(response, HTTPResponse), (
+        assert isinstance(response, BaseHTTPResponse), (
             'Expected a `Response`, `HttpResponse` or `HttpStreamingResponse` '
             'to be returned from the view, but received a `%s`'
             % type(response)
