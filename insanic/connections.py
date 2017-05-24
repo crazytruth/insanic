@@ -188,5 +188,6 @@ async def connect_database(app, loop=None, **kwargs):
     _connections.loop = loop
 
     mysql = await get_connection('mysql_legacy')
+    app.database = mysql
 
     app.objects = Manager(mysql, loop=loop)

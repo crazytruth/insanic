@@ -32,6 +32,7 @@ LOGGING['loggers'].update({"threads": {
 
 
 class Insanic(Sanic):
+    # database = None
 
     def __init__(self, name, router=None, error_handler=None, app_config=()):
 
@@ -52,12 +53,12 @@ class Insanic(Sanic):
         SanicUserAgent.init_app(self)
         attach_middleware(self)
 
-        # self.database = PooledMySQLDatabase(self.config['WEB_MYSQL_DATABASE'],
-        #                                     host=self.config['WEB_MYSQL_HOST'],
-        #                                     port=self.config['WEB_MYSQL_PORT'],
-        #                                     user=self.config['WEB_MYSQL_USER'],
-        #                                     password=self.config['WEB_MYSQL_PWD'],
-        #                                     min_connections=5, max_connections=10, charset='utf8', use_unicode=True)
+        self.database = PooledMySQLDatabase(self.config['WEB_MYSQL_DATABASE'],
+                                            host=self.config['WEB_MYSQL_HOST'],
+                                            port=self.config['WEB_MYSQL_PORT'],
+                                            user=self.config['WEB_MYSQL_USER'],
+                                            password=self.config['WEB_MYSQL_PWD'],
+                                            min_connections=5, max_connections=10, charset='utf8', use_unicode=True)
 
         self.listeners['after_server_start'].append(connect_database)
         self.listeners['before_server_stop'].append(close_database)
