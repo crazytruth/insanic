@@ -18,6 +18,7 @@ from marshmallow_peewee.convert import ModelConverter as MPModelConverter
 from sanic.request import File
 
 from insanic.conf import settings
+from insanic.connections import get_connection
 from insanic.thumbnails import generator
 from insanic.thumbnails.backends import EXTENSIONS
 from insanic.thumbnails.helpers import tokey
@@ -56,18 +57,8 @@ class ImageField(fields.FormattedString):
                 thumbnail_file = File(type=value.type, body=value.body, name=self._get_filename(value.name, thumb_dimension))
                 tasks.append((thumbnail_file, thumb_dimension))
 
-            # loop = asyncio.get_event_loop()
-            # upload = loop.call_later(1, generator.upload_photo_multiple(tasks))
-
-            #
             asyncio.ensure_future(generator.upload_photo_multiple(tasks))
 
-            # asyncio.ensure_future(generator.upload_photo(rename_file, None))
-            # for thumb_type, thumb_dimension in settings.USER_THUMBNAIL_DIMENSION.items():
-            #     thumbnail_file = File(type=value.type, body=value.body,
-            #                           name=self._get_filename(value.name, thumb_dimension))
-            #     asyncio.ensure_future(generator.upload_photo(thumbnail_file, thumb_dimension))
-            #
             value = rename_file.name
 
         return value
@@ -133,7 +124,14 @@ class ThumbnailsField(fields.Field):
             value = File(type=value.type, body=value.body, name=self._set_image_name(value.name))
             # format_data = {t: rename_file for t in self.fields.keys()}
 
-        format_data = {k: f._serialize(value, k, obj) for k, f in self.structure.items()}
+        format_data = {}
+        for k, f in self.structure.items():
+            field_value = f._serialize(value, k, obj)
+            original_file_name = f._get_filename(value)
+            exists = asyncio.ensure_future(generator.thumbnail_exists_on_s3(original_file_name))
+
+            format_data.update({k: (field_value, exists)})
+            # format_data = {k: f._serialize(value, k, obj) for k, f in self.structure.items()}
         return format_data
 
 

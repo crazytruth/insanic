@@ -3,15 +3,15 @@ import asyncio
 import os
 import ujson as json
 import logging
-import uvloop
 
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from io import BytesIO
 from PIL import Image
 from sanic.request import File
-from threading import Thread
+
 
 from insanic.conf import settings
+from insanic.connections import get_connection
 from insanic.thumbnails.helpers import tokey
 
 from insanic.thumbnails.engines import engine
@@ -231,7 +231,9 @@ class ThumbnailBackend:
                                                   aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
                                                   aws_access_key_id=settings.AWS_ACCESS_KEY_ID) as client:
                 resp = await client.put_object(Bucket=settings.AWS_S3_BUCKET_NAME, Key=file.name, Body=file.body)
-                log.debug(resp)
+                log.debug("{0} {1}".format(file.name, resp))
+
+            await self.set_thumbnail_exists_on_s3(file.name)
         except Exception as e:
             log.debug(e)
             raise e
@@ -245,13 +247,29 @@ class ThumbnailBackend:
         make_thumbnail_tasks = []
         thumbnail_generator = ThumbnailGenerator()
 
-        with ThreadPoolExecutor(max_workers=1) as executor:
+        with ThreadPoolExecutor(max_workers=2) as executor:
             for f, d in file_list:
                 make_thumbnail_tasks.append(loop.run_in_executor(executor, thumbnail_generator.make_thumbnail, f, d))
 
         results = await asyncio.gather(*make_thumbnail_tasks)
 
-        upload_tasks = [asyncio.ensure_future(self.upload_to_s3(t)) for t in results]
-        # asyncio.gather(*upload_tasks)
+        [asyncio.ensure_future(self.upload_to_s3(t)) for t in results]
 
+
+    thumbnail_prefix = "thumbnail:{0}"
+    async def thumbnail_exists_on_s3(self, file_name):
+        redis = await get_connection('redis')
+
+        thumbnail_key = self.thumbnail_prefix.format(file_name)
+        async with redis as conn:
+            result = await conn.getbit(thumbnail_key, 0)
+
+        return result
+
+    async def set_thumbnail_exists_on_s3(self, file_name):
+        redis = await get_connection('redis')
+
+        thumbnail_key = self.thumbnail_prefix.format(file_name)
+        async with redis as conn:
+            await conn.setbit(thumbnail_key, 0, 1)
 
