@@ -35,14 +35,9 @@ async def mail_admins(subject, message, fail_silently=False, connection=None,
     if isawaitable(html_message):
         html_message = await html_message
 
-    try:
-        html_message = b64encode(html_message.encode('utf-8'))
-    except Exception as e:
-        pass
-
-    if html_message and False:
+    if html_message:
         try:
-            mail.add_alternative(html_message, 'text/html')
+            mail.add_alternative(html_message, 'html')
         except Exception as e:
             raise e
 
@@ -50,12 +45,11 @@ async def mail_admins(subject, message, fail_silently=False, connection=None,
     session = aiobotocore.get_session()
     logger.debug("Create boto client")
     async with session.create_client('ses', region_name=settings.AWS_SES_REGION,
-                                    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                                    aws_access_key_id=settings.AWS_ACCESS_KEY_ID) as client:
+                                     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                                     aws_access_key_id=settings.AWS_ACCESS_KEY_ID) as client:
 
         logger.debug("Created boto client")
         try:
-            # response = await client.send_raw_email(Source=mail['From'], Destinations=list(mail['To']), RawMessage={"Data": b64encode(mail.as_string().encode('utf-8'))})
             response = await client.send_raw_email(RawMessage={"Data": mail.as_string().encode('utf-8')})
             logger.debug(response)
         except Exception as e:

@@ -37,7 +37,7 @@ class Insanic(Sanic):
                                             host=self.config['WEB_MYSQL_HOST'],
                                             port=self.config['WEB_MYSQL_PORT'],
                                             user=self.config['WEB_MYSQL_USER'],
-                                            password=self.config['WEB_MYSQL_PWD'],
+                                            password=self.config['WEB_MYSQL_PASS'],
                                             min_connections=5, max_connections=10, charset='utf8', use_unicode=True)
 
         self.listeners['after_server_start'].append(connect_database)

@@ -3,7 +3,7 @@ import re
 import sys
 import types
 
-from inspect import isawaitable
+from configparser import SectionProxy
 from jinja2 import Template
 from pathlib import Path
 from pprint import pformat
@@ -17,10 +17,32 @@ CLEANSED_SUBSTITUTE = '********************'
 
 CURRENT_DIR = Path(__file__).parent
 
+
+def cleanse_setting(key, value):
+    """Cleanse an individual setting key/value of sensitive content.
+
+    If the value is a dictionary, recursively cleanse the keys in
+    that dictionary.
+    """
+    try:
+        if HIDDEN_SETTINGS.search(key):
+            cleansed = CLEANSED_SUBSTITUTE
+        else:
+            if isinstance(value, (dict, SectionProxy)):
+                cleansed = dict((k, cleanse_setting(k, v)) for k, v in value.items())
+            else:
+                cleansed = value
+    except TypeError:
+        # If the key isn't regex-able, just return as-is.
+        cleansed = value
+
+    return cleansed
+
+
 def get_safe_settings():
     "Returns a dictionary of the settings module, with sensitive settings blurred out."
     settings_dict = {}
-    for k in dir(settings):
+    for k in settings:
         if k.isupper():
             settings_dict[k] = cleanse_setting(k, getattr(settings, k))
     return settings_dict

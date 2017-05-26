@@ -98,7 +98,7 @@ class ConnectionHandler:
                                         host=settings['WEB_MYSQL_HOST'],
                                         port=settings['WEB_MYSQL_PORT'],
                                         user=settings['WEB_MYSQL_USER'],
-                                        password=settings['WEB_MYSQL_PWD'],
+                                        password=settings['WEB_MYSQL_PASS'],
                                         min_connections=5, max_connections=10, charset='utf8', use_unicode=True)
             return _pool
 
