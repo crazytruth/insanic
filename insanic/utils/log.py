@@ -129,8 +129,6 @@ LOGGING = {
 
 
 
-
-
 class RequireDebugFalse(logging.Filter):
     def filter(self, record):
         return not settings.DEBUG
