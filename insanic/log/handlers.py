@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sys
 
 from insanic import mail
 from insanic.conf import settings
@@ -8,7 +9,6 @@ from insanic.utils import force_str
 
 default_exception_reporter_filter = None
 
-logger = logging.getLogger('sanic')
 
 def get_exception_reporter_filter():
     global default_exception_reporter_filter
@@ -56,18 +56,14 @@ class AdminEmailHandler(logging.Handler):
         else:
             exc_info = (None, record.getMessage(), None)
 
-        try:
-            message = "%s\n\nRequest repr(): %s" % (self.format(record), request_repr)
-            reporter = ExceptionReporter(request, is_email=True, *exc_info)
-            if self.include_html:
-                html_message = reporter.get_traceback_html()
-            else:
-                html_message = None
-        except Exception as e:
-            logger.info(str(e))
-            import traceback
-            tb = traceback.format_exc()
-            logger.info(tb)
+
+        message = "%s\n\nRequest repr(): %s" % (self.format(record), request_repr)
+        reporter = ExceptionReporter(request, is_email=True, *exc_info)
+        if self.include_html:
+            html_message = reporter.get_traceback_html()
+        else:
+            html_message = None
+
             # html_message = None
         asyncio.ensure_future(mail.mail_admins(subject, message, fail_silently=True,
                                                html_message=html_message))

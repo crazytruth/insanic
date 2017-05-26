@@ -268,9 +268,6 @@ class ExceptionReporter:
         try:
             traceback_data = await self.get_traceback_data()
         except Exception as e:
-            import traceback
-            tb = traceback.format_exc()
-            print(tb)
             return None
 
         return t.render(traceback_data)

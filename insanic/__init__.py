@@ -59,9 +59,11 @@ def get_insanic_version():
 
     global insanic_version
     if insanic_version is None:
-
-        with open(Path(CURRENT_DIR, 'VERSION')) as f:
-            insanic_version = f.read().strip()
+        try:
+            with open(Path(CURRENT_DIR, 'VERSION')) as f:
+                insanic_version = f.read().strip()
+        except:
+            return "unknown"
 
     return insanic_version
 
