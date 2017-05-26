@@ -12,7 +12,12 @@ ONBUILD COPY $SERVICE/requirements.txt /tmp
 
 ONBUILD RUN apk add --update --no-cache --virtual .build-deps  \
         build-base gcc libffi-dev openssl-dev jpeg-dev && \
-    pip install --upgrade --extra-index-url http://pypi.mmt.local/ --trusted-host pypi.mmt.local -r /tmp/requirements.txt && \
+    pip install --upgrade \
+    --index http://nexus.mmt.local:8081/repository/pypi/pypi \
+    --index-url http://nexus.mmt.local:8081/repository/pypi/simple \
+    --extra-index-url https://pypi.python.org/simple \
+    --trusted-host nexus.mmt.local \
+    -r /tmp/requirements.txt && \
     find /usr/local \
         \( -type d -a -name test -o -name tests \) \
         -o \( -type f -a -name '*.pyc' -o -name '*.pyo' \) \

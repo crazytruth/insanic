@@ -1,3 +1,5 @@
+import logging
+
 from inspect import isawaitable
 
 from sanic.views import HTTPMethodView
@@ -6,7 +8,9 @@ from sanic.response import json, HTTPResponse, BaseHTTPResponse
 from insanic import authentication, exceptions, permissions, status
 from insanic.errors import GlobalErrorCodes
 
-def exception_handler(exc):
+logger = logging.getLogger('blowed.up')
+
+def exception_handler(request, exc):
     """
     Returns the response that should be used for any given exception.
 
@@ -33,6 +37,13 @@ def exception_handler(exc):
     elif isinstance(exc, exceptions.PermissionDenied):
         data = {'detail': 'Permission denied'}
         return HTTPResponse(data, status=status.HTTP_403_FORBIDDEN)
+    else:
+        logger.error('Internal Server Error: %s', request.path, exc_info=exc,
+                     extra={
+                         'status_code': 500,
+                         'request': request
+                     }
+                     )
 
     # Note: Unhandled exceptions will raise a 500 error.
     return None

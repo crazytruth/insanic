@@ -2,6 +2,16 @@ import datetime
 
 SECRET_KEY = ''
 
+ADMINS = (
+    ('Name', 'Email')
+)
+
+DEBUG = False
+
+SERVER_EMAIL = "support@mymusictaste.com"
+SERVER_ERROR_EMAIL = "admin@mymusictaste.com"
+EMAIL_SUBJECT_PREFIX = "[MyMusicTaste]"
+
 TWILIO_ACCOUNT_SID = ""
 TWILIO_AUTH_TOKEN = ""
 TWILIO_SERVICE_SID = ""
@@ -51,5 +61,7 @@ JWT_AUTH = {
 
 API_GATEWAY_SCHEME = "http"
 API_GATEWAY_HOST = "localhost"
+
+INTERNAL_IPS = ()
 
 PICKLE_SHARED_KEY = 'm46jeEaH3Ld7o3BSfcZRZzPKjcCzW4P9fwQJpcJpsjfBWkfyxANBEvIFPY2mV05OYIB4UPycx96aosyAqIq4C4pn411dvqMElMx5'

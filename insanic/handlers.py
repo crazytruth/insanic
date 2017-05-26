@@ -1,3 +1,6 @@
+import logging
+import sys
+
 from sanic.log import log
 from sanic.response import json, html
 from sanic.handlers import ErrorHandler as SanicErrorHandler, format_exc, SanicException, INTERNAL_SERVER_ERROR_HTML
@@ -14,6 +17,7 @@ INTERNAL_SERVER_ERROR_JSON = {
   }
 }
 
+logger = logging.getLogger('insanic.request')
 
 class ErrorHandler(SanicErrorHandler):
 
@@ -42,9 +46,9 @@ class ErrorHandler(SanicErrorHandler):
                     'for uri: "{}"\n{}').format(
                     handler.__name__, url, format_exc())
                 log.error(response_message)
-                return json(response_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return self.handle_uncaught_exception(request, exception, response_message)
             else:
-                return json('An error occurred while handling an error', status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return self.handle_uncaught_exception(request, exception)
         return response
 
 
@@ -67,4 +71,15 @@ class ErrorHandler(SanicErrorHandler):
             log.error(response_message)
             return html(html_output, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
-            return json(INTERNAL_SERVER_ERROR_JSON, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return self.handle_uncaught_exception(request, exception)
+
+    def handle_uncaught_exception(self, request, exception, custom_message=INTERNAL_SERVER_ERROR_JSON):
+        logger.error('Internal Server Error: %s',
+                     request.path,
+                     exc_info=sys.exc_info(),
+                     extra={
+                         'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR,
+                         'request': request
+                     })
+
+        return json(custom_message, status.HTTP_500_INTERNAL_SERVER_ERROR)

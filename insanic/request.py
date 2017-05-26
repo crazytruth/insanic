@@ -2,12 +2,15 @@ import hashlib
 import io
 
 from httptools import parse_url
+from pprint import pformat
+
 
 from sanic.request import Request as SanicRequest, RequestParameters
 
 from insanic import exceptions
 from insanic.conf import settings
 from insanic.models import AnonymousUser
+from insanic.utils import force_str
 from insanic.utils.mediatypes import parse_header, HTTP_HEADER_ENCODING
 
 
@@ -269,4 +272,56 @@ class Request(SanicRequest):
         if not _hasattr(self, '_files'):
             self._load_data_and_files()
         return self._files
+
+
+def build_request_repr(request, path_override=None, GET_override=None,
+                       POST_override=None, COOKIES_override=None,
+                       META_override=None):
+    """
+    Builds and returns the request's representation string. The request's
+    attributes may be overridden by pre-processed values.
+    """
+    # Since this is called as part of error handling, we need to be very
+    # robust against potentially malformed input.
+    try:
+        get = (pformat(GET_override)
+               if GET_override is not None
+               else pformat(request.GET))
+    except Exception:
+        get = '<could not parse>'
+
+    try:
+        post = (pformat(POST_override)
+                if POST_override is not None
+                else pformat(request.data))
+    except Exception:
+        post = '<could not parse>'
+
+    try:
+        cookies = (pformat(COOKIES_override)
+                   if COOKIES_override is not None
+                   else pformat(request.cookies))
+    except Exception:
+        cookies = '<could not parse>'
+    try:
+        meta = (pformat(META_override)
+                if META_override is not None
+                else pformat(request.headers))
+    except Exception:
+        meta = '<could not parse>'
+
+    try:
+        query_params = pformat(request.args)
+    except Exception:
+        query_params = '<could not parse>'
+
+    path = path_override if path_override is not None else request.path
+    return force_str('<%s\npath:%s,\nGET:%s,\nPOST:%s,\nCOOKIES:%s,\nMETA:%s,\nQUERY_PARAMS:%s>' %
+                     (request.__class__.__name__,
+                      path,
+                      str(get),
+                      str(post),
+                      str(cookies),
+                      str(meta),
+                      str(query_params)))
 

@@ -1,7 +1,4 @@
-import asyncio
-import sys
 from sanic import Sanic
-from sanic.config import LOGGING
 from sanic_useragent import SanicUserAgent
 
 from peewee_async import PooledMySQLDatabase
@@ -11,28 +8,11 @@ from insanic.connections import connect_database, close_database
 from insanic.handlers import ErrorHandler
 from insanic.protocol import InsanicHttpProtocol
 from insanic.utils import attach_middleware
-
-LOGGING['handlers']['accessTimedRotatingFile']['filename'] = "/tmp/access.log"
-LOGGING['handlers']['errorTimedRotatingFile']['filename'] = "/tmp/error.log"
-LOGGING['formatters'].update({"threads": {
-    'format': '%(asctime)s - (%(name)s)[%(levelname)s]: %(threadName)10s %(name)18s: %(message)s',
-    'datefmt': '%Y-%m-%d %H:%M:%S'
-}})
-LOGGING['handlers'].update({'threads_internal': {
-    'class': 'logging.StreamHandler',
-    'filters': ['accessFilter'],
-    'formatter': 'threads',
-    'stream': sys.stderr
-}})
-LOGGING['loggers'].update({"threads": {
-    'level': 'DEBUG',
-    'handlers': ['threads_internal']
-}
-})
+from insanic.utils.log import LOGGING
 
 
 class Insanic(Sanic):
-    # database = None
+    database = None
 
     def __init__(self, name, router=None, error_handler=None, app_config=()):
 

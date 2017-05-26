@@ -89,3 +89,10 @@ def to_object(item):
     return convert(item)
 
 
+def force_escape(value):
+    """
+    Escapes a string's HTML. This returns a new string containing the escaped
+    characters (as opposed to "escape", which marks the content for later
+    possible escaping).
+    """
+    return force_str(value).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&#39;').replace('\n', "")

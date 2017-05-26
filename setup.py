@@ -30,6 +30,8 @@ setup(
         'aiohttp',
         'aiomysql',
         'aioredis',
+        'aiobotocore',
+        'aiohttp-jinja2',
         'cryptography',
         'peewee-async',
         'PyJWT',
@@ -37,7 +39,8 @@ setup(
         'Marshmallow-Peewee',
         'docker',
         'boto3',
-        'Pillow'
+        'Pillow',
+        'jinja2'
     ],
     # test_suite='nose.collector',
     # tests_require=['nose', 'nose-cover3'],

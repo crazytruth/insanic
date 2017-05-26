@@ -130,7 +130,7 @@ class ThumbnailsField(fields.Field):
             original_file_name = f._get_filename(value)
             exists = asyncio.ensure_future(generator.thumbnail_exists_on_s3(original_file_name))
 
-            format_data.update({k: (field_value, exists)})
+            format_data.update({k: {"url": field_value, "exists":exists}})
             # format_data = {k: f._serialize(value, k, obj) for k, f in self.structure.items()}
         return format_data
 

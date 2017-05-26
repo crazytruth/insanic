@@ -220,7 +220,6 @@ class ThumbnailBackend:
     def session(self):
         if self._session is None:
             self._session = aiobotocore.get_session()
-
         return self._session
 
     async def upload_to_s3(self, file):

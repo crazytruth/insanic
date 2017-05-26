@@ -35,10 +35,11 @@ from sanic.log import log
 
 # @app.middleware('request')
 async def request_middleware(request):
-    log.debug("Request Middleware")
-    log.debug(request)
-
+    # log.debug("Request Middleware")
+    # log.debug(request)
+    pass
 
 async def response_middleware(request, response):
-    log.debug("Response Middleware")
-    log.debug(response)
+    # log.debug("Response Middleware")
+    # log.debug(response)
+    pass
