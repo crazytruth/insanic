@@ -74,7 +74,7 @@ class Request(SanicRequest):
     @property
     def content_type(self):
         meta = self.headers
-        return meta.get('content-type', '')
+        return meta.get('content-type', 'application/json')
 
     @property
     def stream(self):

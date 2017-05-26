@@ -265,7 +265,14 @@ class ExceptionReporter:
             template_string = f.read()
 
         t = Template(template_string)
-        traceback_data = await self.get_traceback_data()
+        try:
+            traceback_data = await self.get_traceback_data()
+        except Exception as e:
+            import traceback
+            tb = traceback.format_exc()
+            print(tb)
+            return None
+
         return t.render(traceback_data)
 
     def _get_lines_from_file(self, filename, lineno, context_lines, loader=None, module_name=None):
