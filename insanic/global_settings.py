@@ -3,7 +3,7 @@ import datetime
 SECRET_KEY = ''
 
 ADMINS = (
-    ('Name', 'Email')
+    ('David', 'david@mymusictaste.com')
 )
 
 DEBUG = False

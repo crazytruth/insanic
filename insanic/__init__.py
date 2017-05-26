@@ -1,6 +1,7 @@
 from sanic import Sanic
 from sanic_useragent import SanicUserAgent
 
+from pathlib import Path
 from peewee_async import PooledMySQLDatabase
 
 from insanic.conf import settings
@@ -49,3 +50,18 @@ class Insanic(Sanic):
         server_settings = super()._helper(**kwargs)
         server_settings['protocol'] = InsanicHttpProtocol
         return server_settings
+
+
+CURRENT_DIR = Path(__file__).parent.parent
+insanic_version = None
+
+def get_insanic_version():
+
+    global insanic_version
+    if insanic_version is None:
+
+        with open(Path(CURRENT_DIR, 'VERSION')) as f:
+            insanic_version = f.read().strip()
+
+    return insanic_version
+
