@@ -72,20 +72,20 @@ LOGGING = {
         # 0, 10, 20 have been enabled in you syslog configuration
         # otherwise you won't be able to see the output in syslog
         # logging file.
-        'accessSysLog': {
-            'class': 'logging.handlers.SysLogHandler',
-            'address': '/var/run/syslog',
-            'facility': syslog.LOG_DAEMON,
-            'filters': ['accessFilter'],
-            'formatter': 'access'
-        },
-        'errorSysLog': {
-            'class': 'logging.handlers.SysLogHandler',
-            'address': '/var/run/syslog',
-            'facility': syslog.LOG_DAEMON,
-            'filters': ['errorFilter'],
-            'formatter': 'simple'
-        },
+        # 'accessSysLog': {
+        #     'class': 'logging.handlers.SysLogHandler',
+        #     'address': '/var/run/syslog',
+        #     'facility': syslog.LOG_DAEMON,
+        #     'filters': ['accessFilter'],
+        #     'formatter': 'access'
+        # },
+        # 'errorSysLog': {
+        #     'class': 'logging.handlers.SysLogHandler',
+        #     'address': '/var/run/syslog',
+        #     'facility': syslog.LOG_DAEMON,
+        #     'filters': ['errorFilter'],
+        #     'formatter': 'simple'
+        # },
         'accessTimedRotatingFile': {
             'class': 'logging.handlers.TimedRotatingFileHandler',
             'filters': ['accessFilter'],
