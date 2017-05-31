@@ -17,6 +17,8 @@ class GlobalErrorCodes(Enum):
     # database related
     redis_unable_to_process = 90201
 
+    # general errors
+    invalid_usage = 90301
 
     service_unavailable = 99503
     unknown_error = 99999

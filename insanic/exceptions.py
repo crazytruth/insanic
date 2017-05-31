@@ -38,6 +38,7 @@ class BadRequest(APIException):
 
 class InvalidUsage(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = 'Invalid Usage'
 
 class ValidationError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
