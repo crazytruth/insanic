@@ -6,6 +6,7 @@ from sanic.views import HTTPMethodView
 from sanic.response import json, HTTPResponse, BaseHTTPResponse
 
 from insanic import authentication, exceptions, permissions, status
+from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 
 logger = logging.getLogger('blowed.up')
@@ -57,7 +58,7 @@ class MMTBaseView(HTTPMethodView):
 
     def key(self, key, **kwargs):
         try:
-            return self._key[key].format(**kwargs)
+            return ":".join([self._key[key].format(**kwargs)])
         except KeyError:
             raise KeyError("{0} key doesn't exist.".format(key))
 

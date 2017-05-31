@@ -105,10 +105,11 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
 
         # if user service just lookup
         # else go ask user service
-        if settings.SERVICE_TYPE == "user":
+        if settings.SERVICE_NAME == "user":
 
             try:
                 dummy_request = Request(request.url.encode(), {}, "1.1", "GET", request.transport)
+                dummy_request.app = request.app
                 view = self.get_user_view(request, user_id)()
                 view.set_for_authentication(dummy_request, {"user_id": user_id})
                 user = await view._get_object()
@@ -117,7 +118,8 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
                 raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.invalid_signature)
         else:
 
-            user = await user_service.http_dispatch("GET", "/api/v1/user/self", headers=request.headers)
+            user = await user_service.http_dispatch("GET", "/api/v1/user/self?fields=id,username,email,is_active,is_ban,is_superuser,locale,version,password,is_authenticated",
+                                                    headers=request.headers)
 
         if not user.is_active:
             msg = 'User account is disabled.'

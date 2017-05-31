@@ -6,9 +6,9 @@ from asyncio import get_event_loop
 from sanic.constants import HTTP_METHODS
 from urllib.parse import urlunsplit, urljoin
 
+from insanic import exceptions
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
-from insanic.exceptions import ServiceUnavailable503Error
 from insanic.utils import to_object
 
 
@@ -64,12 +64,12 @@ class Service:
         return urljoin(self._base_url, endpoint)
 
 
-    async def http_dispatch(self, method, endpoint, payload={}, headers={}):
+    async def http_dispatch(self, method, endpoint, payload={}, headers={}, return_obj=True, propagate_error=False):
 
         if method.upper() not in HTTP_METHODS:
             raise ValueError("{0} is not a valid method.".format(method))
 
-        return await self._dispatch(method, endpoint, payload, headers)
+        return await self._dispatch(method, endpoint, payload=payload, headers=headers, return_obj=return_obj, propagate_error=propagate_error)
 
     def _prepare_headers(self, headers):
         for h in self.remove_headers:
@@ -86,7 +86,7 @@ class Service:
         return headers
 
 
-    async def _dispatch(self, method, endpoint, payload={}, headers={}, return_obj=True):
+    async def _dispatch(self, method, endpoint, payload={}, headers={}, return_obj=True, propagate_error=False):
         request_method = getattr(self.session, method.lower(), None)
         url = self._construct_url(endpoint)
         headers = self._prepare_headers(headers)
@@ -96,14 +96,31 @@ class Service:
 
         try:
             async with request_method(url, headers=headers, data=payload) as resp:
-                response = await resp.json()
+                response_status = resp.status
+                response_body = await resp.text()
+                try:
+                    response = await resp.json()
+                except ValueError:
+                    response = await resp.text()
+
+                if not 200 <= response_status < 300:
+                    if propagate_error:
+                        exc = exceptions.APIException(detail=response['description'],
+                                                      error_code=response['error_code'],
+                                                      status_code=response_status)
+                        exc.default_detail = response['message']
+                        raise exc
+
         except aiohttp.client_exceptions.ClientConnectionError:
             if settings.MMT_ENV == "production":
                 msg = "Service unavailable. Please try again later."
             else:
                 msg = "Cannot connect to {0}. Please try again later".format(self._service_type)
 
-            raise ServiceUnavailable503Error(msg, GlobalErrorCodes.service_unavailable)
+            raise exceptions.ServiceUnavailable503Error(msg, GlobalErrorCodes.service_unavailable)
+        except aiohttp.client_exceptions.ClientResponseError as e:
+            pass
+
 
         if return_obj:
             return to_object(response)

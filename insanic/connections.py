@@ -12,27 +12,6 @@ from insanic.functional import cached_property
 
 logger = logging.getLogger('sanic')
 
-
-class _PersistentAsyncConnectionContextManager:
-    __slots__ = ('_pool', '_conn')
-
-    def __init__(self, pool):
-        self._pool = pool
-        self._conn = None
-
-    @asyncio.coroutine
-    def __aenter__(self):
-        self._conn = yield from self._pool.acquire()
-        return self._conn
-
-    @asyncio.coroutine
-    def __aexit__(self, exc_type, exc_value, tb):
-        try:
-            self._pool.release(self._conn)
-        finally:
-            self._conn = None
-
-
 class ConnectionHandler:
 
     def __init__(self, databases=None):
@@ -89,9 +68,9 @@ class ConnectionHandler:
         if alias == "redis":
             _pool = await aioredis.create_pool((settings.REDIS_HOST, settings.REDIS_PORT),
                                               encoding='utf-8', db=settings.REDIS_DB, loop=self.loop,
-                                              minsize=1, maxsize=1)
+                                              minsize=5, maxsize=10)
 
-            return _PersistentAsyncConnectionContextManager(_pool)
+            return _pool
         elif alias == 'mysql_legacy':
 
             _pool = PooledMySQLDatabase(settings['WEB_MYSQL_DATABASE'],
@@ -187,7 +166,7 @@ async def connect_database(app, loop=None, **kwargs):
 
     _connections.loop = loop
 
-    mysql = await get_connection('mysql_legacy')
-    app.database = mysql
+    # mysql = await get_connection('mysql_legacy')
+    # app.database = mysql
 
-    app.objects = Manager(mysql, loop=loop)
+    app.objects = Manager(app.database, loop=loop)

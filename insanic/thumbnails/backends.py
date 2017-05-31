@@ -260,7 +260,7 @@ class ThumbnailBackend:
         redis = await get_connection('redis')
 
         thumbnail_key = self.thumbnail_prefix.format(file_name)
-        async with redis as conn:
+        async with redis.get() as conn:
             result = await conn.getbit(thumbnail_key, 0)
 
         return result
@@ -269,6 +269,6 @@ class ThumbnailBackend:
         redis = await get_connection('redis')
 
         thumbnail_key = self.thumbnail_prefix.format(file_name)
-        async with redis as conn:
+        async with redis.get() as conn:
             await conn.setbit(thumbnail_key, 0, 1)
 
