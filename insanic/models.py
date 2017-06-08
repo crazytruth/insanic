@@ -173,5 +173,6 @@ class AnonymousUser(object):
     def is_anonymous(self):
         return True
 
+    @property
     def is_authenticated(self):
         return False

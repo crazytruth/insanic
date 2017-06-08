@@ -2,9 +2,11 @@ import aioredis
 import asyncio
 import logging
 
+from importlib import import_module
 from inspect import isawaitable, CO_ITERABLE_COROUTINE
 from threading import local
 
+from peewee import BaseModel
 from peewee_async import Manager, PooledMySQLDatabase
 
 from insanic.conf import settings
@@ -101,6 +103,9 @@ class ConnectionHandler:
     def __delitem__(self, key):
         delattr(self._connections, key)
 
+    def __delattr__(self, item):
+        delattr(self._connections, item)
+
     def __iter__(self):
         return iter(self.databases)
 
@@ -114,8 +119,7 @@ class ConnectionHandler:
     async def close(self, alias):
         try:
             logger.info("Start Closing database connection: {0}".format(alias))
-            _conn = getattr(self, alias)
-
+            _conn = getattr(self._connections, alias)
 
             if isawaitable(_conn):
                 _conn = await _conn
@@ -131,11 +135,14 @@ class ConnectionHandler:
                     break
 
             logger.info("Closing database connection: {0}".format(alias))
+            delattr(self._connections, alias)
             if _conn != close_database:
                 closing = close_database()
 
                 if isawaitable(closing):
                     await closing
+
+
         except Exception as e:
             logger.info("Error when closing connection: {0}".format(alias))
             logger.info(e)
@@ -157,16 +164,33 @@ async def get_connection(alias):
 
 
 async def close_database(app, loop, **kwargs):
-
+    # app.database.close()
+    await app.database.close_async()
     _connections.close_all()
 
     app.objects.close()
+
+
 
 async def connect_database(app, loop=None, **kwargs):
 
     _connections.loop = loop
 
     # mysql = await get_connection('mysql_legacy')
-    # app.database = mysql
+
+    app.database.init(settings.WEB_MYSQL_DATABASE,
+                      host=settings.WEB_MYSQL_HOST,
+                      port=settings.WEB_MYSQL_PORT,
+                      user=settings.WEB_MYSQL_USER,
+                      password=settings.WEB_MYSQL_PASS,
+                      min_connections=5, max_connections=10, charset='utf8', use_unicode=True)
+
+    # import models and switch out database
+    service_models = import_module('{0}.models'.format(settings.SERVICE_NAME))
+    for m in dir(service_models):
+        if m[0].isupper():
+            possible_model = getattr(service_models, m)
+            if isinstance(possible_model, BaseModel):
+                possible_model._meta.database = app.database
 
     app.objects = Manager(app.database, loop=loop)
