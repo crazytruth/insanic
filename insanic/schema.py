@@ -64,6 +64,9 @@ class ImageField(fields.FormattedString):
         return value
 
     def _serialize(self, value, attr, obj):
+        if not value:
+            return ""
+
         value = self._get_filename(value)
         return self.src_str.format(photo=value)
 
@@ -125,13 +128,20 @@ class ThumbnailsField(fields.Field):
             # format_data = {t: rename_file for t in self.fields.keys()}
 
         format_data = {}
-        for k, f in self.structure.items():
-            field_value = f._serialize(value, k, obj)
-            original_file_name = f._get_filename(value)
-            exists = asyncio.ensure_future(generator.thumbnail_exists_on_s3(original_file_name))
 
-            format_data.update({k: {"url": field_value, "exists":exists}})
+        for k, f in self.structure.items():
+            if value:
+
+                field_value = f._serialize(value, k, obj)
+                original_file_name = f._get_filename(value)
+                exists = asyncio.ensure_future(generator.thumbnail_exists_on_s3(original_file_name))
+            else:
+                field_value = ""
+                exists = 0
+            format_data.update({k: {"url": field_value, "exists": exists}})
             # format_data = {k: f._serialize(value, k, obj) for k, f in self.structure.items()}
+
+
         return format_data
 
 

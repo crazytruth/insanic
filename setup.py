@@ -44,9 +44,11 @@ setup(
     ],
     # test_suite='nose.collector',
     # tests_require=['nose', 'nose-cover3'],
-    # entry_points={
-    #     'console_scripts': [''],
-    # },
+    entry_points={
+        'pytest11': [
+            'insanic = insanic.testing.pytest_plugin',
+        ]
+    },
     include_package_data=True,
     zip_safe=False
 )

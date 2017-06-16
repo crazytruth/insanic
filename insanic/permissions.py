@@ -70,6 +70,19 @@ class IsOwnerOrAdmin(BasePermission):
     Custom permission to only allow owners of an object to view or edit it.
     """
 
+    async def has_permission(self, request, view):
+
+        user = await request.user
+
+        if user.is_staff:
+            return True
+
+        try:
+            return user.id == int(view.kwargs.get("user_id"))
+        except TypeError:
+            return False
+
+
     async def has_object_permission(self, request, view, obj):
         user = await request.user
         if user.is_superuser:

@@ -57,6 +57,9 @@ class MMTBaseView(HTTPMethodView):
     authentication_classes = [authentication.JSONWebTokenAuthentication,]
 
     def key(self, key, **kwargs):
+
+        kwargs = {k:(v.decode() if isinstance(v, bytes) else v) for k,v in kwargs.items()}
+
         try:
             return ":".join([self._key[key].format(**kwargs)])
         except KeyError:
@@ -252,14 +255,11 @@ class MMTBaseView(HTTPMethodView):
         self.request.authenticators = self.get_authenticators()
         self.headers = self.default_response_headers  # deprecate?
 
+        await self.convert_keywords()
         await self.perform_authentication(self.request)
 
         await self.check_permissions(self.request)
         self.check_throttles(self.request)
-
-        await self.convert_keywords()
-
-        # self.initial(request, *args, **kwargs)
 
         # Get the appropriate handler method
         if self.request.method.lower() in self.http_method_names:
@@ -293,7 +293,7 @@ class MMTBaseView(HTTPMethodView):
 
             msg += "'."
 
-            raise exceptions.BadRequest(msg, 1000)
+            raise exceptions.BadRequest(msg, GlobalErrorCodes.invalid_usage)
 
         if isawaitable(response):
             response = await response
