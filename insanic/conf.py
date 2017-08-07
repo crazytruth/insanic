@@ -31,7 +31,7 @@ class DockerSecretsConfig(Config):
             with open('/run/secrets/{0}'.format(os.environ['MMT_SERVICE'])) as f:
                 docker_secrets = f.read()
 
-            print(docker_secrets)
+            # print(docker_secrets)
             docker_secrets = json.loads(docker_secrets)
 
             for k, v in docker_secrets.items():

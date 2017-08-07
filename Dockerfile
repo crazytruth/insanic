@@ -8,7 +8,7 @@ RUN mkdir -p $INSTALL_PATH
 WORKDIR $INSTALL_PATH
 
 ONBUILD ARG SERVICE
-ONBUILD COPY $SERVICE/requirements.txt /tmp
+ONBUILD COPY requirements.txt /tmp
 
 ONBUILD RUN apk add --update --no-cache --virtual .build-deps  \
         build-base gcc libffi-dev openssl-dev jpeg-dev && \

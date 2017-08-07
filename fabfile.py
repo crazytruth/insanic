@@ -35,5 +35,5 @@ def bumpversion_insanic(bump_part="patch"):
 
 def build_insanic():
     local('docker build --no-cache -t {0}/insanic -f Dockerfile .'.format(DOCKER_USERNAME))
-    local('$(aws ecr get-login)')
+    local('$(aws ecr get-login --no-include-email)')
     local('docker push {0}/insanic:latest'.format(DOCKER_USERNAME))

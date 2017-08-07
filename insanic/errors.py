@@ -20,6 +20,9 @@ class GlobalErrorCodes(Enum):
     # general errors
     invalid_usage = 90301
 
+    # server related errors
+    server_signature_error = 99001
     service_unavailable = 99503
+    service_timeout = 99504
     unknown_error = 99999
 

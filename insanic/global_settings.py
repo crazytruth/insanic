@@ -60,7 +60,7 @@ JWT_AUTH = {
 }
 
 API_GATEWAY_SCHEME = "http"
-API_GATEWAY_HOST = "localhost"
+API_GATEWAY_HOST = "192.168.2.253"
 
 INTERNAL_IPS = ()
 

@@ -1,5 +1,6 @@
 import hashlib
 import io
+import time
 
 from httptools import parse_url
 from pprint import pformat
@@ -47,19 +48,24 @@ class Request(SanicRequest):
 
     __slots__ = (
         'app', 'headers', 'version', 'method', '_cookies', 'transport',
-        'body',
+        'body', '_request_time',
         'parsed_json', 'parsed_args', 'parsed_form', 'parsed_files',
         '_ip',
         'authenticators', '_data', '_files', '_full_data', '_content_type',
         '_stream', '_authenticator', '_user', '_auth', '_is_service', '_service_hosts', '_parsed_url', 'uri_template'
     )
 
+
+
     def __init__(self, url_bytes, headers, version, method, transport,
                  authenticators=None):
+
 
         super().__init__(url_bytes, headers, version, method, transport)
         # self._request = request
         self._parsed_url = parse_url(url_bytes)
+        self._request_time = int(time.time() * 1000000)
+
 
         self._data = Empty
         self._files = Empty
@@ -70,6 +76,11 @@ class Request(SanicRequest):
         self._service_hosts = Empty
 
         self.authenticators = authenticators or ()
+
+    @property
+    def tracing(self):
+        return "{0}.{1}".format(self._request_time, id(self))
+
 
     @property
     def content_type(self):

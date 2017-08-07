@@ -118,7 +118,8 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
                 raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.invalid_signature)
         else:
 
-            user = await user_service.http_dispatch("GET", "/api/v1/user/self?fields=id,username,email,is_active,is_ban,is_superuser,locale,version,password,is_authenticated",
+            user = await user_service.http_dispatch("GET", "/api/v1/user/self", request,
+                                                    query_params={"fields": "id,username,email,is_active,is_ban,is_superuser,locale,version,password,is_authenticated"},
                                                     headers=request.headers)
 
         if not user.is_active:

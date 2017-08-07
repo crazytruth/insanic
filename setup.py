@@ -40,7 +40,8 @@ setup(
         'docker',
         'boto3',
         'Pillow',
-        'jinja2'
+        'jinja2',
+        'basictracer'
     ],
     # test_suite='nose.collector',
     # tests_require=['nose', 'nose-cover3'],
