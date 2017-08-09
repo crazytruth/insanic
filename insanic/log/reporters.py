@@ -8,7 +8,7 @@ from jinja2 import Template
 from pathlib import Path
 from pprint import pformat
 
-from insanic import get_insanic_version
+from insanic import __version__
 from insanic.conf import settings
 from insanic.request import build_request_repr, Request, RequestParameters
 from insanic.utils import force_escape
@@ -238,7 +238,7 @@ class ExceptionReporter:
             'user_str': user_str,
             'filtered_POST_items': list(self.filter.get_post_parameters(self.request).items()),
             'settings': get_safe_settings(),
-            'insanic_version_info': get_insanic_version(),
+            'insanic_version_info': __version__,
             'sys_executable': sys.executable,
             'sys_version_info': '%d.%d.%d' % sys.version_info[0:3],
             'server_time': datetime.datetime.now(),

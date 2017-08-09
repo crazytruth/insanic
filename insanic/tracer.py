@@ -1,8 +1,7 @@
 import opentracing
-# from basicTracer import BasicTracer
-# from basictracer import BasicTracer
 from opentracing.ext import tags
 
+from insanic import __version__
 from insanic.incendiary import Tracer as IncendiaryTracer
 
 # from flask import (Request, _request_ctx_stack as stack)
@@ -77,6 +76,7 @@ class InsanicTracer():
         if span is None:
             span = self._tracer.start_span(operation_name)
 
+        span.set_tag("insanic.version", __version__)
         span.set_tag(tags.HTTP_URL, request.url)
         span.set_tag(tags.HTTP_METHOD, request.method)
         span.set_tag(tags.PEER_HOST_IPV4, request.ip[0])
@@ -87,7 +87,7 @@ class InsanicTracer():
             if hasattr(request, attr):
                 payload = str(getattr(request, attr))
                 if payload:
-                    span.set_tag(attr, payload)
+                    span.set_tag("request.{0}".format(attr), payload)
 
     def _get_operation_name(self, request):
         if hasattr(request, "path"):
@@ -101,6 +101,8 @@ class InsanicTracer():
             span.set_tag(tags.HTTP_STATUS_CODE, response.status)
             span.set_tag('response.body', response.body)
 
+            setattr(response, 'span', span)
+            # response.span = span
             span.finish()
 
 
@@ -154,4 +156,16 @@ class InsanicTracer():
         return outbound_span
 
 
+    def before_request(self, operation_name, request, tags):
+        parent_span = self.get_span(request)
+
+        outbound_span = self._tracer.start_span(
+            operation_name=operation_name,
+            child_of=parent_span
+        )
+
+        for k,v in tags.items():
+            outbound_span.set_tag(k, v)
+
+        return outbound_span
 

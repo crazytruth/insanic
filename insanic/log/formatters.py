@@ -1,10 +1,9 @@
 import logging
-import os
 import time
 import socket
 import ujson as json
 
-from insanic import get_insanic_version
+from insanic import __version__
 from insanic.conf import settings
 
 
@@ -27,7 +26,7 @@ class JSONFormatter(logging.Formatter):
 
         self.hostname = socket.gethostname()
         self.extra_fields = {"service": settings.SERVICE_NAME, "environment": settings.MMT_ENV,
-                             "insanic_version": get_insanic_version(), "service_version": "0.0.1"}
+                             "insanic_version": __version__, "service_version": "0.0.1"}
 
         for k,v in self.extra_fields.items():
             setattr(self, k, v)

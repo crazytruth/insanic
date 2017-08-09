@@ -6,6 +6,7 @@ from sanic.response import json, html
 from sanic.handlers import ErrorHandler as SanicErrorHandler, format_exc, SanicException, INTERNAL_SERVER_ERROR_HTML
 
 from insanic import status
+from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 
 INTERNAL_SERVER_ERROR_JSON = {
@@ -53,7 +54,8 @@ class ErrorHandler(SanicErrorHandler):
 
 
     def default(self, request, exception):
-        self.log(format_exc())
+        if settings.DEBUG:
+            self.log(format_exc())
         if issubclass(type(exception), SanicException):
             return json(
                 {"message": getattr(exception, 'default_detail', status.REVERSE_STATUS[exception.status_code]),

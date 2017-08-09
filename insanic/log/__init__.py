@@ -1,7 +1,6 @@
 import os
 
 from sanic.config import LOGGING
-from insanic.conf import settings
 
 LOGGING.update({"disable_existing_loggers": False})
 LOGGING['formatters']['json'] = {
@@ -11,7 +10,8 @@ LOGGING['formatters']['json'] = {
               "status": "%(status)d", "size": "%(byte)d", "name": "%(name)s", "thread": "%(thread)s",
                "process": "%(process)s", "thread_name": "%(threadName)s", "service": "%(service)s",
                "environment": "%(environment)s", "insanic_version": "%(insanic_version)s",
-               "service_version": "%(service_version)s"},
+               "service_version": "%(service_version)s", "trace_id": "%(ot_trace_id)s", "span_id": "%(ot_span_id)s",
+               "sampled": "%(ot_sampled)s", "request_duration": "%(ot_duration)s", "parent_id": "%(ot_parent_id)s",},
     'datefmt': '%Y-%m-%dT%H:%M:%S.%%(msecs)d%z'
 }
 

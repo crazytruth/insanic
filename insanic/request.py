@@ -48,11 +48,11 @@ class Request(SanicRequest):
 
     __slots__ = (
         'app', 'headers', 'version', 'method', '_cookies', 'transport',
-        'body', '_request_time',
-        'parsed_json', 'parsed_args', 'parsed_form', 'parsed_files',
-        '_ip',
+        'body', 'parsed_json', 'parsed_args', 'parsed_form', 'parsed_files',
+        '_ip', '_parsed_url', 'uri_template', 'stream', '_remote_addr',
         'authenticators', '_data', '_files', '_full_data', '_content_type',
-        '_stream', '_authenticator', '_user', '_auth', '_is_service', '_service_hosts', '_parsed_url', 'uri_template'
+        '_stream', '_authenticator', '_user', '_auth', '_is_service', '_service_hosts',
+        '_request_time',
     )
 
 
@@ -60,10 +60,8 @@ class Request(SanicRequest):
     def __init__(self, url_bytes, headers, version, method, transport,
                  authenticators=None):
 
-
         super().__init__(url_bytes, headers, version, method, transport)
         # self._request = request
-        self._parsed_url = parse_url(url_bytes)
         self._request_time = int(time.time() * 1000000)
 
 
@@ -86,15 +84,6 @@ class Request(SanicRequest):
     def content_type(self):
         meta = self.headers
         return meta.get('content-type', 'application/json')
-
-    @property
-    def stream(self):
-        """
-        Returns an object that may be used to stream the request content.
-        """
-        if not _hasattr(self, '_stream'):
-            self._load_stream()
-        return self._stream
 
     @property
     def query_params(self):
