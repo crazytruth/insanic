@@ -31,7 +31,7 @@ class InsanicTracer():
 
         opentracing.tracer = self
 
-    def trace(self, *attributes):
+    def trace_function(self, *attributes):
         '''
         Function decorator that traces functions
         NOTE: Must be placed after the @app.route decorator
@@ -60,6 +60,7 @@ class InsanicTracer():
         '''
         if request is None:
             return None
+
         return self._current_spans.get(request.tracing, None)
 
     def _before_request_fn(self, request, attributes):
@@ -88,6 +89,8 @@ class InsanicTracer():
                 payload = str(getattr(request, attr))
                 if payload:
                     span.set_tag("request.{0}".format(attr), payload)
+
+        request.span = span
 
     def _get_operation_name(self, request):
         if hasattr(request, "path"):
@@ -156,8 +159,8 @@ class InsanicTracer():
         return outbound_span
 
 
-    def before_request(self, operation_name, request, tags):
-        parent_span = self.get_span(request)
+    def before_request(self, operation_name, parent_span, tags):
+        # parent_span = self.get_span(request)
 
         outbound_span = self._tracer.start_span(
             operation_name=operation_name,

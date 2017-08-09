@@ -52,7 +52,7 @@ class Request(SanicRequest):
         '_ip', '_parsed_url', 'uri_template', 'stream', '_remote_addr',
         'authenticators', '_data', '_files', '_full_data', '_content_type',
         '_stream', '_authenticator', '_user', '_auth', '_is_service', '_service_hosts',
-        '_request_time',
+        '_request_time', '_span'
     )
 
 
@@ -78,6 +78,14 @@ class Request(SanicRequest):
     @property
     def tracing(self):
         return "{0}.{1}".format(self._request_time, id(self))
+
+    @property
+    def span(self):
+        return self._span
+
+    @span.setter
+    def span(self, value):
+        self._span = value
 
 
     @property
