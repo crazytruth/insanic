@@ -1,6 +1,7 @@
 import os
 
 from sanic.config import LOGGING
+from sanic.log import log, netlog
 
 LOGGING.update({"disable_existing_loggers": False})
 LOGGING['formatters']['json'] = {

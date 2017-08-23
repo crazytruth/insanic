@@ -6,21 +6,31 @@ import ujson as json
 from asyncio import get_event_loop
 from collections import namedtuple
 from sanic.constants import HTTP_METHODS
-from urllib.parse import urlunsplit, urljoin
 from yarl import URL
 
 from insanic import exceptions, status
 from insanic.conf import settings
+from insanic.connections import get_connection, get_future_connection
 from insanic.errors import GlobalErrorCodes
+from insanic.log import log
 from insanic.utils import to_object
+
+try:
+    from infuse import AioCircuitBreaker, CircuitAioRedisStorage, STATE_CLOSED, \
+        CircuitBreakerError
+
+    IS_INFUSED = True
+except ImportError as e:
+    if settings.MMT_ENV == "production":
+        raise e
+    else:
+        CircuitBreakerError = Exception
+        IS_INFUSED = False
+        log.warn("Running without [infuse]. For production infuse is required!")
 
 
 class InterServiceAuth(namedtuple('InterServiceAuth', ['prefix', 'token'])):
     """Http basic authentication helper.
-
-    :param str login: Login
-    :param str password: Password
-    :param str encoding: (optional) encoding ('latin1' by default)
     """
 
     def __new__(cls, prefix, token=''):
@@ -46,12 +56,11 @@ class InterServiceAuth(namedtuple('InterServiceAuth', ['prefix', 'token'])):
         """Encode credentials."""
         return '%s %s' % (self.prefix, self.token)
 
-
 class ServiceRegistry(dict):
+    _conn = None
+
     def __init__(self, *args, **kwargs):
-
         self._registry = {s: None for s in settings.SERVICES.keys()}
-
         super().__init__(*args, **kwargs)
 
     def __setitem__(self, key, value):
@@ -64,7 +73,7 @@ class ServiceRegistry(dict):
                                .format(item, ", ".join(self._registry.keys())))
 
         if self._registry[item] is None:
-            self._registry[item] = Service(item)
+            self._registry[item] = Service(item, self)
 
         return self._registry[item]
 
@@ -72,10 +81,12 @@ registry = ServiceRegistry()
 
 class Service:
 
-    def __init__(self, service_type):
+    def __init__(self, service_type, registry):
 
+        self._registry = registry
         self._service_name = service_type
         self._session = None
+        self._breaker = None
 
 
         if service_type not in settings.SERVICES.keys():
@@ -85,15 +96,26 @@ class Service:
         else:
             api_host = "mmt-server-{0}".format(service_type)
 
-        # url_scheme = settings.API_GATEWAY_SCHEME
-        # service_host = api_host
-        # service_port = settings.SERVICES[service_type].get('externalserviceport')
-        # self._url_netloc = "{0}:{1}".format(self._service_host, self._service_port)
         url_partial_path = "/api/v1/{0}".format(service_type)
-        # self._base_url = urlunsplit((settings.API_GATEWAY_SCHEME, self._url_netloc, self._url_partial_path, "", ""))
         self.url = URL.build(scheme=settings.API_GATEWAY_SCHEME, host=api_host, port=settings.SERVICES[service_type].get('externalserviceport'), path=url_partial_path)
 
         self.remove_headers = ["content-length", 'user-agent', 'host', 'postman-token']
+
+    @property
+    async def breaker(self):
+        if self._breaker is None:
+
+            conn = await get_connection('redis')
+            conn = await conn.acquire()
+            self._registry.conn = conn
+
+            circuit_breaker_storage = await CircuitAioRedisStorage.initialize(STATE_CLOSED, conn, self._service_name)
+            # await circuit_breaker_storage.init_storage(STATE_CLOSED)
+            self._breaker = await AioCircuitBreaker.initialize(fail_max=settings.INFUSE_MAX_FAILURE,
+                                                               reset_timeout=settings.INFUSE_RESET_TIMEOUT,
+                                                               state_storage=circuit_breaker_storage,
+                                                               listeners=[])
+        return self._breaker
 
     @property
     def session(self):
@@ -103,7 +125,6 @@ class Service:
         return self._session
 
     def _construct_url(self, endpoint, query_params={}):
-
 
         url = self.url.with_path(endpoint)
         if len(query_params):
@@ -142,12 +163,10 @@ class Service:
 
     async def _dispatch(self, method, endpoint, req_ctx, query_params={}, payload={}, headers={}, return_obj=True, propagate_error=False):
 
-
         request_method = getattr(self.session, method.lower(), None)
 
         url = self._construct_url(endpoint, query_params)
         headers = self._prepare_headers(headers)
-
 
         if not isinstance(payload, str):
             payload = json.dumps(payload)
@@ -157,13 +176,21 @@ class Service:
         opentracing.tracer.before_service_request(outbound_request, req_ctx, service_name=self._service_name)
 
         try:
-            async with request_method(str(outbound_request.url), headers=outbound_request.headers, data=payload) as resp:
-                response = await resp.text()
-                if propagate_error:
-                    resp.raise_for_status()
+            if IS_INFUSED:
+                breaker = await self.breaker
+                # resp = await request_method(str(outbound_request.url), headers=outbound_request.headers, data=payload)
 
-                response_status = resp.status
-                response = self._try_json_decode(response)
+                resp = await breaker.call(request_method, str(outbound_request.url),
+                                               headers=outbound_request.headers, data=payload)
+            else:
+                resp = await request_method(str(outbound_request.url), headers=outbound_request.headers, data=payload)
+
+            response = await resp.text()
+            if propagate_error:
+                resp.raise_for_status()
+
+            response_status = resp.status
+            response = self._try_json_decode(response)
 
         except aiohttp.client_exceptions.ClientResponseError as e:
             response = self._try_json_decode(response)
@@ -221,9 +248,14 @@ class Service:
             raise exc
         except aiohttp.client_exceptions.ClientPayloadError as e:
             pass
+        except CircuitBreakerError as e:
+
+            exc = exceptions.ServiceUnavailable503Error(detail="{0}: {1}".format(e.args[0], self._service_name),
+                                                        error_code=GlobalErrorCodes.service_unavailable,
+                                                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+            raise exc
         finally:
             pass
-
 
         if return_obj:
             return to_object(response)

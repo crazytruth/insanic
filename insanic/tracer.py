@@ -162,13 +162,14 @@ class InsanicTracer():
     def before_request(self, operation_name, parent_span, tags):
         # parent_span = self.get_span(request)
 
-        outbound_span = self._tracer.start_span(
-            operation_name=operation_name,
-            child_of=parent_span
-        )
+        if parent_span is not None:
+            outbound_span = self._tracer.start_span(
+                operation_name=operation_name,
+                child_of=parent_span
+            )
 
-        for k,v in tags.items():
-            outbound_span.set_tag(k, v)
+            for k,v in tags.items():
+                outbound_span.set_tag(k, v)
 
-        return outbound_span
+            return outbound_span
 
