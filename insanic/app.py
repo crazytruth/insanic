@@ -3,17 +3,18 @@ from sanic_useragent import SanicUserAgent
 
 from peewee_async import PooledMySQLDatabase
 
+from insanic import listeners
 from insanic.conf import settings
-from insanic.connections import connect_database, close_database
 from insanic.handlers import ErrorHandler
 from insanic.incendiary import redis
+from insanic.monitor import blueprint_monitor
 from insanic.log import LOGGING
 from insanic.protocol import InsanicHttpProtocol
 from insanic.tracer import InsanicTracer, IncendiaryTracer
 
 from insanic.utils import attach_middleware
 
-
+LISTENER_TYPES = ("before_server_start", "after_server_start", "before_server_stop", "after_server_stop")
 
 class Insanic(Sanic):
     database = None
@@ -33,32 +34,28 @@ class Insanic(Sanic):
 
 
         super().__init__(name, router, error_handler, log_config=LOGGING)
-        # super().__init__(name, router, error_handler)
+
         self.config = settings
-        #
-        # for c in app_config:
-        #     try:
-        #         self.config.from_pyfile(c)
-        #     except TypeError:
-        #         self.config.from_object(c)
-        #     except FileNotFoundError:
-        #         pass
 
         SanicUserAgent.init_app(self)
         attach_middleware(self)
 
         self.database = PooledMySQLDatabase(None)
 
-        self.listeners['after_server_start'].append(connect_database)
-        self.listeners['before_server_stop'].append(close_database)
+        for module_name in dir(listeners):
+            for l in LISTENER_TYPES:
+                if module_name.startswith(l):
+                    self.listeners[l].append(getattr(listeners, module_name))
 
-        #
         incendiary_tracer = IncendiaryTracer(service_name=self.config['SERVICE_NAME'],
                                              verbosity=2 if self.config['MMT_ENV'] == "local" else 0)
         self.tracer = InsanicTracer(incendiary_tracer, True, self, ['args', 'body',' content_type', 'cookies', 'data',
                                                                     'host', 'ip', 'method', 'path', 'scheme', 'url'])
         redis.init_tracing(incendiary_tracer)
         # # self.database.set_allow_sync(False)
+
+        # add blueprint for monitor endpoints
+        self.blueprint(blueprint_monitor)
 
     def _helper(self, **kwargs):
         """Helper function used by `run` and `create_server`."""
