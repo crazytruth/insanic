@@ -2,7 +2,7 @@ import opentracing
 from opentracing.ext import tags
 
 from insanic import __version__
-from insanic.incendiary import Tracer as IncendiaryTracer
+from incendiary import Tracer as IncendiaryTracer
 
 # from flask import (Request, _request_ctx_stack as stack)
 
