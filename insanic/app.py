@@ -3,10 +3,9 @@ from sanic_useragent import SanicUserAgent
 
 from peewee_async import PooledMySQLDatabase
 
-from insanic import listeners
 from insanic.conf import settings
 from insanic.handlers import ErrorHandler
-from insanic.incendiary import redis
+from incendiary import redis
 from insanic.monitor import blueprint_monitor
 from insanic.log import LOGGING
 from insanic.protocol import InsanicHttpProtocol
@@ -42,6 +41,7 @@ class Insanic(Sanic):
 
         self.database = PooledMySQLDatabase(None)
 
+        from insanic import listeners
         for module_name in dir(listeners):
             for l in LISTENER_TYPES:
                 if module_name.startswith(l):
@@ -51,7 +51,7 @@ class Insanic(Sanic):
                                              verbosity=2 if self.config['MMT_ENV'] == "local" else 0)
         self.tracer = InsanicTracer(incendiary_tracer, True, self, ['args', 'body',' content_type', 'cookies', 'data',
                                                                     'host', 'ip', 'method', 'path', 'scheme', 'url'])
-        redis.init_tracing(incendiary_tracer)
+        # redis.init_tracing(incendiary_tracer)
         # # self.database.set_allow_sync(False)
 
         # add blueprint for monitor endpoints

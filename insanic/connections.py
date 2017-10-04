@@ -1,6 +1,7 @@
 import aioredis
 import asyncio
 import logging
+import traceback
 
 from inspect import isawaitable, CO_ITERABLE_COROUTINE
 from threading import local
@@ -42,7 +43,7 @@ class ConnectionHandler:
                 "redis": {
                     "ENGINE": "aioredis",
                     "CONNECTION_INTERFACE" : "create_pool",
-                    "CLOSE_CONNECTION_INTERFACE": ("_pool", "wait_closed")
+                    "CLOSE_CONNECTION_INTERFACE": (('close',), ("wait_closed",))
                 },
                 "mysql_legacy" : {
                     "ENGINE": ""
@@ -109,41 +110,54 @@ class ConnectionHandler:
 
     def close_all(self):
 
+        close_tasks = []
         for a in self.databases.keys():
-            asyncio.ensure_future(self.close(a))
+            close_tasks.append(asyncio.ensure_future(self.close(a)))
+
+        return close_tasks
 
 
 
     async def close(self, alias):
         try:
             logger.info("Start Closing database connection: {0}".format(alias))
-            _conn = getattr(self._connections, alias)
+            if hasattr(self._connections, alias):
+                _conn = getattr(self._connections, alias)
+            else:
+                raise AttributeError("{0} is not connected.")
 
-            if isawaitable(_conn):
-                _conn = await _conn
+            # if isawaitable(_conn):
+            #     _conn = await _conn
 
             close_connection_interface = self.databases[alias].get('CLOSE_CONNECTION_INTERFACE', [])
 
-            close_database = _conn
-
-            for m in close_connection_interface:
-                if hasattr(close_database, m):
-                    close_database = getattr(close_database, m)
-                else:
-                    break
-
             logger.info("Closing database connection: {0}".format(alias))
-            delattr(self._connections, alias)
-            if _conn != close_database:
-                closing = close_database()
+            for close_attr in close_connection_interface:
+                close_database = _conn
+                for m in close_attr:
+                    if hasattr(close_database, m):
+                        close_database = getattr(close_database, m)
+                    else:
+                        break
 
-                if isawaitable(closing):
-                    await closing
 
+
+                if _conn != close_database:
+                    closing = close_database()
+
+                    if isawaitable(closing):
+                        await closing
+        except AttributeError:
+            pass
 
         except Exception as e:
             logger.info("Error when closing connection: {0}".format(alias))
             logger.info(e)
+            traceback.print_exc()
+        finally:
+
+            if hasattr(self._connections, alias):
+                delattr(self._connections, alias)
 
 
     def all(self):

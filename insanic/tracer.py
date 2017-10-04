@@ -61,7 +61,10 @@ class InsanicTracer():
         if request is None:
             return None
 
-        return self._current_spans.get(request.tracing, None)
+        try:
+            return self._current_spans.get(request.tracing, None)
+        except AttributeError:
+            return self._tracer.start_span()
 
     def _before_request_fn(self, request, attributes):
         operation_name = self._get_operation_name(request)

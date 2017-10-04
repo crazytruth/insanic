@@ -1,4 +1,5 @@
 import aiohttp
+import gzip
 import hashlib
 import opentracing
 import ujson as json
@@ -60,11 +61,12 @@ class ServiceRegistry(dict):
     _conn = None
 
     def __init__(self, *args, **kwargs):
-        self._registry = {s: None for s in settings.SERVICES.keys()}
+        self._registry = {s: None for s in settings.SERVICE_CONNECTIONS}
         super().__init__(*args, **kwargs)
 
     def __setitem__(self, key, value):
-        raise RuntimeError("Unable to set new service.")
+        raise RuntimeError("Unable to set new service. Append {0} SERVICE_CONNECTIONS "
+                           "to allow connections to {0}.".format(key))
 
     def __getitem__(self, item):
 
@@ -124,6 +126,7 @@ class Service:
                                                   connector=aiohttp.TCPConnector(limit_per_host=10))
         return self._session
 
+
     def _construct_url(self, endpoint, query_params={}):
 
         url = self.url.with_path(endpoint)
@@ -133,7 +136,7 @@ class Service:
         # return urljoin(self._base_url, endpoint)
 
 
-    async def http_dispatch(self, method, endpoint, req_ctx, *, query_params={}, payload={}, headers={}, return_obj=True, propagate_error=False):
+    async def http_dispatch(self, method, endpoint, req_ctx={}, *, query_params={}, payload={}, headers={}, return_obj=True, propagate_error=False):
 
         if method.upper() not in HTTP_METHODS:
             raise ValueError("{0} is not a valid method.".format(method))
@@ -146,6 +149,7 @@ class Service:
                 del headers[h]
 
         headers.update({"accept": "application/json"})
+        headers.update({"content-type": "application/json"})
 
         m = hashlib.sha256()
         m.update('mmt-server-{0}'.format(self._service_name).encode())
@@ -194,10 +198,13 @@ class Service:
 
         except aiohttp.client_exceptions.ClientResponseError as e:
             response = self._try_json_decode(response)
-            exc = exceptions.APIException(detail=response['description'],
-                                          error_code=response['error_code'],
-                                          status_code=e.code)
-            exc.default_detail = response['message']
+            status_code = e.code
+            error_code = GlobalErrorCodes.invalid_usage if status_code == status.HTTP_400_BAD_REQUEST else GlobalErrorCodes.unknown_error
+            exc = exceptions.APIException(detail=response.get('description', response),
+                                          error_code=response.get('error_code',
+                                                                  error_code),
+                                          status_code=status_code)
+            exc.default_detail = response.get('message', GlobalErrorCodes.unknown_error.name)
             raise exc
 
         except aiohttp.client_exceptions.ClientConnectionError as e:

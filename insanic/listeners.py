@@ -1,3 +1,4 @@
+import asyncio
 from insanic.conf import settings
 from insanic.connections import _connections, get_connection
 from insanic.services import IS_INFUSED
@@ -7,11 +8,12 @@ from peewee import BaseModel
 from peewee_async import Manager
 
 
-async def before_server_stop_close_database(app, loop, **kwargs):
+# async def before_server_stop_close_database(app, loop, **kwargs):
+async def after_server_stop_close_database(app, loop, **kwargs):
     await app.database.close_async()
-    _connections.close_all()
+    close_tasks = _connections.close_all()
 
-    app.objects.close()
+    await app.objects.close()
 
 
 async def after_server_start_connect_database(app, loop=None, **kwargs):
