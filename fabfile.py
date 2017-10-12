@@ -4,7 +4,7 @@ from configparser import ConfigParser
 
 config = None
 
-DOCKER_USERNAME = "199574976045.dkr.ecr.ap-northeast-1.amazonaws.com"
+DOCKER_USERNAME = "120387605022.dkr.ecr.ap-northeast-1.amazonaws.com"
 
 def _load_config(mmt_server_path):
     global config
