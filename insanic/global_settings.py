@@ -8,6 +8,8 @@ ADMINS = (
 
 DEBUG = False
 
+SERVICE_CONNECTIONS = []
+
 SERVER_EMAIL = "support@mymusictaste.com"
 SERVER_ERROR_EMAIL = "admin@mymusictaste.com"
 EMAIL_SUBJECT_PREFIX = "[MyMusicTaste]"
@@ -42,10 +44,9 @@ JWT_AUTH = {
     'JWT_RESPONSE_PAYLOAD_HANDLER':
     'rest_framework_jwt.utils.jwt_response_payload_handler',
 
-    'JWT_SECRET_KEY': SECRET_KEY,
     'JWT_PUBLIC_KEY': None,
     'JWT_PRIVATE_KEY': None,
-    'JWT_ALGORITHM': 'RS512',
+    'JWT_ALGORITHM': 'HS256',
     'JWT_VERIFY': True,
     'JWT_VERIFY_EXPIRATION': True,
     'JWT_LEEWAY': 0,

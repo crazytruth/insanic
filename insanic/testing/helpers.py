@@ -1,3 +1,4 @@
+import copy
 import ujson as json
 from collections import namedtuple
 
@@ -9,22 +10,20 @@ class BaseMockService:
     def _key_for_request(self, method, endpoint):
         return (method.upper(), endpoint)
 
-    async def mock_dispatch(self, method, endpoint, payload={}, headers={}, return_obj=True, propagate_error=False, **kwargs):
+    async def mock_dispatch(self, method, endpoint, req_ctx={}, *, query_params={}, payload={}, headers={},
+                            return_obj=True, propagate_error=False):
         key = self._key_for_request(method, endpoint)
 
         if method == "GET" and endpoint == "/api/v1/user/self?fields=id,username,email,is_active,is_ban,is_superuser,locale,version,password,is_authenticated":
             return kwargs.get('test_user')
 
         if key in self.service_responses:
-            return self.service_responses[key]
+            return copy.deepcopy(self.service_responses[key])
 
         raise RuntimeError("Unknown service request: {0} {1}".format(method.upper(), endpoint))
 
     def register_mock_dispatch(self, method, endpoint, response):
         key = self._key_for_request(method, endpoint)
-
-        if key in self.service_responses:
-            raise RuntimeError("Duplicate registrations for {0} {1}".format(key[0], key[1]))
 
         self.service_responses.update({key: response})
 

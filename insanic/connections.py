@@ -53,8 +53,8 @@ class ConnectionHandler:
         return self._databases
 
     async def _get_connection(self, alias):
-        if hasattr(self._connections, alias):
-            return getattr(self._connections, alias)
+        # if hasattr(self._connections, alias):
+        #     return getattr(self._connections, alias)
 
         # db = self.databases[alias]
         # conn = await self.connect(alias)

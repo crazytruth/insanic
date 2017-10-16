@@ -1,4 +1,5 @@
 import pytest
+import uvloop
 
 from aioredis.connection import RedisConnection
 from functools import partial
@@ -22,6 +23,13 @@ def authorization_token(request, test_user):
 @pytest.fixture(scope='session')
 def test_user(user_id=19705):
     return User(id=user_id, email="admin@mymusictaste.com", is_active=True, is_authenticated=True)
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    loop = uvloop.new_event_loop()
+    yield loop
+    loop.close()
 
 
 @pytest.fixture(scope='function', autouse=True)

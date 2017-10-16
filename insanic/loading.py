@@ -1,4 +1,4 @@
-from insanic.services import registry
+from insanic.services import ServiceRegistry
 
 def get_service(service_name):
-    return registry[service_name]
+    return ServiceRegistry()[service_name]

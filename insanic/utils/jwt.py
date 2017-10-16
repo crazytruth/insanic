@@ -13,7 +13,7 @@ def jwt_decode_handler(token):
 
     return jwt.decode(
         token,
-        settings.JWT_AUTH['JWT_PUBLIC_KEY'] or settings.JWT_AUTH['JWT_SECRET_KEY'],
+        settings.JWT_AUTH['JWT_PUBLIC_KEY'] or settings.SECRET_KEY,
         settings.JWT_AUTH['JWT_VERIFY'],
         options=options,
         leeway=settings.JWT_AUTH['JWT_LEEWAY'],
@@ -70,7 +70,7 @@ def jwt_payload_handler(user):
 def jwt_encode_handler(payload):
     return jwt.encode(
         payload,
-        settings.JWT_AUTH['JWT_PRIVATE_KEY'] or settings.JWT_AUTH['JWT_SECRET_KEY'],
+        settings.JWT_AUTH['JWT_PRIVATE_KEY'] or settings.SECRET_KEY,
         settings.JWT_AUTH['JWT_ALGORITHM']
     ).decode('utf-8')
 

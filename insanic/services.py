@@ -57,35 +57,38 @@ class InterServiceAuth(namedtuple('InterServiceAuth', ['prefix', 'token'])):
         """Encode credentials."""
         return '%s %s' % (self.prefix, self.token)
 
+
 class ServiceRegistry(dict):
+    __instance = None
     _conn = None
 
-    def __init__(self, *args, **kwargs):
-        self._registry = {s: None for s in settings.SERVICE_CONNECTIONS}
-        super().__init__(*args, **kwargs)
+    def __new__(cls, *args, **kwargs):
+        if ServiceRegistry.__instance is None:
+            ServiceRegistry.__instance = dict.__new__(cls)
+            ServiceRegistry.__instance.update(**{s: None for s in settings.SERVICE_CONNECTIONS})
+        return ServiceRegistry.__instance
 
     def __setitem__(self, key, value):
         raise RuntimeError("Unable to set new service. Append {0} SERVICE_CONNECTIONS "
                            "to allow connections to {0}.".format(key))
 
-    def __getitem__(self, item):
-
-        if item not in self._registry:
+    def __getitem__(self, key):
+        if key not in self:
             raise RuntimeError("{0} service does not exist. Only the following: {1}"
-                               .format(item, ", ".join(self._registry.keys())))
+                               .format(key, ", ".join(self.keys())))
+        item = super().__getitem__(key)
+        if item is None:
+            item = Service(key)
+            super().__setitem__(key, item)
+        return item
 
-        if self._registry[item] is None:
-            self._registry[item] = Service(item, self)
-
-        return self._registry[item]
-
-registry = ServiceRegistry()
+# registry = ServiceRegistry()
 
 class Service:
 
-    def __init__(self, service_type, registry):
+    def __init__(self, service_type):
 
-        self._registry = registry
+        self._registry = ServiceRegistry()
         self._service_name = service_type
         self._session = None
         self._breaker = None
@@ -136,12 +139,14 @@ class Service:
         # return urljoin(self._base_url, endpoint)
 
 
-    async def http_dispatch(self, method, endpoint, req_ctx={}, *, query_params={}, payload={}, headers={}, return_obj=True, propagate_error=False):
+    async def http_dispatch(self, method, endpoint, req_ctx={}, *, query_params={}, payload={}, headers={},
+                            return_obj=True, propagate_error=False):
 
         if method.upper() not in HTTP_METHODS:
             raise ValueError("{0} is not a valid method.".format(method))
 
-        return await self._dispatch(method, endpoint, req_ctx, query_params=query_params, payload=payload, headers=headers, return_obj=return_obj, propagate_error=propagate_error)
+        return await self._dispatch(method, endpoint, req_ctx, query_params=query_params, payload=payload,
+                                    headers=headers, return_obj=return_obj, propagate_error=propagate_error)
 
     def _prepare_headers(self, headers):
         for h in self.remove_headers:

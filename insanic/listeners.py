@@ -28,12 +28,15 @@ async def after_server_start_connect_database(app, loop=None, **kwargs):
                       min_connections=5, max_connections=10, charset='utf8', use_unicode=True)
 
     # import models and switch out database
-    service_models = import_module('{0}.models'.format(settings.SERVICE_NAME))
-    for m in dir(service_models):
-        if m[0].isupper():
-            possible_model = getattr(service_models, m)
-            if isinstance(possible_model, BaseModel):
-                possible_model._meta.database = app.database
+    try:
+        service_models = import_module('{0}.models'.format(settings.SERVICE_NAME))
+        for m in dir(service_models):
+            if m[0].isupper():
+                possible_model = getattr(service_models, m)
+                if isinstance(possible_model, BaseModel):
+                    possible_model._meta.database = app.database
+    except ModuleNotFoundError:
+        pass
 
     app.objects = Manager(app.database, loop=loop)
 
