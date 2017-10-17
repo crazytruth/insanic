@@ -1,3 +1,4 @@
+import asyncio
 import pytest
 import uvloop
 
@@ -56,7 +57,12 @@ def monkeypatch_redis(monkeypatch, redisdb):
 
     monkeypatch.setattr(redisdb, 'parse_response', parse_response)
     monkeypatch.setattr(Connection, 'send_command', send_command)
-    monkeypatch.setattr(RedisConnection, 'execute', redisdb.execute_command)
+
+
+    def execute(self, *args, **kwargs):
+        return asyncio.ensure_future(redisdb.execute_command(*args, **kwargs))
+
+    monkeypatch.setattr(RedisConnection, 'execute', execute)
 
 
 @pytest.fixture(scope='function', autouse=True)
