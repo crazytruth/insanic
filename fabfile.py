@@ -21,11 +21,12 @@ def find_directory(dir_name):
             return cwd
 
 
-def bumpversion_insanic(bump_part="patch"):
+def bumpversion(bump_part="patch"):
     mmt_server_directory = find_directory("mmt-server")
 
     _load_config(mmt_server_directory)
-    requirements = [os.path.join(mmt_server_directory, service, 'requirements.txt') for service in config.sections() if bool(config[service].getboolean('isService'))]
+    requirements = [os.path.join(mmt_server_directory, service, 'requirements.txt')
+                    for service in config.sections() if bool(config[service].getboolean('isService')) and not bool(config[service].getboolean('isExternal'))]
 
     local('bumpversion --verbose --search "insanic=={{current_version}}" --replace "insanic=={{new_version}}" '
           '--no-commit --no-tag --allow-dirty {0} {1}'.format(bump_part, " ".join(requirements)))

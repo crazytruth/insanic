@@ -1,3 +1,4 @@
+import importlib
 import os
 import sys
 import types
@@ -9,12 +10,80 @@ from sanic.config import Config
 from configparser import ConfigParser
 
 from insanic import global_settings
+from insanic.exceptions import ImproperlyConfigured
+from insanic.functional import LazyObject,empty
+
+
+SERVICE_VARIABLE = "MMT_SERVICE"
+
+class LazySettings(LazyObject):
+
+    """
+    A lazy proxy for either global Django settings or a custom settings object.
+    The user can manually configure settings prior to using them. Otherwise,
+    Django uses the settings module pointed to by DJANGO_SETTINGS_MODULE.
+    """
+    def _setup(self, name=None):
+        """
+        Load the settings module pointed to by the environment variable. This
+        is used the first time we need any settings at all, if the user has not
+        previously configured the settings manually.
+        """
+        service_name = os.environ.get(SERVICE_VARIABLE)
+
+        if not service_name:
+            desc = ("setting %s" % name) if name else "settings"
+            raise ImproperlyConfigured(
+                "Requested %s, but settings are not configured. "
+                "You must either define the environment variable %s "
+                "or call settings.configure() before accessing settings."
+                % (desc, SERVICE_VARIABLE))
+
+        settings_module = "{0}.config".format(service_name)
+
+        self._wrapped = DockerSecretsConfig(settings_module=settings_module)
+
+    def __getattr__(self, name):
+        if self._wrapped is empty:
+            self._setup(name)
+        return getattr(self._wrapped, name)
+
+    @property
+    def configured(self):
+        """
+        Returns True if the settings have already been configured.
+        """
+        return self._wrapped is not empty
+
+
+
 
 class DockerSecretsConfig(Config):
 
-    def __init__(self, defaults=None):
+    def __init__(self, defaults=None, *, settings_module=None):
         super().__init__(defaults)
+
+        self.SETTINGS_MODULE = settings_module
+
         self.from_object(global_settings)
+
+        try:
+            config_module = importlib.import_module(self.SETTINGS_MODULE)
+        except ImportError as e:
+            raise ImportError(
+                "Could not import settings '%s' (Is it on sys.path? Is there an import error in the settings file?): %s"
+                % (self.SETTINGS_MODULE, e)
+            )
+
+        self.from_object(config_module)
+
+        try:
+            instance_module = importlib.import_module('instance')
+            self.from_object(instance_module)
+        except ImportError:
+            pass
+
+
         self._load_secrets()
 
         services_location = self._locate_service_ini()
@@ -28,7 +97,7 @@ class DockerSecretsConfig(Config):
     def _load_secrets(self):
 
         try:
-            with open('/run/secrets/{0}'.format(os.environ['MMT_SERVICE'])) as f:
+            with open('/run/secrets/{0}'.format(os.environ[SERVICE_VARIABLE])) as f:
                 docker_secrets = f.read()
 
             # print(docker_secrets)
@@ -134,4 +203,4 @@ class DockerSecretsConfig(Config):
 
 
 
-settings = DockerSecretsConfig()
+settings = LazySettings()

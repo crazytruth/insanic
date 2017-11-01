@@ -3,6 +3,12 @@ from sanic.exceptions import SanicException
 from .errors import GlobalErrorCodes
 from . import status
 
+
+class ImproperlyConfigured(Exception):
+    """Insanic is somehow improperly configured"""
+    pass
+
+
 class APIException(SanicException):
     """
     Base class for REST framework exceptions.

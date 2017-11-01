@@ -3,7 +3,7 @@ from sanic_useragent import SanicUserAgent
 
 from peewee_async import PooledMySQLDatabase
 
-from insanic.conf import settings
+
 from insanic.handlers import ErrorHandler
 from incendiary import redis
 from insanic.monitor import blueprint_monitor
@@ -22,6 +22,8 @@ class Insanic(Sanic):
 
         if error_handler is None:
             error_handler = ErrorHandler()
+
+        from insanic.conf import settings
 
         for c in app_config:
             try:
