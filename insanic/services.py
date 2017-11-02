@@ -1,5 +1,5 @@
 import aiohttp
-import gzip
+import aioredis
 import hashlib
 import opentracing
 import ujson as json
@@ -96,22 +96,39 @@ class Service:
 
         if service_type not in settings.SERVICES.keys():
             raise AssertionError("Invalid service type.")
-        if settings.MMT_ENV == "local":
-            api_host = settings.API_GATEWAY_HOST
-        else:
-            api_host = "mmt-server-{0}".format(service_type)
 
-        url_partial_path = "/api/v1/{0}".format(service_type)
-        self.url = URL.build(scheme=settings.API_GATEWAY_SCHEME, host=api_host, port=settings.SERVICES[service_type].get('externalserviceport'), path=url_partial_path)
+        if settings.MMT_ENV == "local":
+            self._host = settings.API_GATEWAY_HOST
+        else:
+            self._host = "mmt-server-{0}".format(service_type)
+
+        self._port = settings.SERVICES[self._service_name].get('externalserviceport')
+
+        # url_partial_path = "/api/v1/{0}".format(service_type)
+        # self.url = URL.build(scheme=settings.API_GATEWAY_SCHEME, host=api_host, port=settings.SERVICES[service_type].get('externalserviceport'), path=url_partial_path)
 
         self.remove_headers = ["content-length", 'user-agent', 'host', 'postman-token']
+
+
+    @property
+    def url(self):
+        url_partial_path = "/api/v1/{0}".format(self._service_name)
+
+        return URL.build(scheme=settings.API_GATEWAY_SCHEME, host=self._host,
+                         port=self._port,
+                         path=url_partial_path)
+
 
     @property
     async def breaker(self):
         if self._breaker is None:
 
-            conn = await get_connection('redis')
-            conn = await conn.acquire()
+            # conn = await get_connection('redis')
+            # conn = await conn.acquire()
+
+            conn = await aioredis.create_redis((settings.REDIS_HOST, settings.REDIS_PORT),
+                                               encoding='utf-8', db=settings.REDIS_DB)
+
             self._registry.conn = conn
 
             circuit_breaker_storage = await CircuitAioRedisStorage.initialize(STATE_CLOSED, conn, self._service_name)
@@ -140,13 +157,14 @@ class Service:
 
 
     async def http_dispatch(self, method, endpoint, req_ctx={}, *, query_params={}, payload={}, headers={},
-                            return_obj=True, propagate_error=False):
+                            return_obj=True, propagate_error=False, skip_breaker=False, include_status_code=False):
 
         if method.upper() not in HTTP_METHODS:
             raise ValueError("{0} is not a valid method.".format(method))
 
         return await self._dispatch(method, endpoint, req_ctx, query_params=query_params, payload=payload,
-                                    headers=headers, return_obj=return_obj, propagate_error=propagate_error)
+                                    headers=headers, return_obj=return_obj, propagate_error=propagate_error,
+                                    skip_breaker=skip_breaker, include_status_code=include_status_code)
 
     def _prepare_headers(self, headers):
         for h in self.remove_headers:
@@ -170,7 +188,8 @@ class Service:
             pass
         return data
 
-    async def _dispatch(self, method, endpoint, req_ctx, query_params={}, payload={}, headers={}, return_obj=True, propagate_error=False):
+    async def _dispatch(self, method, endpoint, req_ctx, query_params={}, payload={}, headers={}, return_obj=True,
+                        propagate_error=False, skip_breaker=False, include_status_code=False):
 
         request_method = getattr(self.session, method.lower(), None)
 
@@ -185,7 +204,7 @@ class Service:
         opentracing.tracer.before_service_request(outbound_request, req_ctx, service_name=self._service_name)
 
         try:
-            if IS_INFUSED:
+            if IS_INFUSED and not skip_breaker:
                 breaker = await self.breaker
                 # resp = await request_method(str(outbound_request.url), headers=outbound_request.headers, data=payload)
 
@@ -270,9 +289,14 @@ class Service:
             pass
 
         if return_obj:
-            return to_object(response)
+            result = to_object(response)
         else:
-            return response
+            result = response
+
+        if include_status_code:
+            return result, response_status
+        else:
+            return result
 
 
 

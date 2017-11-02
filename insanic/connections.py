@@ -114,7 +114,7 @@ class ConnectionHandler:
         for a in self.databases.keys():
             close_tasks.append(asyncio.ensure_future(self.close(a)))
 
-        return close_tasks
+        return asyncio.gather(*close_tasks)
 
 
 

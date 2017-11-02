@@ -12,6 +12,7 @@ from peewee_async import Manager
 async def after_server_stop_close_database(app, loop, **kwargs):
     await app.database.close_async()
     close_tasks = _connections.close_all()
+    await close_tasks
 
     await app.objects.close()
 
@@ -50,8 +51,8 @@ async def after_server_start_half_open_circuit(app, loop=None, **kwargs):
     if IS_INFUSED:
         from infuse import AioCircuitBreaker, CircuitAioRedisStorage, STATE_HALF_OPEN, STATE_OPEN
 
-        conn = await get_connection('redis')
-        conn = await conn.acquire()
+        redis = await get_connection('redis')
+        conn = await redis.acquire()
 
         circuit_breaker_storage = CircuitAioRedisStorage(STATE_HALF_OPEN, conn, settings.SERVICE_NAME)
 
@@ -67,3 +68,5 @@ async def after_server_start_half_open_circuit(app, loop=None, **kwargs):
         # if closed, pass
         if current_state == STATE_OPEN:
             await breaker.half_open()
+
+        redis.release(conn)

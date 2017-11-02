@@ -1,5 +1,6 @@
 import copy
 import ujson as json
+from enum import Enum
 from collections import namedtuple
 
 User = namedtuple('User', ['id', 'email', 'is_active', 'is_authenticated'])
@@ -11,14 +12,17 @@ class BaseMockService:
         return (method.upper(), endpoint)
 
     async def mock_dispatch(self, method, endpoint, req_ctx={}, *, query_params={}, payload={}, headers={},
-                            return_obj=True, propagate_error=False):
+                            return_obj=True, propagate_error=False, include_status_code=False, **kwargs):
         key = self._key_for_request(method, endpoint)
 
         if method == "GET" and endpoint == "/api/v1/user/self?fields=id,username,email,is_active,is_ban,is_superuser,locale,version,password,is_authenticated":
             return kwargs.get('test_user')
 
         if key in self.service_responses:
-            return copy.deepcopy(self.service_responses[key])
+            if include_status_code:
+                return copy.deepcopy(self.service_responses[key]), 200
+            else:
+                return copy.deepcopy(self.service_responses[key])
 
         raise RuntimeError("Unknown service request: {0} {1}".format(method.upper(), endpoint))
 
@@ -45,8 +49,7 @@ def test_api_endpoint(insanic_application, authorization_token, endpoint, method
                                 headers=request_headers,
                                 json=request_body)
 
-    assert response.status == expected_response_status
-
+    assert response.status == expected_response_status, response.text
     response_body = json.loads(response.text)
 
     response_status_category = int(expected_response_status / 100)
@@ -64,13 +67,23 @@ def test_api_endpoint(insanic_application, authorization_token, endpoint, method
         raise RuntimeError("Shouldn't be in here. Redirects not possible.")
     elif response_status_category == 4:
         # if http status code is in the 4 hundreds, check error code
-        assert response_body['error_code']['value'] == expected_response_body
+        if isinstance(expected_response_body, dict):
+            assert response_body == expected_response_body, response.text
+        elif isinstance(expected_response_body, list):
+            assert sorted(response_body.keys()) == sorted(expected_response_body), response.text
+        elif isinstance(expected_response_body, Enum):
+            assert response_body['error_code']['value'] == expected_response_body.value, response.text
+        elif isinstance(expected_response_body, int):
+            assert response_body['error_code']['value'] == expected_response_body, response.text
+        else:
+            raise RuntimeError("Shouldn't be in here. Check response type.")
+
 
 
 TestParams = namedtuple('TestParams', ['method', 'endpoint', 'request_headers', 'request_body',
                                        'expected_response_status', 'expected_response_body'])
-def test_parameter_generator(method, endpoint, request_headers, request_body, success_status_code,
-                             success_response, check_authorization=True, check_permissions=True, **kwargs):
+def test_parameter_generator(method, endpoint, *, request_headers, request_body, expected_status_code,
+                             expected_response, check_authorization=True, check_permissions=True, **kwargs):
 
     if check_permissions:
         if "permissions_endpoint" not in kwargs:
@@ -79,8 +92,8 @@ def test_parameter_generator(method, endpoint, request_headers, request_body, su
     request_headers.update({"Authorization": ""})
 
     test_parameters_template = TestParams(method=method, endpoint=endpoint, request_headers=request_headers,
-                                          request_body=request_body, expected_response_status=success_status_code,
-                                          expected_response_body=success_response)
+                                          request_body=request_body, expected_response_status=expected_status_code,
+                                          expected_response_body=expected_response)
     if check_authorization:
         _req_headers = request_headers.copy()
         if "Authorization" in _req_headers:
