@@ -22,14 +22,6 @@ from insanic.testing.helpers import User, MockService
 
 pytest.register_assert_rewrite('insanic.testing.helpers')
 
-
-DOCKER_USERNAME = os.environ['MMT_DOCKER_USERNAME']
-DOCKER_WEB_SRC_TAG = os.environ['MMT_DOCKER_WEB_SRC_TAG']
-TEST_PROJECT_ENV = os.environ['TEST_PROJECT_ENV']
-
-
-# def pytest_addoption(parser):
-#     parser.addoption('--')
 @pytest.fixture(scope="session", autouse=True)
 def test_session_id():
     return str(uuid.uuid4())
@@ -150,6 +142,9 @@ def remove_containers(client, session_id):
 
 @pytest.fixture(scope="session", autouse=True)
 async def run_services(request, test_session_id, session_unused_tcp_port_factory):
+    DOCKER_USERNAME = os.environ['MMT_DOCKER_USERNAME']
+    DOCKER_WEB_SRC_TAG = os.environ['MMT_DOCKER_WEB_SRC_TAG']
+    TEST_PROJECT_ENV = os.environ['TEST_PROJECT_ENV']
 
     for test_func in request.node.items:
         if "runservices" in test_func.keywords.keys():
