@@ -11,7 +11,7 @@ from configparser import ConfigParser
 
 from insanic import global_settings
 from insanic.exceptions import ImproperlyConfigured
-from insanic.functional import LazyObject,empty
+from insanic.functional import LazyObject, empty
 
 
 SERVICE_VARIABLE = "MMT_SERVICE"
@@ -71,8 +71,8 @@ class DockerSecretsConfig(Config):
             config_module = importlib.import_module(self.SETTINGS_MODULE)
         except ImportError as e:
             raise ImportError(
-                "Could not import settings '%s' (Is it on sys.path? Is there an import error in the settings file?): %s"
-                % (self.SETTINGS_MODULE, e)
+                "Could not import settings '%s' (Is it on sys.path? Is there an import error in the settings file?): %s %s"
+                % (self.SETTINGS_MODULE, e, sys.path)
             )
 
         self.from_object(config_module)
@@ -163,7 +163,8 @@ class DockerSecretsConfig(Config):
             "githuborganization": "MyMusicTaste",
             "pullrepository": 1,
             "isservice": 1,
-            "createsoftlink": 0
+            "createsoftlink": 0,
+            'isexternal': 0
         }
 
         services_config = {}
@@ -198,6 +199,12 @@ class DockerSecretsConfig(Config):
             services_config[service_name]['internalserviceport'] = internal_service_port
             services_config[service_name]['repositoryname'] = "mmt-server-{0}".format(service_name)
 
+        web_service = service_template.copy()
+        web_service['isexternal'] = 1
+        web_service['internalserviceport'] = 8000
+        web_service['externalserviceport'] = 8000
+
+        services_config.update({'web': web_service})
 
         self['SERVICES'] = services_config
 

@@ -27,7 +27,7 @@ setup(
     install_requires=[
         'sanic',
         'sanic-useragent',
-        'aiohttp',
+        'aiohttp<=2.3.0',
         'aiomysql',
         'aioredis',
         'aiobotocore',

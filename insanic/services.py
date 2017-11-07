@@ -16,12 +16,13 @@ from insanic.errors import GlobalErrorCodes
 from insanic.log import log
 from insanic.utils import to_object
 
+IS_INFUSED = False
 try:
     from infuse import AioCircuitBreaker, CircuitAioRedisStorage, STATE_CLOSED, \
         CircuitBreakerError
 
     IS_INFUSED = True
-except ImportError as e:
+except (ImportError, ModuleNotFoundError) as e:
     if settings.MMT_ENV == "production":
         raise e
     else:

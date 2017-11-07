@@ -3,6 +3,7 @@ import aiobotocore
 import base64
 import docker
 import pytest
+import requests
 import os
 
 import uuid
@@ -11,7 +12,9 @@ import uvloop
 from aioredis.connection import RedisConnection
 from collections import OrderedDict
 from functools import partial
+from io import BytesIO
 from pytest_asyncio.plugin import unused_tcp_port
+from zipfile import ZipFile
 
 from redis.connection import Connection
 from insanic.utils import jwt
@@ -130,7 +133,7 @@ async def wait_for_container(service, health_endpoint):
         else:
             break
     else:
-        raise RuntimeError("{0] container failed to run.".format(service._service_name))
+        raise RuntimeError("{0} container failed to run.".format(service._service_name))
 
     return True
 
@@ -140,8 +143,18 @@ def remove_containers(client, session_id):
         if session_id in container.name:
             container.remove(force=True)
 
+
+def _download_bimil(tmpdir):
+    r = requests.get('http://david.mmt.local:8888/', auth=("development", "development"[::-1]))
+    fp = BytesIO(r.content)
+    with ZipFile(fp, 'r') as z:
+        for f in z.filelist:
+            if f.filename.startswith('settings'):
+                with z.open(f) as settings_file:
+                    tmpdir.join(settings_file.name).write_binary(settings_file.read())
+
 @pytest.fixture(scope="session", autouse=True)
-async def run_services(request, test_session_id, session_unused_tcp_port_factory):
+async def run_services(request, test_session_id, session_unused_tcp_port_factory, tmpdir_factory):
     DOCKER_USERNAME = os.environ['MMT_DOCKER_USERNAME']
     DOCKER_WEB_SRC_TAG = os.environ['MMT_DOCKER_WEB_SRC_TAG']
     TEST_PROJECT_ENV = os.environ['TEST_PROJECT_ENV']
@@ -202,21 +215,39 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
                                                           auth_config=login_config)
                     src_container = docker_client.containers.run(**src_params)
 
+                    temp_bimil = tmpdir_factory.mktemp('.bimil')
+                    _download_bimil(temp_bimil)
+
                     params.update({
                         "image": "{0}/mmt-app:development".format(DOCKER_USERNAME),
                         "command": "0.0.0.0:8000",
-                        "environment": {"MMT_ENV": "development",
+                        "environment": {"MMT_ENV": "development_test",
                                         "MMT_PASS": settings.MMT_WEB_PASS,
                                         "MMT_TEST_DB": TEST_PROJECT_ENV},
                         "working_dir": "/opt/django",
                         "volumes_from": [src_container.id],
                         "sysctls": {"net.core.somaxconn": 1000},
-                        "volumes": {'/Users/david/Documents/PYTHON/mmt_mk2-web/.bimil': {'bind': '/opt/django/.bimil', 'mode': 'rw'}},
+                        "volumes": {temp_bimil.strpath: {'bind': '/opt/django/.bimil', 'mode': 'rw'}},
                         "entrypoint": ["/usr/bin/python", "/opt/django/mmt_mk2/manage.py", "runserver"],
                     })
-
+                    app_image = docker_client.images.pull(params['image'].split(':')[0],
+                                                          tag=params['image'].split(':')[1],
+                                                          auth_config=login_config)
                     app_container = docker_client.containers.run(**params)
 
+                    celery_params = params.copy()
+                    del celery_params['command']
+                    del celery_params['ports']
+                    celery_params['name'] = "test-{0}-{1}".format(test_session_id, 'celery')
+                    celery_params['entrypoint'] = ["/usr/bin/python", "/opt/django/mmt_mk2/celery", "worker",
+                                                   "-Q", "celery_master",
+                                                   "-A", "mmt_mk2.core",
+                                                   "-l", "info",
+                                                   "--statedb=/tmp/worker.%n.state",
+                                                   "-n", "worker1@%h"]
+                    celery_container = docker_client.containers.run(**celery_params)
+
+                    running_containers.update({"celery": celery_container})
                     running_containers.update({service_name: app_container})
                     running_containers.update({"src": src_container})
                 else:
