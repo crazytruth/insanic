@@ -84,6 +84,13 @@ class DockerSecretsConfig(Config):
 
         self._load_secrets()
 
+    def __getattr__(self, attr):
+        try:
+            return self.__getattribute__(attr)
+        except AttributeError:
+            return super().__getattr__(attr)
+
+
     @cached_property
     def app(self):
         application = importlib.import_module(self.SERVICE_NAME)
@@ -180,13 +187,27 @@ class DockerSecretsConfig(Config):
             query_params = {
                 "filter": json.dumps(["name=mmt-server-*"])
             }
+            try:
+                consul_addr = self.CONSUL_ADDR
+            except AttributeError:
+                consul_addr = None
 
-            url = URL.build(scheme='http', **self.SWARM_HOST)
+            if consul_addr:
+                try:
+                    url = URL.build(scheme='http', **self.SWARM_HOST)
+                except TypeError as e:
+                    raise TypeError(e.args[0])
 
-            url = url.with_path("/services")
-            url = url.with_query(**query_params)
+                url = url.with_path("/services")
+                url = url.with_query(**query_params)
 
-            services_endpoint = str(url)
+                services_endpoint = str(url)
+            else:
+
+                query = urllib.parse.urlencode(query_params)
+                parsed_endpoint = ('http', '{0}:{1}'.format(self.SWARM_HOST, self.SWARM_PORT), "/services", "", query, '')
+
+                services_endpoint = urllib.parse.urlunparse(parsed_endpoint)
 
             with urllib.request.urlopen(services_endpoint) as response:
                 swarm_services = response.read()
@@ -240,9 +261,6 @@ class DockerSecretsConfig(Config):
 
             services_config = {section: config[section] for section in config.sections()
                         if config[section].getboolean('isService', False)}
-
-
-
 
         return services_config
 
