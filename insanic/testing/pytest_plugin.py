@@ -183,8 +183,8 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
                     credentials['authorizationData'][0]['authorizationToken'].encode()).decode().split(':')
                 repository = credentials['authorizationData'][0]['proxyEndpoint']
 
-                login_config = {"username": username, "password": password}
-                login_response = docker_client.login(registry=repository, **login_config)
+                web_login_config = {"username": username, "password": password}
+                login_response = docker_client.login(registry=repository, **web_login_config)
                 del credentials
 
             for service_name in settings.SERVICE_CONNECTIONS:
@@ -212,7 +212,7 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
 
                     src_image = docker_client.images.pull(src_params['image'].split(':')[0],
                                                           tag=src_params['image'].split(':')[1],
-                                                          auth_config=login_config)
+                                                          auth_config=web_login_config)
                     src_container = docker_client.containers.run(**src_params)
 
                     temp_bimil = tmpdir_factory.mktemp('.bimil')
@@ -232,7 +232,7 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
                     })
                     app_image = docker_client.images.pull(params['image'].split(':')[0],
                                                           tag=params['image'].split(':')[1],
-                                                          auth_config=login_config)
+                                                          auth_config=web_login_config)
                     app_container = docker_client.containers.run(**params)
 
                     celery_params = params.copy()

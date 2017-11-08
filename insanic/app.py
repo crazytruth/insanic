@@ -3,7 +3,6 @@ from sanic_useragent import SanicUserAgent
 
 from peewee_async import PooledMySQLDatabase
 
-
 from insanic.handlers import ErrorHandler
 from incendiary import redis
 from insanic.monitor import blueprint_monitor

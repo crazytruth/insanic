@@ -5,13 +5,14 @@ import types
 import ujson as json
 import urllib.parse
 import urllib.request
+from yarl import URL
 
 from sanic.config import Config
 from configparser import ConfigParser
 
 from insanic import global_settings
 from insanic.exceptions import ImproperlyConfigured
-from insanic.functional import LazyObject, empty
+from insanic.functional import LazyObject, empty, cached_property
 
 
 SERVICE_VARIABLE = "MMT_SERVICE"
@@ -56,8 +57,6 @@ class LazySettings(LazyObject):
         return self._wrapped is not empty
 
 
-
-
 class DockerSecretsConfig(Config):
 
     def __init__(self, defaults=None, *, settings_module=None):
@@ -83,16 +82,26 @@ class DockerSecretsConfig(Config):
         except ImportError:
             pass
 
-
         self._load_secrets()
 
-        services_location = self._locate_service_ini()
+    @cached_property
+    def app(self):
+        application = importlib.import_module(self.SERVICE_NAME)
+        return application.app
 
-        if services_location is not None:
-            self._load_service_locations(services_location)
-        else:
-            self._initiate_from_swarm()
 
+    # COMMON SETTINGS
+    @cached_property
+    def IS_DOCKER(self):
+        try:
+            with open('/proc/self/cgroup', 'r') as proc_file:
+                for line in proc_file:
+                    fields = line.strip().split('/')
+                    if fields[1] == 'docker':
+                        return True
+        except FileNotFoundError:
+            pass
+        return False
 
     def _load_secrets(self):
 
@@ -131,33 +140,32 @@ class DockerSecretsConfig(Config):
         for root, dirs, files in os.walk('..'):
             if "services.ini" in files:
                 return os.path.join(root, "services.ini")
-
         return None
 
-    def _load_service_locations(self, path):
-        config = ConfigParser()
-        config.read(path)
+    @cached_property
+    def SWARM_HOST(self):
 
-        services = {section: config[section] for section in config.sections()
-                    if config[section].getboolean('isService', False)}
+        url = URL(self.CONSUL_ADDR)
+        url = url.with_path(self.CONSUL_SWARM_MANAGER_ENDPOINT)
 
-        self['SERVICES'] = services
+        swarm_hosts = []
 
-    def _initiate_from_swarm(self):
+        for _ in range(3):
+            with urllib.request.urlopen(str(url)) as response:
+                if response.status == 200:
+                    manager_nodes = json.loads(response.read().decode())
 
-        query_params = {
-            "filter": json.dumps(["name=mmt-server-*"])
-        }
+                    if len(manager_nodes['Nodes']):
+                        for node in manager_nodes['Nodes']:
+                            swarm_hosts.append({"host": node['Node']['Address'], "port": 2377})
+                        break
+        else:
+            raise RuntimeError("Couldn't initialize service configurations.")
 
-        query = urllib.parse.urlencode(query_params)
-        parsed_endpoint = ('http', '{0}:{1}'.format(self.SWARM_HOST, self.SWARM_PORT), "/services", "", query, '')
+        return swarm_hosts[0]
 
-        services_endpoint = urllib.parse.urlunparse(parsed_endpoint)
-
-        with urllib.request.urlopen(services_endpoint) as response:
-            swarm_services = response.read()
-
-        swarm_services = json.loads(swarm_services)
+    @cached_property
+    def SERVICES(self):
 
         service_template = {
             "githuborganization": "MyMusicTaste",
@@ -167,47 +175,75 @@ class DockerSecretsConfig(Config):
             'isexternal': 0
         }
 
-        services_config = {}
-        for s in swarm_services:
-            if not s['Spec']['Name'].startswith('mmt-server-'):
-                continue
+        if self.IS_DOCKER:
 
-            service_spec = s['Spec']
-            service_name = service_spec['Name'].split('-', 2)[-1].lower()
-            # check if service already exists
-            if service_name in services_config:
-                raise EnvironmentError("Duplicate Services.. Something wrong {0}".format(service_name))
-            else:
-                services_config[service_name] = service_template.copy()
+            query_params = {
+                "filter": json.dumps(["name=mmt-server-*"])
+            }
 
-            # scan attached networks for overlay
-            for n in service_spec['Networks']:
-                if n['Target'] == self.SWARM_NETWORK_OVERLAY:
-                    break
-            else:
-                raise EnvironmentError("Network overlay not attached to {0}".format(service_name.upper()))
+            url = URL.build(scheme='http', **self.SWARM_HOST)
 
-            for p in service_spec['EndpointSpec']['Ports']:
-                if p['PublishMode'] == 'ingress':
-                    internal_service_port = p['TargetPort']
-                    external_service_port = p['PublishedPort']
-                    break
-            else:
-                raise EnvironmentError("External service port not found for {0}".format(service_name))
+            url = url.with_path("/services")
+            url = url.with_query(**query_params)
 
-            services_config[service_name]['externalserviceport'] = external_service_port
-            services_config[service_name]['internalserviceport'] = internal_service_port
-            services_config[service_name]['repositoryname'] = "mmt-server-{0}".format(service_name)
+            services_endpoint = str(url)
 
-        web_service = service_template.copy()
-        web_service['isexternal'] = 1
-        web_service['internalserviceport'] = 8000
-        web_service['externalserviceport'] = 8000
+            with urllib.request.urlopen(services_endpoint) as response:
+                swarm_services = response.read()
 
-        services_config.update({'web': web_service})
+            swarm_services = json.loads(swarm_services)
 
-        self['SERVICES'] = services_config
+            services_config = {}
+            for s in swarm_services:
+                if not s['Spec']['Name'].startswith('mmt-server-'):
+                    continue
+
+                service_spec = s['Spec']
+                service_name = service_spec['Name'].split('-', 2)[-1].lower()
+                # check if service already exists
+                if service_name in services_config:
+                    raise EnvironmentError("Duplicate Services.. Something wrong {0}".format(service_name))
+                else:
+                    services_config[service_name] = service_template.copy()
+
+                # scan attached networks for overlay
+                for n in service_spec['Networks']:
+                    if n['Target'] == self.SWARM_NETWORK_OVERLAY:
+                        break
+                else:
+                    raise EnvironmentError("Network overlay not attached to {0}".format(service_name.upper()))
+
+                for p in service_spec['EndpointSpec']['Ports']:
+                    if p['PublishMode'] == 'ingress':
+                        internal_service_port = p['TargetPort']
+                        external_service_port = p['PublishedPort']
+                        break
+                else:
+                    raise EnvironmentError("External service port not found for {0}".format(service_name))
+
+                services_config[service_name]['externalserviceport'] = external_service_port
+                services_config[service_name]['internalserviceport'] = internal_service_port
+                services_config[service_name]['repositoryname'] = "mmt-server-{0}".format(service_name)
+
+            # return services_config
+
+            web_service = service_template.copy()
+            web_service['isexternal'] = 1
+            web_service['internalserviceport'] = 8000
+            web_service['externalserviceport'] = 8000
+            services_config.update({'web': web_service})
+
+        else:
+            services_location = self._locate_service_ini()
+            config = ConfigParser()
+            config.read(services_location)
+
+            services_config = {section: config[section] for section in config.sections()
+                        if config[section].getboolean('isService', False)}
 
 
+
+
+        return services_config
 
 settings = LazySettings()
