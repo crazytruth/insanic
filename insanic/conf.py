@@ -87,7 +87,7 @@ class DockerSecretsConfig(Config):
     def __getattr__(self, attr):
         try:
             return self.__getattribute__(attr)
-        except AttributeError:
+        except AttributeError as e:
             return super().__getattr__(attr)
 
 
@@ -270,9 +270,11 @@ class DockerSecretsConfig(Config):
             config = ConfigParser()
             config.read(services_location)
 
-            services_config = {section: config[section] for section in config.sections()
-                        if config[section].getboolean('isService', False)}
-
+            services_config = {}
+            for section in config.sections():
+                if config[section].getboolean('isService', False):
+                    config[section]['host'] = 'localhost'
+                    services_config.update({section: config[section]})
         return services_config
 
 settings = LazySettings()
