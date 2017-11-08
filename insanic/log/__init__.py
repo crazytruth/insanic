@@ -1,4 +1,5 @@
 import os
+import sys
 
 from sanic.config import LOGGING
 from sanic.log import log, netlog
@@ -19,6 +20,7 @@ LOGGING['formatters']['json'] = {
 if os.environ.get('MMT_ENV') != "local":
 
     LOGGING['handlers']['accessStream']['formatter'] = 'json'
+    LOGGING['handlers']['accessStream']['stream'] = sys.stdout
     LOGGING['handlers']['errorStream']['formatter'] = 'json'
 # "format"=>"%Y-%m-%dT%H:%M:%S.%N%z", "value"=>"2017-07-27T08:58:16+0000"
 # LOGGING = {
