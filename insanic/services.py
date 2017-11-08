@@ -101,7 +101,7 @@ class Service:
         if settings.MMT_ENV == "local":
             self._host = settings.API_GATEWAY_HOST
         else:
-            self._host = "mmt-server-{0}".format(service_type)
+            self._host = settings.SERVICES[self._service_name].get('host')
 
         self._port = settings.SERVICES[self._service_name].get('externalserviceport')
 

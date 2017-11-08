@@ -149,8 +149,8 @@ class DockerSecretsConfig(Config):
                 return os.path.join(root, "services.ini")
         return None
 
-    @cached_property
-    def SWARM_HOST(self):
+    @property
+    def SWARM_MANAGER_HOST(self):
 
         url = URL(self.CONSUL_ADDR)
         url = url.with_path(self.CONSUL_SWARM_MANAGER_ENDPOINT)
@@ -164,12 +164,24 @@ class DockerSecretsConfig(Config):
 
                     if len(manager_nodes['Nodes']):
                         for node in manager_nodes['Nodes']:
-                            swarm_hosts.append({"host": node['Node']['Address'], "port": 2377})
+                            swarm_hosts.append({"host": node['Node']['Address'], "port": self.SWARM_PORT})
                         break
         else:
             raise RuntimeError("Couldn't initialize service configurations.")
 
         return swarm_hosts[0]
+
+    def _get_network_overlay_id(self, swarm_host_url):
+        url = swarm_host_url.with_path('/networks')
+        url = url.with_query(filter=json.dumps(["name=mmt-server-*"]))
+        with urllib.request.urlopen(str(url)) as response:
+            networks = json.loads(response.read())
+
+        for n in networks:
+            if n['Name'].endswith(self.SWARM_NETWORK_OVERLAY):
+                return n['Id']
+        else:
+            raise RuntimeError('Network overlay not found.')
 
     @cached_property
     def SERVICES(self):
@@ -185,7 +197,7 @@ class DockerSecretsConfig(Config):
         if self.IS_DOCKER:
 
             query_params = {
-                "filter": json.dumps(["name=mmt-server-*"])
+                "filter": json.dumps(["name=mmt-server"])
             }
             try:
                 consul_addr = self.CONSUL_ADDR
@@ -194,33 +206,30 @@ class DockerSecretsConfig(Config):
 
             if consul_addr:
                 try:
-                    url = URL.build(scheme='http', **self.SWARM_HOST)
+                    url = URL.build(scheme='http', **self.SWARM_MANAGER_HOST)
                 except TypeError as e:
                     raise TypeError(e.args[0])
-
-                url = url.with_path("/services")
-                url = url.with_query(**query_params)
-
-                services_endpoint = str(url)
             else:
+                url = URL.build(scheme="http", host=self.SWARM_HOST, port=self.SWARM_PORT)
 
-                query = urllib.parse.urlencode(query_params)
-                parsed_endpoint = ('http', '{0}:{1}'.format(self.SWARM_HOST, self.SWARM_PORT), "/services", "", query, '')
-
-                services_endpoint = urllib.parse.urlunparse(parsed_endpoint)
+            url = url.with_path("/services")
+            url = url.with_query(**query_params)
+            services_endpoint = str(url)
 
             with urllib.request.urlopen(services_endpoint) as response:
                 swarm_services = response.read()
 
             swarm_services = json.loads(swarm_services)
 
+            network_overlay_id = self._get_network_overlay_id(url)
+
             services_config = {}
             for s in swarm_services:
-                if not s['Spec']['Name'].startswith('mmt-server-'):
+                if not s['Spec']['Name'].startswith('mmt-server'):
                     continue
 
                 service_spec = s['Spec']
-                service_name = service_spec['Name'].split('-', 2)[-1].lower()
+                service_name = service_spec['Name'].rsplit('-', 1)[-1].lower()
                 # check if service already exists
                 if service_name in services_config:
                     raise EnvironmentError("Duplicate Services.. Something wrong {0}".format(service_name))
@@ -228,8 +237,8 @@ class DockerSecretsConfig(Config):
                     services_config[service_name] = service_template.copy()
 
                 # scan attached networks for overlay
-                for n in service_spec['Networks']:
-                    if n['Target'] == self.SWARM_NETWORK_OVERLAY:
+                for n in service_spec['TaskTemplate']['Networks']:
+                    if n['Target'] == network_overlay_id:
                         break
                 else:
                     raise EnvironmentError("Network overlay not attached to {0}".format(service_name.upper()))
@@ -245,13 +254,15 @@ class DockerSecretsConfig(Config):
                 services_config[service_name]['externalserviceport'] = external_service_port
                 services_config[service_name]['internalserviceport'] = internal_service_port
                 services_config[service_name]['repositoryname'] = "mmt-server-{0}".format(service_name)
+                services_config[service_name]['host'] = s['Spec']['Name'].rsplit('_', 1)[-1]
 
             # return services_config
 
             web_service = service_template.copy()
             web_service['isexternal'] = 1
             web_service['internalserviceport'] = 8000
-            web_service['externalserviceport'] = 8000
+            web_service['externalserviceport'] = settings.WEB_HOST
+            web_service['host'] = settings.WEB_HOST
             services_config.update({'web': web_service})
 
         else:
