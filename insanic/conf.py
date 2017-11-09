@@ -8,6 +8,7 @@ import urllib.request
 from yarl import URL
 
 from sanic.config import Config
+from sanic.log import log
 from configparser import ConfigParser
 
 from insanic import global_settings
@@ -116,7 +117,7 @@ class DockerSecretsConfig(Config):
             with open('/run/secrets/{0}'.format(os.environ[SERVICE_VARIABLE])) as f:
                 docker_secrets = f.read()
 
-            # print(docker_secrets)
+            log.debug(docker_secrets)
             docker_secrets = json.loads(docker_secrets)
 
             for k, v in docker_secrets.items():
