@@ -18,7 +18,7 @@ LOGGING['formatters']['json'] = {
     'datefmt': '%Y-%m-%dT%H:%M:%S.%%(msecs)d%z'
 }
 
-if os.environ.get('MMT_ENV') != "local" or True:
+if os.environ.get('MMT_ENV') != "local":
 
     LOGGING['handlers']['accessStream']['formatter'] = 'json'
     LOGGING['handlers']['accessStream']['stream'] = sys.stdout
