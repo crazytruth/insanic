@@ -257,15 +257,6 @@ class DockerSecretsConfig(Config):
                 services_config[service_name]['repositoryname'] = "mmt-server-{0}".format(service_name)
                 services_config[service_name]['host'] = s['Spec']['Name'].rsplit('_', 1)[-1]
 
-            # return services_config
-
-            web_service = service_template.copy()
-            web_service['isexternal'] = 1
-            web_service['internalserviceport'] = 8000
-            web_service['externalserviceport'] = settings.WEB_HOST
-            web_service['host'] = settings.WEB_HOST
-            services_config.update({'web': web_service})
-
         else:
             services_location = self._locate_service_ini()
             config = ConfigParser()
@@ -276,6 +267,14 @@ class DockerSecretsConfig(Config):
                 if config[section].getboolean('isService', False):
                     config[section]['host'] = 'localhost'
                     services_config.update({section: config[section]})
+
+        web_service = service_template.copy()
+        web_service['isexternal'] = 1
+        web_service['internalserviceport'] = 8000
+        web_service['externalserviceport'] = settings.WEB_PORT
+        web_service['host'] = settings.WEB_HOST
+        web_service['schema'] = settings.get('WEB_SCHEMA', 'http')
+        services_config.update({'web': web_service})
         return services_config
 
 settings = LazySettings()

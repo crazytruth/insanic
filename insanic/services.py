@@ -1,5 +1,6 @@
 import aiohttp
 import aioredis
+import datetime
 import hashlib
 import opentracing
 import ujson as json
@@ -98,11 +99,8 @@ class Service:
         if service_type not in settings.SERVICES.keys():
             raise AssertionError("Invalid service type.")
 
-        if settings.MMT_ENV == "local":
-            self._host = settings.API_GATEWAY_HOST
-        else:
-            self._host = settings.SERVICES[self._service_name].get('host')
-
+        self._schema = settings.SERVICES[self._service_name].get('schema', "http")
+        self._host = settings.SERVICES[self._service_name].get('host')
         self._port = settings.SERVICES[self._service_name].get('externalserviceport')
 
         # url_partial_path = "/api/v1/{0}".format(service_type)
@@ -115,7 +113,7 @@ class Service:
     def url(self):
         url_partial_path = "/api/v1/{0}".format(self._service_name)
 
-        return URL.build(scheme=settings.API_GATEWAY_SCHEME, host=self._host,
+        return URL.build(scheme=self._schema, host=self._host,
                          port=self._port,
                          path=url_partial_path)
 
@@ -172,8 +170,14 @@ class Service:
             if h in headers:
                 del headers[h]
 
-        headers.update({"accept": "application/json"})
-        headers.update({"content-type": "application/json"})
+        headers.update({"Accept": "application/json"})
+        # headers.update({"Content-Type": "application/json"})
+        # headers.update({"Referrer": "https://staging.mymusictaste.com"})
+        headers.update({"Date": datetime.datetime.utcnow()
+                       .replace(tzinfo=datetime.timezone.utc).strftime("%a, %d %b %y %T %z")})
+        # headers.update({"user-agent": "mmt-service-{0}/{1}".format(settings.SERVICE_NAME, '0.0.1')})
+        # headers.update({"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) "
+        #                               "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"})
 
         m = hashlib.sha256()
         m.update('mmt-server-{0}'.format(self._service_name).encode())
