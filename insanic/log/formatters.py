@@ -61,6 +61,21 @@ class JSONFormatter(logging.Formatter):
 
             data[key] = value
 
+        # s = self.formatMessage(record)
+        # if record.exc_info:
+        #     # Cache the traceback text to avoid converting it multiple times
+        #     # (it's constant anyway)
+        #     if not record.exc_text:
+        #         record.exc_text = self.formatException(record.exc_info)
+        # if record.exc_text:
+        #     if s[-1:] != "\n":
+        #         s = s + "\n"
+        #     s = s + record.exc_text
+        # if record.stack_info:
+        #     if s[-1:] != "\n":
+        #         s = s + "\n"
+        #     s = s + self.formatStack(record.stack_info)
+
         self._structuring(data, record)
         return json.dumps(data, sort_keys=True)
 

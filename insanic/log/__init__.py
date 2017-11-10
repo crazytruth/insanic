@@ -13,11 +13,12 @@ LOGGING['formatters']['json'] = {
                "process": "%(process)s", "thread_name": "%(threadName)s", "service": "%(service)s",
                "environment": "%(environment)s", "insanic_version": "%(insanic_version)s",
                "service_version": "%(service_version)s", "trace_id": "%(ot_trace_id)s", "span_id": "%(ot_span_id)s",
-               "sampled": "%(ot_sampled)s", "request_duration": "%(ot_duration)s", "parent_id": "%(ot_parent_id)s",},
+               "sampled": "%(ot_sampled)s", "request_duration": "%(ot_duration)s", "parent_id": "%(ot_parent_id)s",
+               "exc_text": "%(exc_text)s"},
     'datefmt': '%Y-%m-%dT%H:%M:%S.%%(msecs)d%z'
 }
 
-if os.environ.get('MMT_ENV') != "local":
+if os.environ.get('MMT_ENV') != "local" or True:
 
     LOGGING['handlers']['accessStream']['formatter'] = 'json'
     LOGGING['handlers']['accessStream']['stream'] = sys.stdout

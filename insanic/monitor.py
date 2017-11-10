@@ -20,7 +20,7 @@ def health_check(request):
         "service": settings.SERVICE_NAME,
         "status": "OK",
         "insanic_version": __version__,
-        "request_headers": request.headers
+
 
     }, status=HTTP_200_OK)
 

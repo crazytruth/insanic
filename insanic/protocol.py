@@ -47,7 +47,11 @@ class InsanicHttpProtocol(HttpProtocol):
                         'ot_sampled': int(span.context.sampled),
                         'ot_duration': span.duration
                     })
-                netlog.info('', extra=extra)
+
+                if str(response.status)[0] == "5":
+                    netlog.exception('', extra=extra, exc_info=response.exception)
+                else:
+                    netlog.info('', extra=extra)
         except AttributeError:
             log.error(
                 ('Invalid response object for url {}, '

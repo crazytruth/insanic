@@ -39,8 +39,10 @@ class ErrorHandler(SanicErrorHandler):
             if response is None:
                 response = self.default(request=request, exception=exception)
         except Exception:
-            self.log(format_exc())
+            exc = format_exc()
+            self.log(exc)
             if self.debug:
+
                 url = getattr(request, 'path', 'unknown')
                 response_message = (
                     'Exception raised in exception handler "{}" '
@@ -50,6 +52,7 @@ class ErrorHandler(SanicErrorHandler):
                 return self.handle_uncaught_exception(request, exception, response_message)
             else:
                 return self.handle_uncaught_exception(request, exception)
+        response.exception = exception
         return response
 
 
@@ -57,7 +60,7 @@ class ErrorHandler(SanicErrorHandler):
         if settings.DEBUG:
             self.log(format_exc())
         if issubclass(type(exception), SanicException):
-            return json(
+            response = json(
                 {"message": getattr(exception, 'default_detail', status.REVERSE_STATUS[exception.status_code]),
                  "description": getattr(exception, 'detail', exception.args[0]),
                  "error_code": getattr(exception, 'error_code', GlobalErrorCodes.unknown_error)},
@@ -71,17 +74,13 @@ class ErrorHandler(SanicErrorHandler):
                 'Exception occurred while handling uri: "{}"\n{}'.format(
                     request.path, format_exc()))
             log.error(response_message)
-            return html(html_output, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            response = html(html_output, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
-            return self.handle_uncaught_exception(request, exception)
+            response = self.handle_uncaught_exception(request, exception)
+
+        return response
+
 
     def handle_uncaught_exception(self, request, exception, custom_message=INTERNAL_SERVER_ERROR_JSON):
-        logger.error('Internal Server Error: %s',
-                     request.path,
-                     exc_info=sys.exc_info(),
-                     extra={
-                         'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR,
-                         'request': request
-                     })
 
         return json(custom_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
