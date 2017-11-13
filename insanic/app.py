@@ -49,7 +49,8 @@ class Insanic(Sanic):
                     self.listeners[l].append(getattr(listeners, module_name))
 
         incendiary_tracer = IncendiaryTracer(service_name=self.config['SERVICE_NAME'],
-                                             verbosity=2 if self.config['MMT_ENV'] == "local" else 0)
+                                             verbosity=1 if self.config['MMT_ENV'] == "local" else 0,
+                                             periodic_flush_seconds=10)
         self.tracer = InsanicTracer(incendiary_tracer, True, self, ['args', 'body',' content_type', 'cookies', 'data',
                                                                     'host', 'ip', 'method', 'path', 'scheme', 'url'])
         # redis.init_tracing(incendiary_tracer)

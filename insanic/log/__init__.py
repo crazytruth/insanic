@@ -9,7 +9,7 @@ LOGGING['formatters']['json'] = {
     "()": "insanic.log.formatters.JSONFormatter",
     "format": {"level": "%(levelname)s", "hostname": "%(hostname)s", "where": "%(module)s.%(funcName)s",
                "ts": "%(asctime)s", "method": "%(request)s", "message": "%(message)s",
-              "status": "%(status)d", "size": "%(byte)d", "name": "%(name)s", "thread": "%(thread)s",
+               "status": "%(status)d", "size": "%(byte)d", "name": "%(name)s", "thread": "%(thread)s",
                "process": "%(process)s", "thread_name": "%(threadName)s", "service": "%(service)s",
                "environment": "%(environment)s", "insanic_version": "%(insanic_version)s",
                "service_version": "%(service_version)s", "trace_id": "%(ot_trace_id)s", "span_id": "%(ot_span_id)s",
