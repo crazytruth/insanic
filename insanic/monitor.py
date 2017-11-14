@@ -19,8 +19,6 @@ def health_check(request):
     return json({
         "service": settings.SERVICE_NAME,
         "status": "OK",
-        "insanic_version": __version__,
-
-
+        "insanic_version": __version__
     }, status=HTTP_200_OK)
 

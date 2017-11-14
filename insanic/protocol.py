@@ -38,15 +38,16 @@ class InsanicHttpProtocol(HttpProtocol):
                     'request': '{0} {1}'.format(self.request.method,
                                                 self.request.url)
                 }
-                span = response.span
+                if hasattr(response, 'span'):
+                    span = response.span
 
-                if span is not None:
-                    extra.update({
-                        'ot_trace_id': span.context.trace_id,
-                        'ot_parent_id': span.parent_id,
-                        'ot_sampled': int(span.context.sampled),
-                        'ot_duration': span.duration
-                    })
+                    if span is not None:
+                        extra.update({
+                            'ot_trace_id': span.context.trace_id,
+                            'ot_parent_id': span.parent_id,
+                            'ot_sampled': int(span.context.sampled),
+                            'ot_duration': span.duration
+                        })
 
                 if str(response.status)[0] == "5":
                     netlog.exception('', extra=extra, exc_info=response.exception)

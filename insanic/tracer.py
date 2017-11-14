@@ -22,11 +22,13 @@ class InsanicTracer():
         if self._trace_all_requests:
             @app.middleware('request')
             def start_trace(request):
-                self._before_request_fn(request, traced_attributes)
+                if request.path != "/health":
+                    self._before_request_fn(request, traced_attributes)
 
             @app.middleware('response')
             def end_trace(request, response):
-                self._after_request_fn(request, response)
+                if request.path != "/health":
+                    self._after_request_fn(request, response)
                 return response
 
         opentracing.tracer = self
