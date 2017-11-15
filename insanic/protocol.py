@@ -29,7 +29,6 @@ class InsanicHttpProtocol(HttpProtocol):
                     self.request.version, keep_alive,
                     self.request_timeout))
             if self.has_log:
-
                 extra = {
                     'status': response.status,
                     'byte': len(response.body),
@@ -40,7 +39,6 @@ class InsanicHttpProtocol(HttpProtocol):
                 }
                 if hasattr(response, 'span'):
                     span = response.span
-
                     if span is not None:
                         extra.update({
                             'ot_trace_id': span.context.trace_id,
