@@ -2,7 +2,6 @@ import aiohttp
 import aioredis
 import datetime
 import hashlib
-import opentracing
 import ujson as json
 
 from asyncio import get_event_loop
@@ -12,7 +11,6 @@ from yarl import URL
 
 from insanic import exceptions, status
 from insanic.conf import settings
-from insanic.connections import get_connection, get_future_connection
 from insanic.errors import GlobalErrorCodes
 from insanic.log import log
 from insanic.utils import to_object
@@ -161,9 +159,16 @@ class Service:
         if method.upper() not in HTTP_METHODS:
             raise ValueError("{0} is not a valid method.".format(method))
 
-        return await self._dispatch(method, endpoint, req_ctx, query_params=query_params, payload=payload,
-                                    headers=headers, return_obj=return_obj, propagate_error=propagate_error,
-                                    skip_breaker=skip_breaker, include_status_code=include_status_code)
+        response, status_code =  await self._dispatch(method, endpoint, req_ctx,
+                                                      query_params=query_params, payload=payload,
+                                                      headers=headers, return_obj=return_obj,
+                                                      propagate_error=propagate_error,
+                                                      skip_breaker=skip_breaker,
+                                                      include_status_code=include_status_code)
+
+        response_text = await response.text()
+        return self._try_json_decode(response_text)
+
 
     def _prepare_headers(self, headers):
         for h in self.remove_headers:
@@ -193,7 +198,7 @@ class Service:
             pass
         return data
 
-    async def _dispatch(self, method, endpoint, req_ctx, query_params={}, payload={}, headers={}, return_obj=True,
+    async def _dispatch(self, method, endpoint, req_ctx, *, query_params={}, payload={}, headers={}, return_obj=True,
                         propagate_error=False, skip_breaker=False, include_status_code=False):
 
         request_method = getattr(self.session, method.lower(), None)
@@ -206,7 +211,7 @@ class Service:
 
         outbound_request = aiohttp.ClientRequest(method, url, headers=headers, data=payload)
 
-        opentracing.tracer.before_service_request(outbound_request, req_ctx, service_name=self._service_name)
+        # opentracing.tracer.before_service_request(outbound_request, req_ctx, service_name=self._service_name)
 
         try:
             if IS_INFUSED and not skip_breaker:
@@ -283,7 +288,7 @@ class Service:
 
             raise exc
         except aiohttp.client_exceptions.ClientPayloadError as e:
-            pass
+            raise
         except CircuitBreakerError as e:
 
             exc = exceptions.ServiceUnavailable503Error(detail="{0}: {1}".format(e.args[0], self._service_name),
@@ -293,15 +298,17 @@ class Service:
         finally:
             pass
 
-        if return_obj:
-            result = to_object(response)
-        else:
-            result = response
-
-        if include_status_code:
-            return result, response_status
-        else:
-            return result
+        return resp, response_status
+        #
+        # if return_obj:
+        #     result = to_object(response)
+        # else:
+        #     result = response
+        #
+        # if include_status_code:
+        #     return result, response_status
+        # else:
+        #     return result
 
 
 

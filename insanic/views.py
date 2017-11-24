@@ -6,6 +6,7 @@ from sanic.views import HTTPMethodView
 from sanic.response import json, HTTPResponse, BaseHTTPResponse
 
 from insanic import authentication, exceptions, permissions, status
+from insanic.functional import cached_property
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 
@@ -56,6 +57,7 @@ class MMTBaseView(HTTPMethodView):
     throttle_classes = []
     authentication_classes = [authentication.JSONWebTokenAuthentication,]
 
+
     def key(self, key, **kwargs):
 
         kwargs = {k:(v.decode() if isinstance(v, bytes) else v) for k,v in kwargs.items()}
@@ -74,14 +76,14 @@ class MMTBaseView(HTTPMethodView):
                 fields = None
         return fields
 
-    def get_schema_class(self, all_fields=False, **kwargs):
-        if not all_fields:
-            fields = self.get_fields()
-            if fields is not None:
-                kwargs.update({"only": fields})
-
-        kwargs.update({"strict": True})
-        return self.schema_class(**kwargs)
+    # def get_schema_class(self, all_fields=False, **kwargs):
+    #     if not all_fields:
+    #         fields = self.get_fields()
+    #         if fields is not None:
+    #             kwargs.update({"only": fields})
+    #
+    #     kwargs.update({"strict": True})
+    #     return self.schema_class(**kwargs)
 
     def _allowed_methods(self):
         return [m.upper() for m in self.http_method_names if hasattr(self, m)]

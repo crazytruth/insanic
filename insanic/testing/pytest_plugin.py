@@ -198,7 +198,7 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
                     "detach": True,
                     "labels": {"container-type": "mmt-{0}".format(service_name), "test_session": test_session_id},
                     "environment": {"MMT_ENV": "test", "MMT_SERVICE": service_name},
-                    "ports": {"{0}/tcp".format(service_config.getint("internalserviceport")): bind_port},
+                    "ports": {"{0}/tcp".format(service_config.get("internalserviceport")): bind_port},
                 }
 
                 if service_name == "web":

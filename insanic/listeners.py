@@ -2,6 +2,7 @@ import asyncio
 from insanic.conf import settings
 from insanic.connections import _connections, get_connection
 from insanic.services import IS_INFUSED
+from insanic.tracing.tracer import InsanicXRayMiddleware
 
 from importlib import import_module
 from peewee import BaseModel
@@ -15,6 +16,11 @@ async def after_server_stop_close_database(app, loop, **kwargs):
     await close_tasks
 
     await app.objects.close()
+
+
+async def after_server_start_start_tracing(app, loop=None, **kwargs):
+
+    app.tracer = InsanicXRayMiddleware(app, loop)
 
 
 async def after_server_start_connect_database(app, loop=None, **kwargs):
