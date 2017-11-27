@@ -1,11 +1,17 @@
 import asyncio
 import logging
 
+from collections import defaultdict
+
 from aws_xray_sdk.core.context import Context as _Context
+from aws_xray_sdk.core.async_context import TaskLocalStorage
+
 
 log = logging.getLogger(__name__)
 
 TASK_ENTITIES_KEY = "task_entities"
+
+def tree(): return defaultdict(tree)
 
 class AsyncContext(_Context):
     """
@@ -36,11 +42,28 @@ class AsyncContext(_Context):
 
     def _append_entity_to_task(self, entity):
         task = asyncio.Task.current_task(loop=self._loop)
-        task.task_entities.append(entity)
+        task.ref_entity = entity
 
     def put_segment(self, segment):
         super().put_segment(segment)
-        setattr(self._local, TASK_ENTITIES_KEY, [segment])
+        setattr(self._local, "ref_entity", segment)
+
+    def end_segment(self, end_time=None):
+        """
+        End the current active segment.
+
+        :param int end_time: epoch in seconds. If not specified the current
+            system time will be used.
+        """
+        entity = self.get_trace_entity()
+        if not entity:
+            log.warning("No segment to end")
+            return
+        if self._is_subsegment(entity):
+            entity.parent_segment.close(end_time)
+        else:
+            entity.close(end_time)
+        # self._local.ref_entity = None
 
     def put_subsegment(self, subsegment):
         """
@@ -55,12 +78,38 @@ class AsyncContext(_Context):
 
         entity.add_subsegment(subsegment)
         self._local.entities.append(subsegment)
-        self._local.task_entities.append(subsegment)
+        setattr(self._local, "ref_entity", subsegment)
 
-    def end_subsegment(self, end_time=None):
-        if super().end_subsegment(end_time):
-            self._local.task_entities.pop()
+        if len(self._local.entities)> 2:
+
+            pass
+        print("[put_subsegment]", entity, subsegment)
+
+
+    def end_subsegment(self, end_time=None, subsegment=None):
+        """
+        End the current active segment. Return False if there is no
+        subsegment to end.
+
+        :param int end_time: epoch in seconds. If not specified the current
+            system time will be used.
+        """
+        if not subsegment:
+            subsegment = self.get_trace_entity()
+
+        try:
+            print("[end_subsegment] subsegment", subsegment, subsegment.parent_segment)
+        except AttributeError:
+            print("[end subsegment] segment", subsegment)
+
+        if self._is_subsegment(subsegment):
+            subsegment.close(end_time)
+            self._local.entities.remove(subsegment)
+            # setattr(self._local, "ref_entity", subsegment.parent_segment)
+            setattr(self._local, "ref_entity", None)
+            return True
         else:
+            log.warning("No subsegment to end.")
             return False
 
     def get_root_entity(self, entity):
@@ -76,59 +125,18 @@ class AsyncContext(_Context):
         """
         if not getattr(self._local, 'entities', None):
             return self.handle_context_missing()
-        task_entities = self._local.task_entities
+        ref_entity = self._local.ref_entity
 
-        if len(task_entities):
-            entity = task_entities[-1]
+        t = asyncio.Task.current_task()
+        print("get_trace_entity", id(t), t._coro, self._local.ref_entity, self._local.entities)
+        if len(self._local.entities) > 2:
+            pass
+
+        if ref_entity is not None:
+            entity = ref_entity
         else:
-            entity = self.get_root_entity(self._local.entities[-1])
+            entity = self._local.entities[0]
         return entity
-
-class TaskLocalStorage(object):
-    """
-    Simple task local storage
-    """
-    def __init__(self, loop=None):
-        if loop is None:
-            loop = asyncio.get_event_loop()
-        self._loop = loop
-
-    def __setattr__(self, name, value):
-        if name in ('_loop',):
-            # Set normal attributes
-            object.__setattr__(self, name, value)
-
-        else:
-            # Set task local attributes
-            task = asyncio.Task.current_task(loop=self._loop)
-            if task is None:
-                return None
-
-            if not hasattr(task, 'context'):
-                task.context = {}
-
-            task.context[name] = value
-
-    def __getattribute__(self, item):
-        if item in ('_loop', 'clear'):
-            # Return references to local objects
-            return object.__getattribute__(self, item)
-
-        task = asyncio.Task.current_task(loop=self._loop)
-        if task is None:
-            return None
-
-        if hasattr(task, 'context') and item in task.context:
-            return task.context[item]
-
-        raise AttributeError('Task context does not have attribute {0}'.format(item))
-
-    def clear(self):
-        # If were in a task, clear the context dictionary
-        task = asyncio.Task.current_task(loop=self._loop)
-        if task is not None and hasattr(task, 'context'):
-            task.context.clear()
-
 
 def task_factory(loop, coro):
     """
@@ -147,11 +155,15 @@ def task_factory(loop, coro):
     current_task = asyncio.Task.current_task(loop=loop)
     if current_task is not None and hasattr(current_task, 'context'):
         context = current_task.context.copy()
-        if TASK_ENTITIES_KEY in context:
-            context[TASK_ENTITIES_KEY] = []
+        # if "ref_entity" in context:
+        #     del context['ref_entity']
+
+        if "ref_entity" in context:
+            if context['ref_entity'] not in context['entities']:
+                pass
+
+
 
         setattr(task, 'context', context)
-
-
 
     return task

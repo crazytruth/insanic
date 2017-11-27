@@ -5,12 +5,13 @@ from sanic.log import log
 from insanic import __version__
 from insanic.tracing.patch import patch
 from insanic.tracing.context import AsyncContext
+from insanic.tracing.core import xray_recorder
 
-from aws_xray_sdk.core import xray_recorder
-# from aws_xray_sdk.core.async_context import AsyncContext
 from aws_xray_sdk.core.models import http
 from aws_xray_sdk.ext.util import calculate_sampling_decision, \
     calculate_segment_name, construct_xray_header
+
+
 
 
 class InsanicXRayMiddleware:

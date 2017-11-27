@@ -1,9 +1,10 @@
 import wrapt
 
-from aws_xray_sdk.core import xray_recorder
+# from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.ext.util import inject_trace_header, http
 
 from insanic.conf import settings
+from insanic.tracing.core import xray_recorder
 
 def patch():
     """
