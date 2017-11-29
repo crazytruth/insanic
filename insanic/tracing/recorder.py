@@ -1,27 +1,10 @@
 import time
 import traceback
 
-from aws_xray_sdk.core.async_recorder import AsyncAWSXRayRecorder
+from aws_xray_sdk.core import AWSXRayRecorder
 
 
-class InsanicAWSXRayRecorder(AsyncAWSXRayRecorder):
-
-    # def end_subsegment_with_reference(self, subsegment, end_time=None):
-    #     """
-    #     End the current active subsegment. If this is the last one open
-    #     under its parent segment, the entire segment will be sent.
-    #
-    #     :param float end_time: subsegment compeletion in unix epoch in seconds.
-    #     """
-    #     if not self.context.end_subsegment_with_reference(subsegment, end_time):
-    #         return
-    #
-    #     # if segment is already close, we check if we can send entire segment
-    #     # otherwise we check if we need to stream some subsegments
-    #     if self.current_segment().ready_to_send():
-    #         self._send_segment()
-    #     else:
-    #         self.stream_subsegments()
+class InsanicAWSXRayRecorder(AWSXRayRecorder):
 
     def end_subsegment(self, end_time=None, subsegment=None):
         """

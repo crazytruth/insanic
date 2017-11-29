@@ -1,17 +1,11 @@
 import asyncio
 import logging
 
-from collections import defaultdict
-
 from aws_xray_sdk.core.context import Context as _Context
 from aws_xray_sdk.core.async_context import TaskLocalStorage
 
-
 log = logging.getLogger(__name__)
 
-TASK_ENTITIES_KEY = "task_entities"
-
-def tree(): return defaultdict(tree)
 
 class AsyncContext(_Context):
     """
@@ -80,12 +74,6 @@ class AsyncContext(_Context):
         self._local.entities.append(subsegment)
         setattr(self._local, "ref_entity", subsegment)
 
-        if len(self._local.entities)> 2:
-
-            pass
-        print("[put_subsegment]", entity, subsegment)
-
-
     def end_subsegment(self, end_time=None, subsegment=None):
         """
         End the current active segment. Return False if there is no
@@ -97,15 +85,9 @@ class AsyncContext(_Context):
         if not subsegment:
             subsegment = self.get_trace_entity()
 
-        try:
-            print("[end_subsegment] subsegment", subsegment, subsegment.parent_segment)
-        except AttributeError:
-            print("[end subsegment] segment", subsegment)
-
         if self._is_subsegment(subsegment):
             subsegment.close(end_time)
             self._local.entities.remove(subsegment)
-            # setattr(self._local, "ref_entity", subsegment.parent_segment)
             setattr(self._local, "ref_entity", None)
             return True
         else:
@@ -126,11 +108,6 @@ class AsyncContext(_Context):
         if not getattr(self._local, 'entities', None):
             return self.handle_context_missing()
         ref_entity = self._local.ref_entity
-
-        t = asyncio.Task.current_task()
-        print("get_trace_entity", id(t), t._coro, self._local.ref_entity, self._local.entities)
-        if len(self._local.entities) > 2:
-            pass
 
         if ref_entity is not None:
             entity = ref_entity
@@ -154,16 +131,5 @@ def task_factory(loop, coro):
     # Share context with new task if possible
     current_task = asyncio.Task.current_task(loop=loop)
     if current_task is not None and hasattr(current_task, 'context'):
-        context = current_task.context.copy()
-        # if "ref_entity" in context:
-        #     del context['ref_entity']
-
-        if "ref_entity" in context:
-            if context['ref_entity'] not in context['entities']:
-                pass
-
-
-
-        setattr(task, 'context', context)
-
+        setattr(task, 'context', current_task.context.copy())
     return task

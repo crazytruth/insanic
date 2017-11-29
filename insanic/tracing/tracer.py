@@ -12,17 +12,14 @@ from aws_xray_sdk.ext.util import calculate_sampling_decision, \
     calculate_segment_name, construct_xray_header
 
 
-
-
 class InsanicXRayMiddleware:
 
     def __init__(self, app, loop):
 
         recorder = xray_recorder
 
-        service_name = "{0}:{1}".format(app.config.MMT_ENV.upper(), app.config.SERVICE_NAME)
-        recorder.configure(service=service_name, context=AsyncContext(loop=loop),
-                           sampling=None, daemon_address='127.0.0.1:2000')
+        recorder.configure(service=app.tracing_service_name, context=AsyncContext(loop=loop),
+                           sampling=app.sampling_rules, daemon_address='127.0.0.1:2000')
 
         self.app = app
         log.info("initializing xray middleware")
