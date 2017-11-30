@@ -10,6 +10,7 @@ import uuid
 import uvloop
 
 from aioredis.connection import RedisConnection
+from aws_xray_sdk.core.recorder import CONTEXT_MISSING_KEY
 from collections import OrderedDict
 from functools import partial
 from io import BytesIO
@@ -22,8 +23,23 @@ from insanic.conf import settings
 from insanic.loading import get_service
 from insanic.services import Service
 from insanic.testing.helpers import User, MockService
+from insanic.tracing.core import xray_recorder
+from insanic.tracing.context import AsyncContext
 
 pytest.register_assert_rewrite('insanic.testing.helpers')
+
+@pytest.fixture(scope="function", autouse=True)
+def silence_tracer(event_loop):
+    os.environ[CONTEXT_MISSING_KEY] = "LOG_ERROR"
+    xray_recorder.configure(context=AsyncContext(loop=event_loop))
+
+    segment = xray_recorder.begin_segment(name="test", sampling=0)
+    yield
+    try:
+        xray_recorder.end_segment()
+    except AttributeError as e:
+        print(e)
+
 
 @pytest.fixture(scope="session", autouse=True)
 def test_session_id():
@@ -240,11 +256,11 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
                     del celery_params['ports']
                     celery_params['name'] = "test-{0}-{1}".format(test_session_id, 'celery')
                     celery_params['entrypoint'] = ["/usr/bin/python", "/opt/django/mmt_mk2/celery", "worker",
-                                                   "-Q", "celery_master",
+                                                   "-Q", "celery_test",
                                                    "-A", "mmt_mk2.core",
                                                    "-l", "info",
                                                    "--statedb=/tmp/worker.%n.state",
-                                                   "-n", "worker1@%h"]
+                                                   "-n", "testworker1@%h"]
                     celery_container = docker_client.containers.run(**celery_params)
 
                     running_containers.update({"celery": celery_container})

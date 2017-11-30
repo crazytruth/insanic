@@ -40,7 +40,7 @@ class InsanicAWSXRayRecorder(AWSXRayRecorder):
             raise
         finally:
             end_time = time.time()
-            if callable(meta_processor):
+            if callable(meta_processor) and subsegment:
                 meta_processor(
                     wrapped=wrapped,
                     instance=instance,

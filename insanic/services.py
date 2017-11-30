@@ -167,7 +167,11 @@ class Service:
                                                       include_status_code=include_status_code)
 
         response_text = await response.text()
-        return self._try_json_decode(response_text)
+        response_final = self._try_json_decode(response_text)
+
+        if include_status_code:
+            return response_final, status_code
+        return response_final
 
 
     def _prepare_headers(self, headers):
