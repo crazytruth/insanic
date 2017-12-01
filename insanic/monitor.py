@@ -24,7 +24,7 @@ def health_check(request):
 
 if settings.MMT_ENV != "production":
     @blueprint_monitor.route('internal_server_error')
-    def force_500(request):
+    def force_internal_server_error(request):
 
         a = 1/0
 
