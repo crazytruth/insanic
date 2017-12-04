@@ -180,7 +180,7 @@ class Service:
                 del headers[h]
 
         headers.update({"Accept": "application/json"})
-        # headers.update({"Content-Type": "application/json"})
+        headers.update({"Content-Type": "application/json"})
         # headers.update({"Referrer": "https://staging.mymusictaste.com"})
         headers.update({"Date": datetime.datetime.utcnow()
                        .replace(tzinfo=datetime.timezone.utc).strftime("%a, %d %b %y %T %z")})

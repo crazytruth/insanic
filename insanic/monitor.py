@@ -22,11 +22,11 @@ def health_check(request):
         "insanic_version": __version__
     }, status=HTTP_200_OK)
 
-if settings.MMT_ENV != "production":
-    @blueprint_monitor.route('internal_server_error')
-    def force_internal_server_error(request):
-        a = 1/0
-        return json({"message": "shouldn't be here."}, status=HTTP_200_OK)
-
-
-
+# if settings.MMT_ENV != "production":
+#     @blueprint_monitor.route('internal_server_error')
+#     def force_internal_server_error(request):
+#         a = 1/0
+#         return json({"message": "shouldn't be here."}, status=HTTP_200_OK)
+#
+#
+#
