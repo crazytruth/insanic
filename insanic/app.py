@@ -84,7 +84,7 @@ class Insanic(Sanic):
 
     @cached_property
     def tracing_service_name(self):
-        return "{0}:{1}".format(self.config.MMT_ENV.upper()[:4], self.config.SERVICE_NAME)
+        return "{0}:{1}".format(self.config.MMT_ENV.upper(), self.config.SERVICE_NAME)
 
 
     def _validate_sampling_rule(self, rule):
