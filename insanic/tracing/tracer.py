@@ -95,6 +95,7 @@ class InsanicXRayMiddleware:
 
         cont_len = response.headers.get('Content-Length')
         if cont_len:
+            segment.put_annotation('response', response.body)
             segment.put_http_meta(http.CONTENT_LENGTH, int(cont_len))
 
         self._recorder.end_segment()
