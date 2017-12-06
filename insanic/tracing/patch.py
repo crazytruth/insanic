@@ -51,6 +51,9 @@ def service_processor(wrapped, instance, args, kwargs,
 
     if return_value is not None:
         subsegment.put_http_meta(http.STATUS, return_value[1])
-        subsegment.put_annotation('response', return_value[0])
+        response_body = return_value[0]
+
+        if isinstance(response_body, bytes):
+            subsegment.put_annotation('response', response_body.decode())
     elif exception:
         subsegment.add_exception(exception, stack)
