@@ -1,23 +1,29 @@
-# insanic
+insanic
+#######
+
 core framework for mmt microservices
 
-## TODO:
+TODO
+====
 
-### NEEDED:
+NEEDED:
+-------
 
 - documentation
 - tests
 - upgrade sanic
 - change packaging to zest
 
-### FEATURES:
+FEATURES:
+---------
 
 - decorator to determine public/private facing api endpoints
 - auto route registration on api gateway/consul?
 - vault integration
 - RPC for interservice communication
 
-### REMOVE:
+REMOVE:
+-------
 
 - loading.py - tentative.. depending on usages
 - models.py
