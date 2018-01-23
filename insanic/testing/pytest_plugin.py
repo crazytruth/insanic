@@ -171,9 +171,6 @@ def _download_bimil(tmpdir):
 
 @pytest.fixture(scope="session", autouse=True)
 async def run_services(request, test_session_id, session_unused_tcp_port_factory, tmpdir_factory):
-    DOCKER_USERNAME = os.environ['MMT_DOCKER_USERNAME']
-    DOCKER_WEB_SRC_TAG = os.environ['MMT_DOCKER_WEB_SRC_TAG']
-    TEST_PROJECT_ENV = os.environ['TEST_PROJECT_ENV']
 
     for test_func in request.node.items:
         if "runservices" in test_func.keywords.keys():
@@ -185,6 +182,10 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
     running_containers = OrderedDict()
     running_services = OrderedDict()
     if launch_service:
+        DOCKER_USERNAME = os.environ['MMT_DOCKER_USERNAME']
+        DOCKER_WEB_SRC_TAG = os.environ['MMT_DOCKER_WEB_SRC_TAG']
+        TEST_PROJECT_ENV = os.environ['TEST_PROJECT_ENV']
+
         repository = None
         force_exit = None
         docker_client = docker.DockerClient(base_url="unix:///var/run/docker.sock")

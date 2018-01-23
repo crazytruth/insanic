@@ -20,8 +20,11 @@ LOGGING['formatters']['json'] = {
 
 if os.environ.get('MMT_ENV') != "local":
 
+
+
+
     LOGGING['handlers']['internal']['formatter'] = 'json'
-    LOGGING['handlers']['internal']['stream'] = sys.stdout
+    # LOGGING['handlers']['internal']['stream'] = sys.stdout
     LOGGING['handlers']['accessStream']['formatter'] = 'json'
     LOGGING['handlers']['accessStream']['stream'] = sys.stdout
     LOGGING['handlers']['errorStream']['formatter'] = 'json'

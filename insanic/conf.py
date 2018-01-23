@@ -182,7 +182,7 @@ class DockerSecretsConfig(Config):
             if n['Name'].endswith(self.SWARM_NETWORK_OVERLAY):
                 return n['Id']
         else:
-            raise RuntimeError('Network overlay not found.')
+            raise RuntimeError('Network overlay not found: {0}'.format(self.SWARM_NETWORK_OVERLAY))
 
     @cached_property
     def SERVICES(self):
