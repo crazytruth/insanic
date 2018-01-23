@@ -1,8 +1,6 @@
 from sanic import Sanic
 from sanic_useragent import SanicUserAgent
 
-from peewee_async import PooledMySQLDatabase
-
 from insanic.functional import cached_property
 from insanic.handlers import ErrorHandler
 from insanic.monitor import blueprint_monitor
@@ -65,7 +63,7 @@ class Insanic(Sanic):
         SanicUserAgent.init_app(self)
         attach_middleware(self)
 
-        self.database = PooledMySQLDatabase(None)
+        # self.database = PooledMySQLDatabase(None)
 
         from insanic import listeners
         for module_name in dir(listeners):

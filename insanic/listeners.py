@@ -1,51 +1,19 @@
-import asyncio
 from insanic.conf import settings
 from insanic.connections import _connections, get_connection
 from insanic.services import IS_INFUSED
 from insanic.tracing.tracer import InsanicXRayMiddleware
 
-from importlib import import_module
-from peewee import BaseModel
-from peewee_async import Manager
-
-
 # async def before_server_stop_close_database(app, loop, **kwargs):
 async def after_server_stop_close_database(app, loop, **kwargs):
-    await app.database.close_async()
     close_tasks = _connections.close_all()
     await close_tasks
 
-    await app.objects.close()
-
-
 async def after_server_start_start_tracing(app, loop=None, **kwargs):
-
     app.tracer = InsanicXRayMiddleware(app, loop)
 
-
 async def after_server_start_connect_database(app, loop=None, **kwargs):
-
     _connections.loop = loop
 
-    app.database.init(settings.WEB_MYSQL_DATABASE,
-                      host=settings.WEB_MYSQL_HOST,
-                      port=settings.WEB_MYSQL_PORT,
-                      user=settings.WEB_MYSQL_USER,
-                      password=settings.WEB_MYSQL_PASS,
-                      min_connections=5, max_connections=10, charset='utf8', use_unicode=True)
-
-    # import models and switch out database
-    try:
-        service_models = import_module('{0}.models'.format(settings.SERVICE_NAME))
-        for m in dir(service_models):
-            if m[0].isupper():
-                possible_model = getattr(service_models, m)
-                if isinstance(possible_model, BaseModel):
-                    possible_model._meta.database = app.database
-    except ModuleNotFoundError:
-        pass
-
-    app.objects = Manager(app.database, loop=loop)
 
 
 async def after_server_start_half_open_circuit(app, loop=None, **kwargs):

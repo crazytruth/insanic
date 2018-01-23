@@ -29,6 +29,8 @@ def bumpversion(bump_part="patch"):
     requirements = [os.path.join(mmt_server_directory, service, 'requirements.txt')
                     for service in config.sections() if bool(config[service].getboolean('isService')) and not bool(config[service].getboolean('isExternal'))]
 
+    requirements = [r for r in requirements if os.path.exists(r)]
+
     local('bumpversion --verbose --search "insanic=={{current_version}}" --replace "insanic=={{new_version}}" '
           '--no-commit --no-tag --allow-dirty {0} {1}'.format(bump_part, " ".join(requirements)))
     local('python setup.py sdist upload -r host')

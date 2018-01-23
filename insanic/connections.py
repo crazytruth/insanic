@@ -6,8 +6,6 @@ import traceback
 from inspect import isawaitable, CO_ITERABLE_COROUTINE
 from threading import local
 
-from peewee_async import Manager, PooledMySQLDatabase
-
 from insanic.conf import settings
 from insanic.functional import cached_property
 
@@ -45,9 +43,6 @@ class ConnectionHandler:
                     "CONNECTION_INTERFACE" : "create_pool",
                     "CLOSE_CONNECTION_INTERFACE": (('close',), ("wait_closed",))
                 },
-                "mysql_legacy" : {
-                    "ENGINE": ""
-                }
             }
 
         return self._databases
@@ -72,16 +67,6 @@ class ConnectionHandler:
                                               minsize=5, maxsize=10)
 
             return _pool
-        elif alias == 'mysql_legacy':
-
-            _pool = PooledMySQLDatabase(settings['WEB_MYSQL_DATABASE'],
-                                        host=settings['WEB_MYSQL_HOST'],
-                                        port=settings['WEB_MYSQL_PORT'],
-                                        user=settings['WEB_MYSQL_USER'],
-                                        password=settings['WEB_MYSQL_PASS'],
-                                        min_connections=5, max_connections=10, charset='utf8', use_unicode=True)
-            return _pool
-
 
     def __getitem__(self, alias):
         if hasattr(self._connections, alias):
@@ -116,8 +101,6 @@ class ConnectionHandler:
 
         return asyncio.gather(*close_tasks)
 
-
-
     async def close(self, alias):
         try:
             logger.info("Start Closing database connection: {0}".format(alias))
@@ -139,8 +122,6 @@ class ConnectionHandler:
                         close_database = getattr(close_database, m)
                     else:
                         break
-
-
 
                 if _conn != close_database:
                     closing = close_database()

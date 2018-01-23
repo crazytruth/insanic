@@ -76,17 +76,6 @@ class MMTBaseView(HTTPMethodView):
                 fields = None
         return fields
 
-    @classmethod
-    def sampling_rules(self):
-
-
-
-
-
-        return {}
-
-
-
     def _allowed_methods(self):
         return [m.upper() for m in self.http_method_names if hasattr(self, m)]
 

@@ -35,6 +35,7 @@ setup(
         'PyJWT',
         'docker',
         'boto3',
+        'aws-xray-sdk'
     ],
     # test_suite='nose.collector',
     # tests_require=['nose', 'nose-cover3'],
