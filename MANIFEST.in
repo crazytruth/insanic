@@ -1,3 +1,6 @@
 include *.py
 include LICENSE
 include README.rst
+exclude Dockerfile
+exclude insanic/log/templates
+exclude insanic/log/templates/500.html
