@@ -25,7 +25,7 @@ def find_directory(dir_name):
             return cwd
 
 
-def bumpversion(bump_part="patch"):
+def bumpversion(bump_part="patch", skip_slack=0):
     mmt_server_directory = find_directory("mmt-server")
 
     _load_config(mmt_server_directory)
@@ -38,15 +38,17 @@ def bumpversion(bump_part="patch"):
           '--no-commit --no-tag --allow-dirty {0} {1}'.format(bump_part, " ".join(requirements)))
     local('python setup.py sdist upload -r host')
 
-    _slack_developers(new_version=)
+    new_version = local('cat VERSION', capture=True)
+    if not skip_slack:
+        _slack_developers(new_version)
 
 
 def _slack_developers(new_version):
     params = {}
     params['channel'] = '#dev-project-msa'
-    params['username'] = "INSANIC UPDATE"
-    params['text'] = f'NOTE: New version of insanic=={new_version} has been released. `pip install -U insanic` to update.'
-    params['icon_emoji'] = ":ghost:"
+    params['username'] = "INSANIC RELEASE!"
+    params['text'] = f'New version [{new_version}] has been released. `pip install -U insanic` to update.'
+    params['icon_emoji'] = ":sanic:"
 
     slack_webhook_url = 'https://hooks.slack.com/services/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'
 

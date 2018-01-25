@@ -4,46 +4,47 @@ def readme():
     with open('README.rst') as f:
         return f.read()
 
-def version():
-    with open('VERSION') as f:
-        return f.read().strip()
+version = "0.0.165"
 
 setup(
     name='insanic',
-    version=version(),
+    version=version,
     description='API framework for sanic',
     long_description=readme(),
     classifiers=[
-    'Development Status :: 3 - Alpha',
-    'License :: OSI Approved :: MIT License',
-    'Programming Language :: Python :: 3.6',
+        'Intended Audience :: Developers',
+        'Development Status :: 3 - Alpha',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 3.6',
+        'Topic :: Software Development :: Libraries :: Application Frameworks'
     ],
-    keywords='api framework sanic async',
-    url='http://github.com/',
+    keywords='api framework sanic async asyncio microservice msa',
+    url='http://github.com/MyMusicTaste/insanic',
     author='crazytruth',
     author_email='kwangjinkim@gmail.com',
     license='MIT',
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
+    setup_requires=["zest.releaser[recommended]", "setuptools"],
     install_requires=[
         'sanic>=0.6.0,<0.7.0',
         'sanic-useragent',
         'aiohttp<=2.3.0',
         'aioredis>=0.3.0,<1.0.0',
-        'aiobotocore',
-        'aiohttp-jinja2',
-        'cryptography',
         'PyJWT',
-        'docker',
-        'boto3',
         'aws-xray-sdk'
     ],
     # test_suite='nose.collector',
-    # tests_require=['nose', 'nose-cover3'],
+    tests_require=['pytest', ],
     entry_points={
         'pytest11': [
             'insanic = insanic.testing.pytest_plugin',
         ]
     },
+    extras_require={
+        "testing":  ["docker", "aiobotocore", "pytest", "pytest-asyncio", "pytest-redis"],
+        "dev": ["zest.releaser[recommended]"]
+    },
+
     include_package_data=True,
     zip_safe=False
 )
