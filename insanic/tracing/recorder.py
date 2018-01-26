@@ -6,6 +6,7 @@ from aws_xray_sdk.core import AWSXRayRecorder
 
 class InsanicAWSXRayRecorder(AWSXRayRecorder):
 
+
     def end_subsegment(self, end_time=None, subsegment=None):
         """
         End the current active subsegment. If this is the last one open
