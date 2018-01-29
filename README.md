@@ -40,9 +40,10 @@ _For full changelogs, please refer to the [CHANGELOG][changelog]._
 
 ## Meta
 
-David Kwang Jin Kim - david@mymusictaste.com
+[Kwang Jin Kim](https://github.com/crazytruth) - david@mymusictaste.com
 
-Distributed under the
+Distributed under the MIT license. See ``LICENSE`` for more information.
+
 
 ## TODO
 
