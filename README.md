@@ -16,18 +16,35 @@ Core dependencies include:
 - [aiodns](aiodns) - for async dns resolution(used by aiohttp client)
 - [PyJWT](pyjwt) - for authentication
 
-```sh
+To install:
+
+``` sh
 pip install insanic
 ```
 
 ## Usage
 
+For very basic usage:
+
+``` py
+from insanic import Insanic
+
+app = Insanic(__name__)
+
+@app.route('/')
+async def example(request):
+    return json({"insanic": "Gotta go insanely fast!"})
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8000)
+
+```
 
 
 
 _For more examples and usage, please refer to the [Wiki][wiki]._
 
-## Development setup
+## Development Setup
 
 For development of insanic please install with the following command.
 
@@ -37,11 +54,14 @@ pip install insanic[dev]
 
 ## Testing
 
-Test with the this command
+Insanic tests are run with pytest.
+Test with this command:
 
 ```sh
 python setup.py test
 ```
+
+setuptools handles all the requirements for testing. U
 
 ## Release History
 
@@ -84,3 +104,5 @@ Distributed under the MIT license. See ``LICENSE`` for more information.
 [aiohttp]: https://aiohttp.readthedocs.io/en/stable/
 [aiodns]: https://github.com/saghul/aiodns
 [pyjwt]: https://github.com/jpadilla/pyjwt
+
+
