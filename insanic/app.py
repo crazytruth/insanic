@@ -63,8 +63,6 @@ class Insanic(Sanic):
         SanicUserAgent.init_app(self)
         attach_middleware(self)
 
-        # self.database = PooledMySQLDatabase(None)
-
         from insanic import listeners
         for module_name in dir(listeners):
             for l in LISTENER_TYPES:

@@ -4,6 +4,8 @@ import sys
 from sanic.config import LOGGING
 from sanic.log import log, netlog
 
+from insanic.conf import settings
+
 LOGGING.update({"disable_existing_loggers": False})
 LOGGING['formatters']['json'] = {
     "()": "insanic.log.formatters.JSONFormatter",
@@ -18,10 +20,7 @@ LOGGING['formatters']['json'] = {
     'datefmt': '%Y-%m-%dT%H:%M:%S.%%(msecs)d%z'
 }
 
-if os.environ.get('MMT_ENV') != "local":
-
-
-
+if settings.IS_DOCKER:
 
     LOGGING['handlers']['internal']['formatter'] = 'json'
     # LOGGING['handlers']['internal']['stream'] = sys.stdout

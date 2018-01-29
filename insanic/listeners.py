@@ -9,7 +9,10 @@ async def after_server_stop_close_database(app, loop, **kwargs):
     await close_tasks
 
 async def after_server_start_start_tracing(app, loop=None, **kwargs):
-    app.tracer = InsanicXRayMiddleware(app, loop)
+    if settings.IS_DOCKER:
+        app.tracer = InsanicXRayMiddleware(app, loop)
+    else:
+        app.tracer = None
 
 async def after_server_start_connect_database(app, loop=None, **kwargs):
     _connections.loop = loop

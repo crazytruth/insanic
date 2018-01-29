@@ -22,7 +22,7 @@ try:
 
     IS_INFUSED = True
 except (ImportError, ModuleNotFoundError) as e:
-    if settings.MMT_ENV == "production":
+    if settings.get('MMT_ENV') == "production":
         raise e
     else:
         CircuitBreakerError = Exception
@@ -260,7 +260,7 @@ class Service:
                                                   status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
             elif isinstance(e, aiohttp.client_exceptions.ServerConnectionError):
                 """ server connection related errors """
-                if settings.MMT_ENV == "production":
+                if settings.get('MMT_ENV', "") == "production":
                     msg = "Service unavailable. Please try again later."
                 else:
                     msg = "Cannot connect to {0}. Please try again later".format(self._service_name)

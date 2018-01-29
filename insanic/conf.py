@@ -15,7 +15,6 @@ from insanic import global_settings
 from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import LazyObject, empty, cached_property
 
-
 SERVICE_VARIABLE = "MMT_SERVICE"
 
 class LazySettings(LazyObject):
@@ -59,6 +58,28 @@ class LazySettings(LazyObject):
 
 
 class DockerSecretsConfig(Config):
+    LOGO = """
+                     ▄▄▄▄▄
+            ▀▀▀██████▄▄▄       __________________________
+          ▄▄▄▄▄  █████████▄  /                           \\
+         ▀▀▀▀█████▌▀ ▐▄ ▀▐█ |   Gotta go insanely fast !  |
+       ▀▀█████▄▄ ▀██████▄██ | ____________________________/
+       ▀▄▄▄▄▄  ▀▀█▄▀█════█▀ |/
+            ▀▀▀▄  ▀▀███ ▀       ▄▄
+         ▄███▀▀██▄████████▄ ▄▀▀▀▀▀▀█▌
+       ██▀▄▄▄██▀▄███▀ ▀▀████      ▄██
+    ▄▀▀▀▄██▄▀▀▌████▒▒▒▒▒▒███     ▌▄▄▀
+    ▌    ▐▀████▐███▒▒▒▒▒▐██▌
+    ▀▄▄▄▄▀   ▀▀████▒▒▒▒▄██▀
+              ▀▀█████████▀
+            ▄▄██▀██████▀█
+          ▄██▀     ▀▀▀  █
+         ▄█             ▐▌
+     ▄▄▄▄█▌              ▀█▄▄▄▄▀▀▄
+    ▌     ▐                ▀▀▄▄▄▀
+     ▀▀▄▄▀
+    """
+
 
     def __init__(self, defaults=None, *, settings_module=None):
         super().__init__(defaults)
@@ -69,13 +90,12 @@ class DockerSecretsConfig(Config):
 
         try:
             config_module = importlib.import_module(self.SETTINGS_MODULE)
+            self.from_object(config_module)
         except ImportError as e:
-            raise ImportError(
+            log.debug(
                 "Could not import settings '%s' (Is it on sys.path? Is there an import error in the settings file?): %s %s"
                 % (self.SETTINGS_MODULE, e, sys.path)
             )
-
-        self.from_object(config_module)
 
         try:
             instance_module = importlib.import_module('instance')
@@ -128,7 +148,7 @@ class DockerSecretsConfig(Config):
 
                 self.update({k: v})
         except FileNotFoundError as e:
-            sys.stderr.write("File not found %s" % e.strerror)
+            log.debug("File not found %s" % e.strerror)
             filename = os.path.join(os.getcwd(), 'instance.py')
             module = types.ModuleType('config')
             module.__file__ = filename
@@ -138,7 +158,7 @@ class DockerSecretsConfig(Config):
                     exec(compile(f.read(), filename, 'exec'),
                          module.__dict__)
             except IOError as e:
-                sys.stderr.write('Unable to load configuration file (%s)' % e.strerror)
+                log.debug('Unable to load configuration file (%s)' % e.strerror)
             for key in dir(module):
                 if key.isupper():
                     self[key] = getattr(module, key)
