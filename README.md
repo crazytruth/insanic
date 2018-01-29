@@ -1,6 +1,48 @@
 # insanic
 
-core framework for mmt microservices
+> A microservice framework that extends [sanic](sanic).
+
+This framework should only include features that bootstraps
+the server and any features that will be required for at least 2 or more services.
+
+## Installation
+
+### Prerequisites
+
+```sh
+pip install insanic
+```
+
+## Usage
+
+_For more examples and usage, please refer to the [Wiki][wiki]._
+
+## Development setup
+
+For development of insanic please install with the following command.
+
+```sh
+pip install insanic[dev]
+```
+
+## Testing
+
+Test with the this command
+
+```sh
+python setup.py test
+```
+
+## Release History
+
+_For full changelogs, please refer to the [CHANGELOG][changelog]._
+
+
+## Meta
+
+David Kwang Jin Kim - david@mymusictaste.com
+
+Distributed under the
 
 ## TODO
 
@@ -8,8 +50,7 @@ core framework for mmt microservices
 
 - documentation
 - tests
-- upgrade sanic
-- change packaging to zest
+- upgrade sanic to 0.7.0
 
 ### FEATURES:
 
@@ -25,3 +66,8 @@ core framework for mmt microservices
 - thumbnails/*
 - authentication.py - need to decide where to put this (auth service?)
 
+<!-- Markdown link & img dfn's -->
+[wiki]: https://github.com/MyMusicTaste/insanic/wiki
+[sanic]: https://github.com/channelcat/sanic
+[changelog]: https://github.com/channelcat/sanic/blob/master/CHANGELOG.md
+[]
