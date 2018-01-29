@@ -73,7 +73,7 @@ Test with this command:
 python setup.py test
 ```
 
-setuptools handles all the requirements for testing. U
+setuptools handles all the requirements for testing.
 
 ## Release History
 
