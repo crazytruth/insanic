@@ -29,6 +29,7 @@ setup(
         'sanic>=0.6.0,<0.7.0',
         'sanic-useragent',
         'aiohttp<=2.3.0',
+        'aiodns',
         'aioredis>=0.3.0,<1.0.0',
         'PyJWT',
         'aws-xray-sdk'

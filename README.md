@@ -9,11 +9,21 @@ the server and any features that will be required for at least 2 or more service
 
 ### Prerequisites
 
+Core dependencies include:
+
+- [sanic](sanic) - extends sanic
+- [aiohttp](aiohttp) - only uses the client portion
+- [aiodns](aiodns) - for async dns resolution(used by aiohttp client)
+- [PyJWT](pyjwt) - for authentication
+
 ```sh
 pip install insanic
 ```
 
 ## Usage
+
+
+
 
 _For more examples and usage, please refer to the [Wiki][wiki]._
 
@@ -70,5 +80,7 @@ Distributed under the MIT license. See ``LICENSE`` for more information.
 <!-- Markdown link & img dfn's -->
 [wiki]: https://github.com/MyMusicTaste/insanic/wiki
 [sanic]: https://github.com/channelcat/sanic
-[changelog]: https://github.com/channelcat/sanic/blob/master/CHANGELOG.md
-[]
+[changelog]: https://github.com/MyMusicTaste/insanic/blob/master/CHANGELOG.md
+[aiohttp]: https://aiohttp.readthedocs.io/en/stable/
+[aiodns]: https://github.com/saghul/aiodns
+[pyjwt]: https://github.com/jpadilla/pyjwt
