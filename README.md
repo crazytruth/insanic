@@ -48,20 +48,17 @@ if __name__ == '__main__':
 MMT_SERVICE=example python run.py
 ```
 
-3. Check in browser or curl
+3. Check in browser or `curl`
 ``` sh
 curl http://localhost:8000/
 ```
-
-
-
 
 
 _For more examples and usage, please refer to the [Wiki][wiki]._
 
 ## Development Setup
 
-For development of insanic please install with the following command.
+If you plan to develop and more importantly, do releases, for insanic, please install with the following command.
 
 ```sh
 pip install insanic[dev]
