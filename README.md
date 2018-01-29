@@ -26,8 +26,11 @@ pip install insanic
 
 For very basic usage:
 
+1. Create a python file. ex. `run.py`
+
 ``` py
 from insanic import Insanic
+from sanic.response import json
 
 app = Insanic(__name__)
 
@@ -39,6 +42,12 @@ if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)
 
 ```
+
+2. Run with
+``` sh
+MMT_SERVICE=example python run.py
+```
+
 
 
 
