@@ -48,6 +48,12 @@ if __name__ == '__main__':
 MMT_SERVICE=example python run.py
 ```
 
+3. Check in browser or curl
+``` sh
+curl http://localhost:8000/
+```
+
+
 
 
 
