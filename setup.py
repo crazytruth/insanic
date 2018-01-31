@@ -4,7 +4,7 @@ def readme():
     with open('README.md') as f:
         return f.read()
 
-version = '0.0.167'
+version = '0.0.168.dev0'
 
 setup(
     name='insanic',
