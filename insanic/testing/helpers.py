@@ -15,8 +15,9 @@ class BaseMockService:
                             return_obj=True, propagate_error=False, include_status_code=False, **kwargs):
         key = self._key_for_request(method, endpoint)
 
-        if method == "GET" and endpoint == "/api/v1/user/self?fields=id,username,email,is_active,is_ban,is_superuser,locale,version,password,is_authenticated":
-            return kwargs.get('test_user')
+        if method == "GET" and endpoint == "/api/v1/user/self":
+            return kwargs.get('test_user',
+                              User(id=2, email="admin@mymusictaste.com", is_active=True, is_authenticated=True))
 
         if key in self.service_responses:
             if include_status_code:

@@ -148,7 +148,7 @@ class DockerSecretsConfig(Config):
 
                 self.update({k: v})
         except FileNotFoundError as e:
-            log.debug("File not found %s" % e.strerror)
+            log.debug("Docker secrets not found %s" % e.strerror)
             filename = os.path.join(os.getcwd(), 'instance.py')
             module = types.ModuleType('config')
             module.__file__ = filename
