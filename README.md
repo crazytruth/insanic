@@ -5,6 +5,11 @@
 This framework should only include features that bootstraps
 the server and any features that will be required for at least 2 or more services.
 
+### Why we need this
+
+
+
+
 ## Installation
 
 ### Prerequisites
@@ -12,7 +17,7 @@ the server and any features that will be required for at least 2 or more service
 Core dependencies include:
 
 - [sanic](sanic) - extends sanic
-- [aiohttp](aiohttp) - only uses the client portion
+- [aiohttp](aiohttp) - only uses the client
 - [aiodns](aiodns) - for async dns resolution(used by aiohttp client)
 - [PyJWT](pyjwt) - for authentication
 
