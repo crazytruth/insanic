@@ -6,8 +6,6 @@ from sanic.views import HTTPMethodView
 from sanic.response import json, HTTPResponse, BaseHTTPResponse
 
 from insanic import authentication, exceptions, permissions, status
-from insanic.functional import cached_property
-from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 
 logger = logging.getLogger('blowed.up')

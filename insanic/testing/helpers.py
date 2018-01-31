@@ -49,18 +49,18 @@ def test_api_endpoint(insanic_application, authorization_token, endpoint, method
                                 headers=request_headers,
                                 json=request_body)
 
-    assert response.status == expected_response_status, response.text
+    assert expected_response_status, response.text == response.status
     response_body = json.loads(response.text)
 
     response_status_category = int(expected_response_status / 100)
 
     if response_status_category == 2:
         if isinstance(response_body, dict) and isinstance(expected_response_body, dict):
-            assert response_body == expected_response_body
+            assert expected_response_body == response_body
         elif isinstance(response_body, dict) and isinstance(expected_response_body, list):
-            assert sorted(response_body.keys()) == sorted(expected_response_body)
+            assert sorted(expected_response_body) == sorted(response_body.keys())
         elif isinstance(response_body, list) and isinstance(expected_response_body, int):
-            assert len(response_body) == expected_response_body
+            assert expected_response_body == len(response_body)
         else:
             raise RuntimeError("Shouldn't be in here. Check response type.")
     elif response_status_category == 3:
@@ -68,13 +68,13 @@ def test_api_endpoint(insanic_application, authorization_token, endpoint, method
     elif response_status_category == 4:
         # if http status code is in the 4 hundreds, check error code
         if isinstance(expected_response_body, dict):
-            assert response_body == expected_response_body, response.text
+            assert expected_response_body, response.text == response_body
         elif isinstance(expected_response_body, list):
-            assert sorted(response_body.keys()) == sorted(expected_response_body), response.text
+            assert sorted(expected_response_body), response.text == sorted(response_body.keys())
         elif isinstance(expected_response_body, Enum):
-            assert response_body['error_code']['value'] == expected_response_body.value, response.text
+            assert expected_response_body.value, response.text == response_body['error_code']['value']
         elif isinstance(expected_response_body, int):
-            assert response_body['error_code']['value'] == expected_response_body, response.text
+            assert expected_response_body, response.text == response_body['error_code']['value']
         else:
             raise RuntimeError("Shouldn't be in here. Check response type.")
 
