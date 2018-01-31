@@ -1,7 +1,7 @@
 0.0.168 (unreleased)
 --------------------
 
-- Nothing changed yet.
+- Bug fix with authentication in tests
 
 
 0.0.167 (2018-01-31)
