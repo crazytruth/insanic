@@ -1,7 +1,9 @@
 0.0.167 (unreleased)
 --------------------
 
-- Nothing changed yet.
+- switch assertion variable in api tests
+- README update
+- tests to setuptools command
 
 
 0.0.166 (2018-01-25)
