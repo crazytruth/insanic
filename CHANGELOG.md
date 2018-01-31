@@ -1,4 +1,4 @@
-0.0.168 (unreleased)
+0.0.168 (2018-01-31)
 --------------------
 
 - Bug fix with authentication in tests
