@@ -1,4 +1,4 @@
-0.0.167 (unreleased)
+0.0.167 (2018-01-31)
 --------------------
 
 - switch assertion variable in api tests
