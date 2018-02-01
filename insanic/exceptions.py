@@ -27,7 +27,8 @@ class APIException(SanicException):
         if status_code is not None:
             self.status_code = status_code
 
-        self.error_code = error_code
+        if error_code is not None:
+            self.error_code = error_code
 
         super().__init__(detail, self.status_code)
 
