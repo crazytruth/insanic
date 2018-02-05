@@ -5,7 +5,7 @@ def readme():
         return f.read()
 
 
-version = '0.0.178.dev0'
+version = '0.0.178'
 
 setup(
     name='insanic',

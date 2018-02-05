@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.0.178 (unreleased)
+0.0.178 (2018-02-05)
 --------------------
 
 - Just a little more..
