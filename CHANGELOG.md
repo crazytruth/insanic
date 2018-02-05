@@ -4,6 +4,8 @@ Changelog for insanic
 0.0.173 (unreleased)
 --------------------
 
+- test release hooks
+
 - Nothing changed yet.
 
 
