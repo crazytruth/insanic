@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.0.179 (unreleased)
+0.0.179 (2018-02-05)
 --------------------
 
 - *BREAKING* remove `data` from view functions
