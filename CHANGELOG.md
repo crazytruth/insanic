@@ -1,4 +1,4 @@
-0.0.169 (2018-02-05)
+0.0.170 (2018-02-05)
 --------------------
 
 - *BREAKING* remove data from view functions
