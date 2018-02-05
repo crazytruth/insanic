@@ -1,9 +1,10 @@
 import requests
-
+import ujson as json
 
 def _slack_developers(new_version, changelog):
     params = {}
-    params['channel'] = '#dev-project-msa'
+    # params['channel'] = '#dev-project-msa'
+    params['channel'] = '#dev-black-hole'
     params['username'] = "Insanic"
     params[
         'text'] = f'Gotta go insanely fast! New version [{new_version}] has been released. `pip install -U insanic` to update.'
