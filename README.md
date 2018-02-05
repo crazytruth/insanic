@@ -18,7 +18,7 @@ bootstraps the application for quick cycle time between idea and deployment.
 
 ### Documentation
 
-For more detailed information please refer to the [wiki][/MyMusicTaste/insanic/wiki]
+For more detailed information please refer to the [wiki][wiki]
 
 ## Installation
 
@@ -26,10 +26,10 @@ For more detailed information please refer to the [wiki][/MyMusicTaste/insanic/w
 
 Core dependencies include:
 
-- [sanic](sanic) - extends sanic
-- [aiohttp](aiohttp) - only uses the client
-- [aiodns](aiodns) - for async dns resolution(used by aiohttp client)
-- [PyJWT](pyjwt) - for authentication
+- [sanic][sanic] - extends sanic
+- [aiohttp][aiohttp] - only uses the client
+- [aiodns][aiodns] - for async dns resolution(used by aiohttp client)
+- [PyJWT][pyjwt] - for authentication
 
 To install:
 
