@@ -6,8 +6,13 @@ slack_parameters = None
 
 def _beautify_changelog_for_slack(changelog):
     lines = changelog.split('\n')[3:-4]
-    lines = ["**CHANGES:**"] + lines
-    return "\n".join(lines)
+
+    beautified = ["**CHANGES:**"]
+    for l in lines:
+        l[0] = "*"
+        beautified.append(l)
+
+    return "\n".join(beautified)
 
 
 def _prepare_slack(new_version, changelog):
