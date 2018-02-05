@@ -6,7 +6,7 @@ slack_parameters = None
 
 def _beautify_changelog_for_slack(changelog):
     lines = changelog.split('\n')[3:-4]
-    lines = ["CHANGES:"] + lines
+    lines = ["**CHANGES:**"] + lines
     return "\n".join(lines)
 
 
