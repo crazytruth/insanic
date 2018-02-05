@@ -4,10 +4,11 @@ Changelog for insanic
 0.0.173 (unreleased)
 --------------------
 
+- test release hooks2
+
 - test release hooks
 
 - Nothing changed yet.
-
 
 0.0.172 (2018-02-05)
 --------------------
@@ -18,7 +19,6 @@ Changelog for insanic
 --------------------
 
 - Test release
-
 
 0.0.170 (2018-02-05)
 --------------------
