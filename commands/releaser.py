@@ -1,7 +1,14 @@
 import requests
-import ujson as json
+import json
 
 slack_gen = None
+
+
+def _beautify_changelog_for_slack(changelog):
+    lines = changelog.split('\n')[3:-3]
+    lines = ["CHANGES:"] + lines
+    return "\n".join(lines)
+
 
 def _slack_developers(new_version, changelog):
     params = {}
@@ -12,7 +19,7 @@ def _slack_developers(new_version, changelog):
         'text'] = f'Gotta go insanely fast! New version [{new_version}] has been released. `pip install -U insanic` to update.'
     params['icon_emoji'] = ":sanic:"
     params['attachments'] = []
-    params['attachments'].append({'text': changelog})
+    params['attachments'].append({'text': changelog, "mrkdwn": True})
 
 
     slack_webhook_url = 'https://hooks.slack.com/services/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'
