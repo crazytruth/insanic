@@ -19,3 +19,15 @@ def _slack_developers(new_version, changelog):
 
 def middle(data):
     _slack_developers(data['version'])
+
+
+def after(data):
+    pass
+
+
+def after_checkout(data):
+    pass
+
+
+def before_upload(data):
+    pass
