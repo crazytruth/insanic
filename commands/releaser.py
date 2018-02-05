@@ -19,7 +19,7 @@ def _slack_developers(new_version, changelog):
         'text'] = f'Gotta go insanely fast! New version [{new_version}] has been released. `pip install -U insanic` to update.'
     params['icon_emoji'] = ":sanic:"
     params['attachments'] = []
-    params['attachments'].append({'text': changelog, "mrkdwn": True})
+    params['attachments'].append({'text': _beautify_changelog_for_slack(changelog), "mrkdwn": True})
 
 
     slack_webhook_url = 'https://hooks.slack.com/services/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'
@@ -32,7 +32,10 @@ def _slack_developers(new_version, changelog):
 
 def release_after(data):
     global slack_gen
-    next(slack_gen)
+    try:
+        next(slack_gen)
+    except:
+        pass
 
 def prerelease_middle(data):
     global slack_gen
