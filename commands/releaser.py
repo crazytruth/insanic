@@ -22,7 +22,8 @@ def _slack_developers(new_version, changelog):
     # f = urllib.urlopen(slack_webhook_url, params)
     r = requests.post(slack_webhook_url, data=json.dumps(params))
 
-def after(data):
+
+def release_after(data):
     global slack_gen
 
     slack_gen.next()
@@ -30,4 +31,4 @@ def after(data):
 def prerelease_middle(data):
     global slack_gen
     slack_gen = _slack_developers(data['new_version'], data['history_last_release'])
-
+    slack_gen.next()
