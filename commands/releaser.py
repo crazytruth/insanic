@@ -9,7 +9,7 @@ def _beautify_changelog_for_slack(changelog):
 
     beautified = ["**CHANGES:**"]
     for l in lines:
-        l[0] = "*"
+        l = l.replace('-', "*", 1)
         beautified.append(l)
 
     return "\n".join(beautified)
