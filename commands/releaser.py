@@ -1,16 +1,16 @@
 import requests
 import json
 
-slack_gen = None
+slack_parameters = None
 
 
 def _beautify_changelog_for_slack(changelog):
-    lines = changelog.split('\n')[3:-3]
+    lines = changelog.split('\n')[3:-4]
     lines = ["CHANGES:"] + lines
     return "\n".join(lines)
 
 
-def _slack_developers(new_version, changelog):
+def _prepare_slack(new_version, changelog):
     params = {}
     # params['channel'] = '#dev-project-msa'
     params['channel'] = '#dev-black-hole'
@@ -21,23 +21,19 @@ def _slack_developers(new_version, changelog):
     params['attachments'] = []
     params['attachments'].append({'text': _beautify_changelog_for_slack(changelog), "mrkdwn": True})
 
+    global slack_parameters
+    slack_parameters = params
 
+
+def _send_slack():
+    global slack_parameters
     slack_webhook_url = 'https://hooks.slack.com/services/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'
 
-    yield
-
-    # f = urllib.urlopen(slack_webhook_url, params)
-    r = requests.post(slack_webhook_url, data=json.dumps(params))
+    r = requests.post(slack_webhook_url, data=json.dumps(slack_parameters))
 
 
 def release_after(data):
-    global slack_gen
-    try:
-        next(slack_gen)
-    except:
-        pass
+    _send_slack()
 
 def prerelease_middle(data):
-    global slack_gen
-    slack_gen = _slack_developers(data['new_version'], data['history_last_release'])
-    next(slack_gen)
+    _prepare_slack(data['new_version'], data['history_last_release'])
