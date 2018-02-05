@@ -1,7 +1,11 @@
-0.0.169 (unreleased)
+0.0.169 (2018-02-05)
 --------------------
 
-- Nothing changed yet.
+- *BREAKING* remove data from view functions
+- test environment variables refactoed
+- added datetime utils functions
+- async allow any permission class
+- respect error code declaration in APIExceptions
 
 
 0.0.168 (2018-01-31)
