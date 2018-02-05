@@ -1,6 +1,8 @@
 import requests
 import ujson as json
 
+slack_gen = None
+
 def _slack_developers(new_version, changelog):
     params = {}
     # params['channel'] = '#dev-project-msa'
@@ -15,20 +17,17 @@ def _slack_developers(new_version, changelog):
 
     slack_webhook_url = 'https://hooks.slack.com/services/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'
 
+    yield
+
     # f = urllib.urlopen(slack_webhook_url, params)
     r = requests.post(slack_webhook_url, data=json.dumps(params))
 
-def middle(data):
-    _slack_developers(data['version'], "test")
-
-
 def after(data):
-    pass
+    global slack_gen
 
+    slack_gen.next()
 
 def prerelease_middle(data):
-    pass
+    global slack_gen
+    slack_gen = _slack_developers(data['new_version'], data['history_last_release'])
 
-
-def before_upload(data):
-    pass
