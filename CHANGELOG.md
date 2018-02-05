@@ -4,6 +4,9 @@ Changelog for insanic
 0.0.174 (unreleased)
 --------------------
 
+- test release hooks2
+   and this
+
 - Nothing changed yet.
 
 
