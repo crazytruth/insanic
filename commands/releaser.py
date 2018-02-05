@@ -26,7 +26,7 @@ def after(data):
     pass
 
 
-def after_checkout(data):
+def prerelease_middle(data):
     pass
 
 
