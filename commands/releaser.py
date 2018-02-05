@@ -11,8 +11,8 @@ def _slack_developers(new_version, changelog):
     params[
         'text'] = f'Gotta go insanely fast! New version [{new_version}] has been released. `pip install -U insanic` to update.'
     params['icon_emoji'] = ":sanic:"
-    params['attachments'] = {}
-    params['attachments']['text'] = changelog
+    params['attachments'] = []
+    params['attachments'].append({'text': changelog})
 
 
     slack_webhook_url = 'https://hooks.slack.com/services/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'
