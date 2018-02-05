@@ -182,9 +182,9 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
     running_containers = OrderedDict()
     running_services = OrderedDict()
     if launch_service:
-        DOCKER_USERNAME = os.environ['MMT_DOCKER_USERNAME']
-        DOCKER_WEB_SRC_TAG = os.environ['MMT_DOCKER_WEB_SRC_TAG']
-        TEST_PROJECT_ENV = os.environ['TEST_PROJECT_ENV']
+        DOCKER_USERNAME = os.environ['INSANIC_TEST_DOCKER_USERNAME']
+        DOCKER_WEB_SRC_TAG = os.environ['INSANIC_TEST_WEB_SRC_TAG']
+        TEST_PROJECT_ENV = os.environ['INSANIC_TEST_PROJECT_ENV']
 
         repository = None
         force_exit = None
