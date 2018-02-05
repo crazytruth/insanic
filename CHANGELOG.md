@@ -3,8 +3,6 @@
 
 - test release hooks
 
-- Nothing changed yet.
-
 
 0.0.171 (2018-02-05)
 --------------------
