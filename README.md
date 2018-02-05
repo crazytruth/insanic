@@ -5,10 +5,20 @@
 This framework should only include features that bootstraps
 the server and any features that will be required for at least 2 or more services.
 
+Insanic is a very opinionated framework.  It tries to include all the best practices but confines
+the developer into using certain packages. For example, for tests, the developer must use
+`pytest` and their respective plugin libraries.
+
 ### Why we need this
 
+We needed this because we need a core framework for our developers to quickly develop services.
+As stated before, this is very opinionated and the reason being, to reduce research time when
+trying to select packages to use for their service.  It lays down all the necessary patterns and
+bootstraps the application for quick cycle time between idea and deployment.
 
+### Documentation
 
+For more detailed information please refer to the [wiki][/MyMusicTaste/insanic/wiki]
 
 ## Installation
 
