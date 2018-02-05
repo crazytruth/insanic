@@ -11,8 +11,7 @@ def _beautify_changelog_for_slack(changelog):
 
 def _prepare_slack(new_version, changelog):
     params = {}
-    # params['channel'] = '#dev-project-msa'
-    params['channel'] = '#dev-black-hole'
+    params['channel'] = '#dev-project-msa'
     params['username'] = "Insanic"
     params[
         'text'] = f'Gotta go insanely fast! New version [{new_version}] has been released. `pip install -U insanic` to update.'

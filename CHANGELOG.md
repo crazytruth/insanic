@@ -4,65 +4,10 @@ Changelog for insanic
 0.0.179 (unreleased)
 --------------------
 
-- Nothing changed yet.
-
-
-0.0.178 (2018-02-05)
---------------------
-
-- Just a little more..
-
-
-0.0.177 (2018-02-05)
---------------------
-
-- almost there..
-
-
-0.0.176 (2018-02-05)
---------------------
-
-- test test test
-
-
-0.0.175 (2018-02-05)
---------------------
-
-- test release hooks
-
-
-0.0.174 (2018-02-05)
---------------------
-
-- test release hooks2
-
-
-0.0.173 (2018-02-05)
---------------------
-
-- test release hooks2
-- test release hooks
-
-
-0.0.172 (2018-02-05)
---------------------
-
-- test release hooks
-
-
-0.0.171 (2018-02-05)
---------------------
-
-- Test release
-
-
-0.0.170 (2018-02-05)
---------------------
-
-- *BREAKING* remove data from view functions
-- test environment variables refactoed
+- *BREAKING* remove `data` from view functions
+- test environment variables refactored
 - added datetime utils functions
-- async allow any permission class
+- async allow any permission class fix
 - respect error code declaration in APIExceptions
 
 
