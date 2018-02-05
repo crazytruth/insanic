@@ -29,7 +29,8 @@ class AllowAny(BasePermission):
     permission_classes list, but it's useful because it makes the intention
     more explicit.
     """
-    def has_permission(self, request, view):
+
+    async def has_permission(self, request, view):
         return True
 
 
