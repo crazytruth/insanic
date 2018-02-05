@@ -18,7 +18,7 @@ def _slack_developers(new_version, changelog):
     r = requests.post(slack_webhook_url, data=json.dumps(params))
 
 def middle(data):
-    _slack_developers(data['version'])
+    _slack_developers(data['version'], "test")
 
 
 def after(data):
