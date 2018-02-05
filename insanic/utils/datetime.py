@@ -10,18 +10,16 @@ def utc_to_datetime(timestamp=None, units=None):
     if timestamp is None and units is None:
         timestamp = get_utc_timestamp()
         units = "s"
-    elif timestamp is not None and units is None:
-        raise ValueError("You must pass in the timestamp units. [s/ms]")
-    elif timestamp is None and units is not None:
+    elif timestamp is not None and units is not None:
         if units == "s":
-            timestamp = int(get_utc_timestamp())
+            timestamp = int(timestamp)
         elif units == "ms":
-            timestamp = int(get_utc_timestamp() * 1000)
+            timestamp = int(timestamp * 1000)
         else:
             raise ValueError(f"{units} is an invalid units input. Must be either [s/ms].")
+    else:
+        raise ValueError("If passing arguments both, timestamp and units, are required.")
 
-    if units == "ms":
-        timestamp = timestamp / 1000
     return datetime.fromtimestamp(timestamp).replace(tzinfo=timezone.utc)
 
 
