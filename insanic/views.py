@@ -259,33 +259,7 @@ class MMTBaseView(HTTPMethodView):
         else:
             handler = self.http_method_not_allowed
 
-        required_params = getattr(self, "{0}_params".format(self.request.method.lower()), [])
-        data = {}
-        if len(required_params):
-
-            body_data = self.request.data
-
-            if body_data is None:
-                data.update({"is_valid": False})
-            else:
-                for p in required_params:
-                    data.update({p: body_data.get(p, None)})
-
-        if None not in data.values():
-            response = handler(self.request, data, *self.args, **self.kwargs)
-        else:
-            missing_parameters = [p for p, v in data.items() if v is None]
-            msg = "Must include '"
-            if len(missing_parameters) == 1:
-                msg += missing_parameters[0]
-            elif len(missing_parameters) > 1:
-                msg += "', '".join(required_params[:-1])
-                msg = "' and '" .join([msg, required_params[-1]])
-
-            msg += "'."
-
-            raise exceptions.BadRequest(msg, GlobalErrorCodes.invalid_usage)
-
+        response = handler(self.request, *self.args, **self.kwargs)
         if isawaitable(response):
             response = await response
 
