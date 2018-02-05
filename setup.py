@@ -4,7 +4,8 @@ def readme():
     with open('README.md') as f:
         return f.read()
 
-version = '0.0.169.dev0'
+
+version = '0.0.169'
 
 setup(
     name='insanic',
@@ -43,7 +44,7 @@ setup(
     },
     extras_require={
         "testing":  ["docker", "aiobotocore", "pytest", "pytest-asyncio", "pytest-redis"],
-        "dev": ["zest.releaser[recommended]"]
+        "dev": ["zest.releaser[recommended]", "flake8"]
     },
 
     include_package_data=True,
