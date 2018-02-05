@@ -5,10 +5,7 @@ Changelog for insanic
 --------------------
 
 - test release hooks2
-
 - test release hooks
-
-- Nothing changed yet.
 
 0.0.172 (2018-02-05)
 --------------------
