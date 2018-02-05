@@ -31,4 +31,3 @@ def release_after(data):
 def prerelease_middle(data):
     global slack_gen
     slack_gen = _slack_developers(data['new_version'], data['history_last_release'])
-    slack_gen.next()
