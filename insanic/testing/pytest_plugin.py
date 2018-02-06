@@ -182,7 +182,9 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
     running_containers = OrderedDict()
     running_services = OrderedDict()
     if launch_service:
-        DOCKER_USERNAME = os.environ['INSANIC_TEST_DOCKER_USERNAME']
+        DOCKER_PRIVATE_REPO = os.environ['INSANIC_TEST_DOCKER_REPO']
+        DOCKER_USERNAME = os.environ['INSANIC_TEST_DOCKER_USER']
+        DOCKER_PASSWORD = os.environ['INSANIC_TEST_DOCKER_PASSWORD']
         DOCKER_WEB_SRC_TAG = os.environ['INSANIC_TEST_WEB_SRC_TAG']
         TEST_PROJECT_ENV = os.environ['INSANIC_TEST_PROJECT_ENV']
 
@@ -190,19 +192,9 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
         force_exit = None
         docker_client = docker.DockerClient(base_url="unix:///var/run/docker.sock")
         try:
-            ecr_session = aiobotocore.get_session()
 
-            async with ecr_session.create_client('ecr', aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                                                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID) as ecr_client:
-                credentials = await ecr_client.get_authorization_token()
-
-                username, password = base64.b64decode(
-                    credentials['authorizationData'][0]['authorizationToken'].encode()).decode().split(':')
-                repository = credentials['authorizationData'][0]['proxyEndpoint']
-
-                web_login_config = {"username": username, "password": password}
-                login_response = docker_client.login(registry=repository, **web_login_config)
-                del credentials
+            web_login_config = {"username": DOCKER_USERNAME, "password": DOCKER_PASSWORD}
+            login_response = docker_client.login(registry=DOCKER_PRIVATE_REPO, **web_login_config)
 
             for service_name in settings.SERVICE_CONNECTIONS:
                 service_config = settings.SERVICES[service_name]
@@ -221,14 +213,14 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
                 if service_name == "web":
                     # first run mmt-src
                     src_params = {}
-                    src_params['image'] = "{0}/mmt-src:{1}".format(DOCKER_USERNAME, DOCKER_WEB_SRC_TAG)
+                    src_params['image'] = "{0}/mmt-src:{1}".format(DOCKER_PRIVATE_REPO, DOCKER_WEB_SRC_TAG)
                     src_params['remove'] = False
                     src_params['detach'] = True
                     src_params["name"] = "test-{0}-{1}".format(test_session_id, "src")
                     src_params['labels'] = {"test_session": test_session_id}
 
-                    src_image = docker_client.images.pull(src_params['image'].split(':')[0],
-                                                          tag=src_params['image'].split(':')[1],
+                    src_image = docker_client.images.pull(src_params['image'].rsplit(':', 1)[0],
+                                                          tag=src_params['image'].rsplit(':', 1)[1],
                                                           auth_config=web_login_config)
                     src_container = docker_client.containers.run(**src_params)
 
@@ -236,7 +228,7 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
                     _download_bimil(temp_bimil)
 
                     params.update({
-                        "image": "{0}/mmt-app:development".format(DOCKER_USERNAME),
+                        "image": "{0}/mmt-app:development".format(DOCKER_PRIVATE_REPO),
                         "command": "0.0.0.0:8000",
                         "environment": {"MMT_ENV": "development_test",
                                         "MMT_PASS": settings.MMT_WEB_PASS,
@@ -247,8 +239,8 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
                         "volumes": {temp_bimil.strpath: {'bind': '/opt/django/.bimil', 'mode': 'rw'}},
                         "entrypoint": ["/usr/bin/python", "/opt/django/mmt_mk2/manage.py", "runserver"],
                     })
-                    app_image = docker_client.images.pull(params['image'].split(':')[0],
-                                                          tag=params['image'].split(':')[1],
+                    app_image = docker_client.images.pull(params['image'].rsplit(':', 1)[0],
+                                                          tag=params['image'].rsplit(':', 1)[1],
                                                           auth_config=web_login_config)
                     app_container = docker_client.containers.run(**params)
 

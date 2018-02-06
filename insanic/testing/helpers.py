@@ -1,9 +1,27 @@
 import copy
+import sys
 import ujson as json
+
 from enum import Enum
 from collections import namedtuple
+from setuptools.command.test import test as TestCommand
 
 User = namedtuple('User', ['id', 'email', 'is_active', 'is_authenticated'])
+
+
+class PyTestCommand(TestCommand):
+    user_options = [('pytest-args=', 'a', "Arguments to pass to pytest")]
+
+    def initialize_options(self):
+        TestCommand.initialize_options(self)
+        self.pytest_args = ""
+
+    def run_tests(self):
+        import shlex
+        # import here, cause outside the eggs aren't loaded
+        import pytest
+        errno = pytest.main(shlex.split(self.pytest_args))
+        sys.exit(errno)
 
 class BaseMockService:
 
@@ -51,7 +69,13 @@ def test_api_endpoint(insanic_application, authorization_token, endpoint, method
                                 json=request_body)
 
     assert expected_response_status, response.text == response.status
-    response_body = json.loads(response.text)
+
+    response_body = response.text
+
+    try:
+        response_body = json.loads(response.text)
+    except ValueError:
+        pass
 
     response_status_category = int(expected_response_status / 100)
 
