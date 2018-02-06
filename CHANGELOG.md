@@ -4,6 +4,8 @@ Changelog for insanic
 0.0.180 (unreleased)
 --------------------
 
+- Add Pytest setuptools command
+
 - Nothing changed yet.
 
 

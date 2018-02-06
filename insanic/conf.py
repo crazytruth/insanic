@@ -15,7 +15,7 @@ from insanic import global_settings
 from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import LazyObject, empty, cached_property
 
-SERVICE_VARIABLE = "MMT_SERVICE"
+
 
 class LazySettings(LazyObject):
 
@@ -30,19 +30,7 @@ class LazySettings(LazyObject):
         is used the first time we need any settings at all, if the user has not
         previously configured the settings manually.
         """
-        service_name = os.environ.get(SERVICE_VARIABLE)
-
-        if not service_name:
-            desc = ("setting %s" % name) if name else "settings"
-            raise ImproperlyConfigured(
-                "Requested %s, but settings are not configured. "
-                "You must either define the environment variable %s "
-                "or call settings.configure() before accessing settings."
-                % (desc, SERVICE_VARIABLE))
-
-        settings_module = "{0}.config".format(service_name)
-
-        self._wrapped = DockerSecretsConfig(settings_module=settings_module)
+        self._wrapped = DockerSecretsConfig()
 
     def __getattr__(self, name):
         if self._wrapped is empty:
@@ -83,10 +71,10 @@ class DockerSecretsConfig(Config):
 
     def __init__(self, defaults=None, *, settings_module=None):
         super().__init__(defaults)
-
-        self.SETTINGS_MODULE = settings_module
-
         self.from_object(global_settings)
+
+        self.SERVICE_NAME = sys.modules['__main__'].__file__.split('/')[-2]
+        self.SETTINGS_MODULE = "{0}.config".format(self.SERVICE_NAME)
 
         try:
             config_module = importlib.import_module(self.SETTINGS_MODULE)
@@ -96,6 +84,7 @@ class DockerSecretsConfig(Config):
                 "Could not import settings '%s' (Is it on sys.path? Is there an import error in the settings file?): %s %s"
                 % (self.SETTINGS_MODULE, e, sys.path)
             )
+            raise e
 
         try:
             instance_module = importlib.import_module('instance')
@@ -134,7 +123,7 @@ class DockerSecretsConfig(Config):
     def _load_secrets(self):
 
         try:
-            with open('/run/secrets/{0}'.format(os.environ[SERVICE_VARIABLE])) as f:
+            with open('/run/secrets/{0}'.format(self.SERVICE_NAME)) as f:
                 docker_secrets = f.read()
 
             log.debug(docker_secrets)
