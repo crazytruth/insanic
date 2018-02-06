@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.0.182 (unreleased)
+0.0.182 (2018-02-06)
 --------------------
 
 - FEATURE: allows configuration from last word of project root split by "-"
