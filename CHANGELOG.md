@@ -4,7 +4,7 @@ Changelog for insanic
 0.0.181 (unreleased)
 --------------------
 
-- Nothing changed yet.
+- runservices marker fix
 
 
 0.0.180 (2018-02-06)

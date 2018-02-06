@@ -30,8 +30,9 @@ pytest.register_assert_rewrite('insanic.testing.helpers')
 
 
 def pytest_configure(config):
-    config.addinivalue_line("runservices",
-                            "Mark the test as runservices which will run dependent services as docker containers")
+    config.addinivalue_line("markers",
+                            "runservices: Mark the test as runservices which "
+                            "will run dependent services as docker containers")
 
 
 @pytest.fixture(scope="function", autouse=True)
