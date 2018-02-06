@@ -28,6 +28,12 @@ from insanic.tracing.context import AsyncContext
 
 pytest.register_assert_rewrite('insanic.testing.helpers')
 
+
+def pytest_configure(config):
+    config.addinivalue_line("runservices",
+                            "Mark the test as runservices which will run dependent services as docker containers")
+
+
 @pytest.fixture(scope="function", autouse=True)
 def silence_tracer(event_loop):
     os.environ[CONTEXT_MISSING_KEY] = "LOG_ERROR"
