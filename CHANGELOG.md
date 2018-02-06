@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.0.180 (unreleased)
+0.0.180 (2018-02-06)
 --------------------
 
 - *MAJOR* Remove dependency on MMT_SERVICE environment variable.
