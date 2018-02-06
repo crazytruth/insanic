@@ -4,9 +4,10 @@ Changelog for insanic
 0.0.180 (unreleased)
 --------------------
 
-- Add Pytest setuptools command
+- *MAJOR* Remove dependency on MMT_SERVICE environment variable.
+   DO NOT need it anymore!
 
-- Nothing changed yet.
+- Add Pytest setuptools command
 
 
 0.0.179 (2018-02-05)
