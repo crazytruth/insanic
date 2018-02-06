@@ -73,7 +73,9 @@ class DockerSecretsConfig(Config):
         super().__init__(defaults)
         self.from_object(global_settings)
 
-        self.SERVICE_NAME = sys.modules['__main__'].__file__.split('/')[-2].split('-')[-1]
+        # import pdb; pdb.set_trace()
+        self.SERVICE_NAME = os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__)) \
+            .split('/')[-1].split('-')[-1]
         self.SETTINGS_MODULE = "{0}.config".format(self.SERVICE_NAME)
 
         try:

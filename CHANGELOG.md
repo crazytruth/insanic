@@ -4,7 +4,7 @@ Changelog for insanic
 0.0.183 (unreleased)
 --------------------
 
-- Nothing changed yet.
+- FIX: config discovery logic didn't work when run in cmdline
 
 
 0.0.182 (2018-02-06)
