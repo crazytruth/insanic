@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.0.185 (unreleased)
+0.0.185 (2018-02-07)
 --------------------
 
 - MAJOR: updated sanic to 0.7.0
