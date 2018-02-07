@@ -1,9 +1,7 @@
 import traceback
 
-from sanic.log import log
-
 from insanic import __version__
-from insanic.conf import settings
+from insanic.log import logger
 from insanic.tracing.patch import patch
 from insanic.tracing.context import AsyncContext
 from insanic.tracing.core import xray_recorder
@@ -27,7 +25,7 @@ class InsanicXRayMiddleware:
                            context_missing="LOG_ERROR" if app.config.MMT_ENV=="local" else "RUNTIME_ERROR")
 
         self.app = app
-        log.info("initializing xray middleware")
+        logger.info("initializing xray middleware")
 
         self._recorder = recorder
 
@@ -42,6 +40,9 @@ class InsanicXRayMiddleware:
         def end_trace(request, response):
             if request.path != "/health":
                 self._after_request(request, response)
+
+            if hasattr(request, "span"):
+                response.span = request.span
             return response
 
         patch()

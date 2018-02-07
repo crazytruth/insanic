@@ -8,8 +8,10 @@ Changelog for insanic
 - BREAKING: when running insanic in run.py remove log_config parameter
 - FEATURE: better organization of logging modules
 - FIX: 204 empty body assertion in test_api_endpoint
+- FIX: bug with tracing not getting sent with logs
 - REFACTOR: remove log email handlers and reporters
 - CHORE: refactor middleware registration for sanic 0.7.0 upgrade
+
 
 0.0.184 (2018-02-07)
 --------------------
