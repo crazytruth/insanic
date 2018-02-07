@@ -12,7 +12,7 @@ from yarl import URL
 from insanic import exceptions, status
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
-from insanic.log import log
+from insanic.log import logger
 from insanic.utils import to_object
 
 IS_INFUSED = False
@@ -27,7 +27,7 @@ except (ImportError, ModuleNotFoundError) as e:
     else:
         CircuitBreakerError = Exception
         IS_INFUSED = False
-        log.warn("Running without [infuse]. For production infuse is required!")
+        logger.warn("Running without [infuse]. For production infuse is required!")
 
 
 class InterServiceAuth(namedtuple('InterServiceAuth', ['prefix', 'token'])):

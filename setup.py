@@ -27,7 +27,7 @@ setup(
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     setup_requires=["zest.releaser[recommended]", "setuptools"],
     install_requires=[
-        'sanic>=0.6.0,<0.7.0',
+        'sanic==0.7.0',
         'sanic-useragent',
         'aiohttp<=2.3.0',
         'aiodns',

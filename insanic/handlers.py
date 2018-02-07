@@ -1,7 +1,5 @@
 import logging
-import sys
 
-from sanic.log import log
 from sanic.response import json, html
 from sanic.handlers import ErrorHandler as SanicErrorHandler, format_exc, SanicException, INTERNAL_SERVER_ERROR_HTML
 
@@ -18,7 +16,7 @@ INTERNAL_SERVER_ERROR_JSON = {
   }
 }
 
-logger = logging.getLogger('insanic.request')
+logger = logging.getLogger('sanic.access')
 
 class ErrorHandler(SanicErrorHandler):
 
@@ -48,7 +46,7 @@ class ErrorHandler(SanicErrorHandler):
                     'Exception raised in exception handler "{}" '
                     'for uri: "{}"\n{}').format(
                     handler.__name__, url, format_exc())
-                log.error(response_message)
+                logger.error(response_message)
                 return self.handle_uncaught_exception(request, exception, response_message)
             else:
                 return self.handle_uncaught_exception(request, exception)
@@ -73,7 +71,7 @@ class ErrorHandler(SanicErrorHandler):
             response_message = (
                 'Exception occurred while handling uri: "{}"\n{}'.format(
                     request.path, format_exc()))
-            log.error(response_message)
+            logger.error(response_message)
             response = html(html_output, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             response = self.handle_uncaught_exception(request, exception)

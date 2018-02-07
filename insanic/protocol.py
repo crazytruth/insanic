@@ -1,6 +1,7 @@
 from sanic import server
-from sanic.server import HttpProtocol, CIDict, netlog, log, ServerError
+from sanic.server import HttpProtocol, CIDict, ServerError
 
+from insanic.log import access_logger, logger
 from insanic.request import Request
 
 class InsanicHttpProtocol(HttpProtocol):
@@ -28,7 +29,7 @@ class InsanicHttpProtocol(HttpProtocol):
                 response.output(
                     self.request.version, keep_alive,
                     self.request_timeout))
-            if self.has_log:
+            if self.access_log:
                 extra = {
                     'status': response.status,
                     'byte': len(response.body),
@@ -41,24 +42,24 @@ class InsanicHttpProtocol(HttpProtocol):
                     span = response.span
                     if span is not None:
                         extra.update({
-                            'ot_trace_id': span.context.trace_id,
+                            'ot_trace_id': span.trace_id,
                             'ot_parent_id': span.parent_id,
-                            'ot_sampled': int(span.context.sampled),
-                            'ot_duration': span.duration
+                            'ot_sampled': int(span.sampled),
+                            'ot_duration': (span.end_time - span.start_time) * 1000
                         })
 
                 if str(response.status)[0] == "5":
-                    netlog.exception('', extra=extra, exc_info=response.exception)
+                    access_logger.exception('', extra=extra, exc_info=response.exception)
                 else:
-                    netlog.info('', extra=extra)
-        except AttributeError:
-            log.error(
+                    access_logger.info('', extra=extra)
+        except AttributeError as e:
+            logger.error(
                 ('Invalid response object for url {}, '
                  'Expected Type: HTTPResponse, Actual Type: {}').format(
                     self.url, type(response)))
             self.write_error(ServerError('Invalid response type'))
         except RuntimeError:
-            log.error(
+            logger.error(
                 'Connection lost before response written @ {}'.format(
                     self.request.ip))
         except Exception as e:

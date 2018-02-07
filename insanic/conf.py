@@ -1,4 +1,5 @@
 import importlib
+import logging
 import os
 import sys
 import types
@@ -8,14 +9,13 @@ import urllib.request
 from yarl import URL
 
 from sanic.config import Config
-from sanic.log import log
 from configparser import ConfigParser
 
 from insanic import global_settings
 from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import LazyObject, empty, cached_property
 
-
+logger = logging.getLogger('root')
 
 
 class LazySettings(LazyObject):
@@ -87,7 +87,7 @@ class DockerSecretsConfig(Config):
             config_module = importlib.import_module(self.SETTINGS_MODULE)
             self.from_object(config_module)
         except ImportError as e:
-            log.debug(
+            logger.debug(
                 "Could not import settings '%s' (Is it on sys.path? Is there an import error in the settings file?): %s %s"
                 % (self.SETTINGS_MODULE, e, sys.path)
             )
@@ -133,7 +133,6 @@ class DockerSecretsConfig(Config):
             with open('/run/secrets/{0}'.format(self.SERVICE_NAME)) as f:
                 docker_secrets = f.read()
 
-            log.debug(docker_secrets)
             docker_secrets = json.loads(docker_secrets)
 
             for k, v in docker_secrets.items():
@@ -144,7 +143,7 @@ class DockerSecretsConfig(Config):
 
                 self.update({k: v})
         except FileNotFoundError as e:
-            log.debug("Docker secrets not found %s" % e.strerror)
+            logger.debug("Docker secrets not found %s" % e.strerror)
             filename = os.path.join(os.getcwd(), 'instance.py')
             module = types.ModuleType('config')
             module.__file__ = filename
@@ -154,7 +153,7 @@ class DockerSecretsConfig(Config):
                     exec(compile(f.read(), filename, 'exec'),
                          module.__dict__)
             except IOError as e:
-                log.debug('Unable to load configuration file (%s)' % e.strerror)
+                logger.debug('Unable to load configuration file (%s)' % e.strerror)
             for key in dir(module):
                 if key.isupper():
                     self[key] = getattr(module, key)

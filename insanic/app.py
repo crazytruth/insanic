@@ -4,11 +4,11 @@ from sanic_useragent import SanicUserAgent
 from insanic.functional import cached_property
 from insanic.handlers import ErrorHandler
 from insanic.monitor import blueprint_monitor
-from insanic.log import LOGGING
+from insanic.log import LOGGING_CONFIG_DEFAULTS
 from insanic.protocol import InsanicHttpProtocol
-from insanic.utils import attach_middleware
 
 LISTENER_TYPES = ("before_server_start", "after_server_start", "before_server_stop", "after_server_stop")
+MIDDLEWARE_TYPES = ('request', 'response')
 
 class Insanic(Sanic):
     database = None
@@ -55,19 +55,24 @@ class Insanic(Sanic):
             except FileNotFoundError:
                 pass
 
-
-        super().__init__(name, router, error_handler, log_config=LOGGING)
+        super().__init__(name, router, error_handler, strict_slashes=True, log_config=LOGGING_CONFIG_DEFAULTS)
 
         self.config = settings
 
         SanicUserAgent.init_app(self)
-        attach_middleware(self)
 
         from insanic import listeners
         for module_name in dir(listeners):
             for l in LISTENER_TYPES:
                 if module_name.startswith(l):
                     self.listeners[l].append(getattr(listeners, module_name))
+
+        from insanic import middleware
+        for module_name in dir(middleware):
+            for m in MIDDLEWARE_TYPES:
+                if module_name.startswith(m):
+                    self.register_middleware(getattr(middleware, module_name), attach_to=m)
+
 
         self.blueprint(blueprint_monitor)
 
