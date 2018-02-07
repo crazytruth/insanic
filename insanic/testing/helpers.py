@@ -87,6 +87,8 @@ def test_api_endpoint(insanic_application, authorization_token, endpoint, method
             assert sorted(expected_response_body) == sorted(response_body.keys())
         elif isinstance(response_body, list) and isinstance(expected_response_body, int):
             assert expected_response_body == len(response_body)
+        elif isinstance(expected_response_body, str):
+            assert expected_response_body == response_body
         else:
             raise RuntimeError("Shouldn't be in here. Check response type.")
     elif response_status_category == 3:
