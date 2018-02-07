@@ -17,6 +17,7 @@ from insanic.functional import LazyObject, empty, cached_property
 
 
 
+
 class LazySettings(LazyObject):
 
     """
@@ -34,6 +35,7 @@ class LazySettings(LazyObject):
 
     def __getattr__(self, name):
         if self._wrapped is empty:
+
             self._setup(name)
         return getattr(self._wrapped, name)
 
@@ -68,14 +70,17 @@ class DockerSecretsConfig(Config):
      ▀▀▄▄▀
     """
 
+    def _find_package_name(self):
+        package_name = os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__)) \
+            .split('/')[-1].split('-')[-1]
+        return package_name
+
 
     def __init__(self, defaults=None, *, settings_module=None):
         super().__init__(defaults)
         self.from_object(global_settings)
 
-        # import pdb; pdb.set_trace()
-        self.SERVICE_NAME = os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__)) \
-            .split('/')[-1].split('-')[-1]
+        self.SERVICE_NAME = self._find_package_name()
         self.SETTINGS_MODULE = "{0}.config".format(self.SERVICE_NAME)
 
         try:
