@@ -4,7 +4,7 @@ Changelog for insanic
 0.0.184 (unreleased)
 --------------------
 
-- Nothing changed yet.
+- FIX: Assertion in test_api_endpoint on 400 level status codes were being asserted properly
 
 
 0.0.183 (2018-02-06)

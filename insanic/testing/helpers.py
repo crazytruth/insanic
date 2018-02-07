@@ -39,16 +39,17 @@ class BaseMockService:
 
         if key in self.service_responses:
             if include_status_code:
-                return copy.deepcopy(self.service_responses[key]), 200
+                return copy.deepcopy(self.service_responses[key][0]), self.service_responses[key][1]
             else:
-                return copy.deepcopy(self.service_responses[key])
+                return copy.deepcopy(self.service_responses[key][0])
 
-        raise RuntimeError("Unknown service request: {0} {1}".format(method.upper(), endpoint))
+        raise RuntimeError(
+            "Unknown service request: {0} {1}. Need to register mock dispatch.".format(method.upper(), endpoint))
 
-    def register_mock_dispatch(self, method, endpoint, response):
+    def register_mock_dispatch(self, method, endpoint, response, response_status_code=200):
         key = self._key_for_request(method, endpoint)
 
-        self.service_responses.update({key: response})
+        self.service_responses.update({key: (response, response_status_code)})
 
 
 MockService = BaseMockService()
@@ -68,7 +69,7 @@ def test_api_endpoint(insanic_application, authorization_token, endpoint, method
                                 headers=request_headers,
                                 json=request_body)
 
-    assert expected_response_status, response.text == response.status
+    assert expected_response_status == response.status, response.text
 
     response_body = response.text
 
@@ -93,13 +94,13 @@ def test_api_endpoint(insanic_application, authorization_token, endpoint, method
     elif response_status_category == 4:
         # if http status code is in the 4 hundreds, check error code
         if isinstance(expected_response_body, dict):
-            assert expected_response_body, response.text == response_body
+            assert expected_response_body == response_body, response.text
         elif isinstance(expected_response_body, list):
-            assert sorted(expected_response_body), response.text == sorted(response_body.keys())
+            assert sorted(expected_response_body) == sorted(response_body.keys()), response.text
         elif isinstance(expected_response_body, Enum):
-            assert expected_response_body.value, response.text == response_body['error_code']['value']
+            assert expected_response_body.value == response_body['error_code']['value'], response.text
         elif isinstance(expected_response_body, int):
-            assert expected_response_body, response.text == response_body['error_code']['value']
+            assert expected_response_body == response_body['error_code']['value'], response.text
         else:
             raise RuntimeError("Shouldn't be in here. Check response type.")
 
@@ -139,6 +140,5 @@ def test_parameter_generator(method, endpoint, *, request_headers, request_body,
 
 def test_parameter(method, endpoint, request_headers, request_body, expected_response_status, expected_response_body):
     return [tuple(TestParams(method=method, endpoint=endpoint, request_headers=request_headers,
-                            request_body=request_body, expected_response_status=expected_response_status,
-                            expected_response_body=expected_response_body))]
-
+                             request_body=request_body, expected_response_status=expected_response_status,
+                             expected_response_body=expected_response_body))]
