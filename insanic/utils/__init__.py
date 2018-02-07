@@ -46,22 +46,6 @@ def import_string(import_name, silent=False):
                 sys.exc_info()[2])
 
 
-def attach_middleware(app):
-    middlewares = dir(middleware)
-
-    for mw in middlewares:
-        if mw.endswith("middleware"):
-            if mw.startswith("request"):
-                middleware_func = getattr(middleware, mw)
-                app.request_middleware.append(middleware_func)
-            elif mw.startswith("response"):
-                middleware_func = getattr(middleware, mw)
-                app.response_middleware.append(middleware_func)
-            else:
-                raise ImportError("Invalid format for middleware. {0}".format(mw))
-
-
-
 def force_str(val):
     if isinstance(val, bytes):
         val = val.decode()

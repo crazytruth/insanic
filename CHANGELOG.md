@@ -9,7 +9,7 @@ Changelog for insanic
 - FEATURE: better organization of logging modules
 - FIX: 204 empty body assertion in test_api_endpoint
 - REFACTOR: remove log email handlers and reporters
-
+- CHORE: refactor middleware registration for sanic 0.7.0 upgrade
 
 0.0.184 (2018-02-07)
 --------------------
