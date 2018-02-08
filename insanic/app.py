@@ -6,6 +6,7 @@ from insanic.handlers import ErrorHandler
 from insanic.monitor import blueprint_monitor
 from insanic.log import LOGGING_CONFIG_DEFAULTS
 from insanic.protocol import InsanicHttpProtocol
+from insanic.tracing import InsanicTracer
 
 LISTENER_TYPES = ("before_server_start", "after_server_start", "before_server_stop", "after_server_stop")
 MIDDLEWARE_TYPES = ('request', 'response')
@@ -59,8 +60,6 @@ class Insanic(Sanic):
 
         self.config = settings
 
-        SanicUserAgent.init_app(self)
-
         from insanic import listeners
         for module_name in dir(listeners):
             for l in LISTENER_TYPES:
@@ -73,6 +72,8 @@ class Insanic(Sanic):
                 if module_name.startswith(m):
                     self.register_middleware(getattr(middleware, module_name), attach_to=m)
 
+        SanicUserAgent.init_app(self)
+        InsanicTracer.init_app(self)
 
         self.blueprint(blueprint_monitor)
 

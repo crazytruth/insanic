@@ -29,6 +29,8 @@ class InsanicXRayMiddleware:
 
         self._recorder = recorder
 
+        self.listeners['after_server_start'].append(after_server_start_start_tracing)
+
         @app.middleware('request')
         async def start_trace(request):
             if request.path != "/health":
@@ -104,25 +106,6 @@ class InsanicXRayMiddleware:
             segment.put_http_meta(http.CONTENT_LENGTH, int(cont_len))
         self._recorder.end_segment()
         return response
-
-
-
-    #     def before_service_request(self, request, request_context, *, service_name):
-    #         op = self._get_operation_name(request)
-    #         current_span = self.get_span(request_context)
-    #
-    #         http_header_carrier = {}
-    #         self._tracer.inject(
-    #             span_context=current_span.context,
-    #             format=opentracing.Format.HTTP_HEADERS,
-    #             carrier=http_header_carrier
-    #         )
-    #
-    #         request_header = request.headers
-    #         request_header.update(http_header_carrier)
-    #
-    #         request.update_headers(request_header)
-
 
     def _handle_exception(self, exception):
         if not exception:
