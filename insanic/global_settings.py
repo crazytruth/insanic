@@ -71,5 +71,6 @@ TRACING = dict(
     ENABLED=True,
     HOST='xray',
     PORT=2000,
-    FAIL_SOFT_ENVIRONMENTS=('local', 'test')
+    FAIL_SOFT_ENVIRONMENTS=('local', 'test'),
+    REQUIRED=True
 )
