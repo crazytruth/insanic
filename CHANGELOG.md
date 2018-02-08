@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.0.186 (unreleased)
+0.0.186 (2018-02-08)
 --------------------
 
 - CHORE: Refactor tracing and silences when not needed
