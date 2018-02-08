@@ -4,7 +4,8 @@ Changelog for insanic
 0.0.186 (unreleased)
 --------------------
 
-- Nothing changed yet.
+- CHORE: Refactor tracing and silences when not needed
+- FEATURE: response caching decorator
 
 
 0.0.185 (2018-02-07)
