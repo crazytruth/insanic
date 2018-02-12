@@ -1,5 +1,3 @@
-import logging
-
 from inspect import isawaitable
 
 from sanic.views import HTTPMethodView
@@ -7,8 +5,8 @@ from sanic.response import json, HTTPResponse, BaseHTTPResponse
 
 from insanic import authentication, exceptions, permissions, status
 from insanic.errors import GlobalErrorCodes
+from insanic.log import error_logger
 
-logger = logging.getLogger('blowed.up')
 
 def exception_handler(request, exc):
     """
@@ -33,22 +31,23 @@ def exception_handler(request, exc):
         else:
             data = {'detail': exc.detail}
 
-        return HTTPResponse(data, status=exc.status_code, headers=headers)
+        return json(data, status=exc.status_code, headers=headers)
     elif isinstance(exc, exceptions.PermissionDenied):
         data = {'detail': 'Permission denied'}
-        return HTTPResponse(data, status=status.HTTP_403_FORBIDDEN)
+        return json(data, status=status.HTTP_403_FORBIDDEN)
     else:
-        logger.error('Internal Server Error: %s', request.path, exc_info=exc,
-                     extra={
+        error_logger.error('Internal Server Error: %s', request.path, exc_info=exc,
+                           extra={
                          'status_code': 500,
                          'request': request
                      }
-                     )
+                           )
 
     # Note: Unhandled exceptions will raise a 500 error.
     return None
 
-class MMTBaseView(HTTPMethodView):
+
+class InsanicView(HTTPMethodView):
     http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
 
     permission_classes = [permissions.IsAuthenticated]
@@ -285,7 +284,6 @@ class MMTBaseView(HTTPMethodView):
         return response
 
 
-
-class ServiceOptions(MMTBaseView):
+class ServiceOptions(InsanicView):
     permission_classes = []
     authentication_classes = []
