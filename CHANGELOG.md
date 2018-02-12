@@ -13,7 +13,6 @@ Changelog for insanic
 - CHORE: generalize settings object
 
 
-
 0.0.186 (2018-02-08)
 --------------------
 
