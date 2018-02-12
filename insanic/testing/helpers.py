@@ -1,12 +1,15 @@
 import copy
 import sys
 import ujson as json
+import uuid
 
 from enum import Enum
 from collections import namedtuple
 from setuptools.command.test import test as TestCommand
 
-User = namedtuple('User', ['id', 'email', 'is_active', 'is_authenticated'])
+from insanic.errors import GlobalErrorCodes
+
+User = namedtuple('User', ['id', 'email', 'is_active', 'is_authenticated', 'is_staff'])
 
 
 class PyTestCommand(TestCommand):
@@ -53,6 +56,23 @@ class BaseMockService:
 
 
 MockService = BaseMockService()
+
+
+class DunnoValue:
+    def __init__(self, expected_type):
+        self.expected_type = expected_type
+
+    def __eq__(self, other):
+
+        if self.expected_type == uuid.UUID and isinstance(other, str):
+            try:
+                uuid.UUID(other)
+            except ValueError:
+                return False
+            else:
+                return True
+        else:
+            return isinstance(other, self.expected_type)
 
 
 def test_api_endpoint(insanic_application, authorization_token, endpoint, method, request_headers,
@@ -128,13 +148,15 @@ def test_parameter_generator(method, endpoint, *, request_headers, request_body,
             del _req_headers['Authorization']
 
         p = test_parameters_template._replace(request_headers=_req_headers,
-                                              expected_response_status=401, expected_response_body=90001)
+                                              expected_response_status=401,
+                                              expected_response_body=GlobalErrorCodes.authentication_credentials_missing)
         # parameters.append(p)
         yield tuple(p)
 
     if check_permissions:
         p = test_parameters_template._replace(endpoint=kwargs['permissions_endpoint'],
-                                              expected_response_status=403, expected_response_body=90010)
+                                              expected_response_status=403,
+                                              expected_response_body=GlobalErrorCodes.permission_denied)
 
         yield tuple(p)
 
