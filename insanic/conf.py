@@ -31,7 +31,7 @@ class LazySettings(LazyObject):
         is used the first time we need any settings at all, if the user has not
         previously configured the settings manually.
         """
-        self._wrapped = DockerSecretsConfig()
+        self._wrapped = SecretsConfig()
 
     def __getattr__(self, name):
         if self._wrapped is empty:
@@ -47,7 +47,7 @@ class LazySettings(LazyObject):
         return self._wrapped is not empty
 
 
-class DockerSecretsConfig(Config):
+class SecretsConfig(Config):
     LOGO = """
                      ▄▄▄▄▄
             ▀▀▀██████▄▄▄       __________________________
@@ -112,7 +112,6 @@ class DockerSecretsConfig(Config):
     def app(self):
         application = importlib.import_module(self.SERVICE_NAME)
         return application.app
-
 
     # COMMON SETTINGS
     @cached_property
