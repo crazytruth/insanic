@@ -4,7 +4,14 @@ Changelog for insanic
 0.0.187 (unreleased)
 --------------------
 
-- Nothing changed yet.
+- BREAKING: changed name of MMTBaseView to InsanicView for opensourcedness(is this a word?)
+- FEATURE: DunnoValue is insanic tests
+- FEATURE: add is_staff of mock user namedtuple
+- REFACTOR: moved sampling rules to global settings
+- REFACTOR: refactor logging config
+- CHORE: tracing config
+- CHORE: generalize settings object
+
 
 
 0.0.186 (2018-02-08)
