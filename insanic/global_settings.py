@@ -72,5 +72,26 @@ TRACING = dict(
     HOST='xray',
     PORT=2000,
     FAIL_SOFT_ENVIRONMENTS=('local', 'test'),
-    REQUIRED=True
+    REQUIRED=True,
 )
+
+DEFAULT_SAMPLING_FIXED_TARGET = 30
+DEFAULT_SAMPLING_RATE = 0.05
+
+SAMPLING_RULES = {
+    "version": 1,
+    "rules": [
+        # {
+        #     "description": "Player moves.",
+        #     "service_name": "*",
+        #     "http_method": "*",
+        #     "url_path": "/api/move/*",
+        #     "fixed_target": 0,
+        #     "rate": 0.05
+        # }
+    ],
+    "default": {
+        "fixed_target": DEFAULT_SAMPLING_FIXED_TARGET,
+        "rate": DEFAULT_SAMPLING_RATE
+    }
+}
