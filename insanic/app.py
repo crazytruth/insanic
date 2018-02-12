@@ -4,7 +4,7 @@ from sanic_useragent import SanicUserAgent
 from insanic.functional import cached_property
 from insanic.handlers import ErrorHandler
 from insanic.monitor import blueprint_monitor
-from insanic.log import LOGGING_CONFIG_DEFAULTS
+from insanic.log import get_logging_config
 from insanic.protocol import InsanicHttpProtocol
 from insanic.tracing import InsanicTracer
 
@@ -56,7 +56,7 @@ class Insanic(Sanic):
             except FileNotFoundError:
                 pass
 
-        super().__init__(name, router, error_handler, strict_slashes=True, log_config=LOGGING_CONFIG_DEFAULTS)
+        super().__init__(name, router, error_handler, strict_slashes=True, log_config=get_logging_config())
 
         self.config = settings
 
@@ -113,15 +113,15 @@ class Insanic(Sanic):
     @cached_property
     def sampling_rules(self):
 
-        rules = self._default_sampling_rules.copy()
+        rules = self.config.SAMPLING_RULES.copy()
         for uri, route in self.router.routes_all.items():
             route_sampling_rules = self._sample_rule.copy()
             route_sampling_rules.update({"service_name": self.tracing_service_name})
             route_sampling_rules.update({"description": route.name})
             route_sampling_rules.update({"http_method": " ".join(route.methods)})
             route_sampling_rules.update({"url_path": route.uri})
-            route_sampling_rules.update({"fixed_target": 1})
-            route_sampling_rules.update({"rate": 0.05})
+            route_sampling_rules.update({"fixed_target": self.config.DEFAULT_SAMPLING_FIXED_TARGET})
+            route_sampling_rules.update({"rate": self.config.DEFAULT_SAMPLING_RATE})
 
             if not hasattr(route.handler, "view_class"):
                 route_sampling_rules.update({"fixed_target": 0})
@@ -130,8 +130,8 @@ class Insanic(Sanic):
                 if hasattr(route.handler.view_class, "sampling_rules"):
                     route_sampling_rules.update(route.handler.view_class.sampling_rules)
                 else:
-                    route_sampling_rules.update({"fixed_target": 1})
-                    route_sampling_rules.update({"rate": 0.05})
+                    route_sampling_rules.update({"fixed_target": self.config.DEFAULT_SAMPLING_FIXED_TARGET})
+                    route_sampling_rules.update({"rate": self.config.DEFAULT_SAMPLING_RATE})
 
             self.validate_sampling_rules(route_sampling_rules)
 
