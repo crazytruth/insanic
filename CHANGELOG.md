@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.0.187 (unreleased)
+0.0.187 (2018-02-12)
 --------------------
 
 - BREAKING: changed name of MMTBaseView to InsanicView for opensourcedness(is this a word?)
