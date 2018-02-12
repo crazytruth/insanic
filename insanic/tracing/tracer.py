@@ -21,7 +21,7 @@ class InsanicXRayMiddleware:
         recorder = xray_recorder
 
         recorder.configure(service=app.tracing_service_name, context=AsyncContext(loop=loop),
-                           sampling=app.sampling_rules, daemon_address='xray:2000',
+                           sampling=app.sampling_rules, daemon_address=f"{app.config['HOST']}:{app.config['PORT']}",
                            context_missing="LOG_ERROR" if app.config.MMT_ENV=="local" else "RUNTIME_ERROR")
 
         self.app = app
