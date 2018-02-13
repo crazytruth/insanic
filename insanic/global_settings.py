@@ -14,10 +14,6 @@ SERVER_EMAIL = "support@mymusictaste.com"
 SERVER_ERROR_EMAIL = "admin@mymusictaste.com"
 EMAIL_SUBJECT_PREFIX = "[MyMusicTaste]"
 
-TWILIO_ACCOUNT_SID = ""
-TWILIO_AUTH_TOKEN = ""
-TWILIO_SERVICE_SID = ""
-
 WEB_MYSQL_DATABASE = ""
 WEB_MYSQL_HOST = ""
 WEB_MYSQL_PORT = ""
@@ -51,11 +47,12 @@ JWT_AUTH = {
     'JWT_VERIFY_EXPIRATION': True,
     'JWT_LEEWAY': 0,
     'JWT_EXPIRATION_DELTA': datetime.timedelta(days=7),
-    'JWT_AUDIENCE': 'pita',
-    'JWT_ISSUER': '',
+    'JWT_AUDIENCE': '.mymusictaste.com',
+    'JWT_ISSUER': 'mymusictaste.com',
 
     'JWT_ALLOW_REFRESH': True,
     'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=7),
+    'JWT_ROLE': 'user',
 
     'JWT_AUTH_HEADER_PREFIX': 'MMT',
 }

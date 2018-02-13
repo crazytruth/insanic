@@ -42,7 +42,7 @@ class IsAuthenticated(BasePermission):
     async def has_permission(self, request, view):
         user = await request.user
 
-        return user and user.is_authenticated
+        return user
 
 
 class IsAdminUser(BasePermission):
@@ -52,7 +52,7 @@ class IsAdminUser(BasePermission):
 
     async def has_permission(self, request, view):
         user = await request.user
-        return user and user.is_staff
+        return user and user['is_staff']
 
 
 class IsAuthenticatedOrReadOnly(BasePermission):
@@ -65,8 +65,7 @@ class IsAuthenticatedOrReadOnly(BasePermission):
 
         return (
                 request.method in SAFE_METHODS or
-                user and
-                user.is_authenticated
+                user
         )
 
 class IsOwnerOrAdmin(BasePermission):
@@ -78,29 +77,10 @@ class IsOwnerOrAdmin(BasePermission):
 
         user = await request.user
 
-        if user.is_staff:
+        if user['is_staff']:
             return True
 
         try:
-            return user.id == int(view.kwargs.get("user_id"))
+            return user.get('id') == int(view.kwargs.get("user_id"))
         except TypeError:
             return False
-
-
-    async def has_object_permission(self, request, view, obj):
-        user = await request.user
-        if user.is_superuser:
-            return True
-        # Write permissions are only allowed to the owner of the snippet.
-        if isinstance(obj, dict):
-            if "user_id" in obj:
-                return obj['user_id'] == user.id
-            else:
-                return obj['id'] == user.id
-        else:
-
-            if hasattr(obj, "user_id"):
-                return obj.user_id == user.id
-            else:
-                return obj.id == user.id
-

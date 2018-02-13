@@ -86,47 +86,6 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
         return UserView
 
 
-
-
-    async def authenticate_credentials(self, request, payload):
-        """
-        Returns an active user that matches the payload's user id and email.
-        """
-        # TODO: this get user model stuff
-        # User = get_user_model()
-        # username = jwt_get_username_from_payload_handler(payload)
-        user_id = jwt_get_user_id_from_payload_handler(payload)
-
-        if not user_id:
-            msg = 'Invalid payload.'
-            raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.invalid_payload)
-
-        # if user service just lookup
-        # else go ask user service
-        if settings.SERVICE_NAME == "user":
-
-            try:
-                dummy_request = Request(request.url.encode(), {}, "1.1", "GET", request.transport)
-                dummy_request.app = request.app
-                view = self.get_user_view(request, user_id)()
-                view.set_for_authentication(dummy_request, {"user_id": user_id})
-                user = await view._get_object()
-            except LegacyUserModel.DoesNotExist:
-                msg = 'Invalid signature.'
-                raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.invalid_signature)
-        else:
-            user_service = get_service('user')
-            user = await user_service.http_dispatch("GET", "/api/v1/user/self", request,
-                                                    query_params={"fields": "id,username,email,is_active,is_ban,is_superuser,locale,version,password,is_authenticated"},
-                                                    headers=request.headers)
-
-        if not user.is_active:
-            msg = 'User account is disabled.'
-            raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.unknown_error)
-
-        return user
-
-
 class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
     """
     Clients should authenticate by passing the token key in the "Authorization"
@@ -160,3 +119,46 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         authentication scheme should return `403 Permission Denied` responses.
         """
         return '{0} realm="{1}"'.format(request.app.config.JWT_AUTH_HEADER_PREFIX, self.www_authenticate_realm)
+
+    async def authenticate_credentails(self, request, payload):
+        return payload
+
+
+class JSONWebTokenAuthentication(JSONWebTokenAuthentication):
+    async def authenticate_credentials(self, request, payload):
+        """
+        Returns an active user that matches the payload's user id and email.
+        """
+        # TODO: this get user model stuff
+        # User = get_user_model()
+        # username = jwt_get_username_from_payload_handler(payload)
+        # user_id = jwt_get_user_id_from_payload_handler(payload)
+        #
+        # if not user_id:
+        #     msg = 'Invalid payload.'
+        #     raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.invalid_payload)
+        #
+        # # if user service just lookup
+        # # else go ask user service
+        # if settings.SERVICE_NAME == "user":
+        #
+        #     try:
+        #         dummy_request = Request(request.url.encode(), {}, "1.1", "GET", request.transport)
+        #         dummy_request.app = request.app
+        #         view = self.get_user_view(request, user_id)()
+        #         view.set_for_authentication(dummy_request, {"user_id": user_id})
+        #         user = await view._get_object()
+        #     except LegacyUserModel.DoesNotExist:
+        #         msg = 'Invalid signature.'
+        #         raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.invalid_signature)
+        # else:
+        #     user_service = get_service('user')
+        #     user = await user_service.http_dispatch("GET", "/api/v1/user/self", request,
+        #                                             query_params={"fields": "id,username,email,is_active,is_ban,is_superuser,locale,version,password,is_authenticated"},
+        #                                             headers=request.headers)
+        #
+        # if not user.get('is_active'):
+        #     msg = 'User account is disabled.'
+        #     raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.unknown_error)
+
+        return payload

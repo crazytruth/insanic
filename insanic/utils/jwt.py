@@ -42,16 +42,20 @@ def jwt_response_payload_handler(token, user=None, request=None):
 
 
 def jwt_payload_handler(user):
-
-    username = user.email
+    username = user['email']
+    user_id = user['id']
 
     payload = {
-        'user_id': user.id,
+        'user_id': user_id,
         'email': username,
-        'exp': datetime.utcnow() + settings.JWT_AUTH['JWT_EXPIRATION_DELTA']
+        'exp': datetime.utcnow() + settings.JWT_AUTH['JWT_EXPIRATION_DELTA'],
     }
-    if isinstance(user.id, uuid.UUID):
-        payload['user_id'] = str(user.id)
+
+    if user.get('level', 0) >= 30:
+        payload.update({'is_staff': True})
+
+    if isinstance(user_id, uuid.UUID):
+        payload['user_id'] = user_id.hex
 
     # Include original issued at time for a brand new token,
     # to allow token refresh
@@ -63,6 +67,9 @@ def jwt_payload_handler(user):
 
     if settings.JWT_AUTH['JWT_ISSUER'] is not None:
         payload['iss'] = settings.JWT_AUTH['JWT_ISSUER']
+
+    if settings.JWT_AUTH.get('JWT_ROLE') is not None:
+        payload['rol'] = settings.JWT_AUTH['JWT_ROLE']
 
     return payload
 

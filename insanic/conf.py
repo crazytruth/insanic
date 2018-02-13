@@ -71,8 +71,14 @@ class SecretsConfig(Config):
     """
 
     def _find_package_name(self):
-        package_name = os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__)) \
-            .split('/')[-1].split('-')[-1]
+
+        check_path = os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__))
+
+        # for i in range(3):
+        #     package_name = check_path[-1 * i].split('-')[-1]
+
+        package_name = check_path.split('/')[-1]
+        package_name = package_name.split('-')[-1]
         return package_name
 
 
