@@ -9,8 +9,8 @@ from setuptools.command.test import test as TestCommand
 
 from insanic.errors import GlobalErrorCodes
 
-User = namedtuple('User', ['id', 'email', 'is_active', 'is_authenticated', 'is_staff'])
-
+# User = namedtuple('User', ['id', 'email', 'is_active', 'is_authenticated', 'is_staff'])
+DEFAULT_USER_LEVEL = 20
 
 class PyTestCommand(TestCommand):
     user_options = [('pytest-args=', 'a', "Arguments to pass to pytest")]
@@ -38,8 +38,8 @@ class BaseMockService:
 
         if method == "GET" and endpoint == "/api/v1/user/self":
             return kwargs.get('test_user',
-                              User(id=2, email="admin@mymusictaste.com", is_active=True, is_authenticated=True,
-                                   is_staff=False))
+                              dict(id=2, email="admin@mymusictaste.com", is_active=True, is_authenticated=True,
+                                   level=DEFAULT_USER_LEVEL))
 
         if key in self.service_responses:
             if include_status_code:
@@ -76,14 +76,14 @@ class DunnoValue:
             return isinstance(other, self.expected_type)
 
 
-def test_api_endpoint(insanic_application, authorization_token, endpoint, method, request_headers,
-                      request_body, expected_response_status, expected_response_body):
+def test_api_endpoint(insanic_application, test_user_token_factory, endpoint, method, request_headers,
+                      request_body, expected_response_status, expected_response_body, user_level):
 
     handler = getattr(insanic_application.test_client, method.lower())
 
     request_headers.update({"content-type": "application/json", "accept": "application/json"})
     if "Authorization" in request_headers:
-        request_headers.update({"Authorization": authorization_token})
+        request_headers.update({"Authorization": test_user_token_factory(email="test@mmt.com", level=user_level)})
 
     request, response = handler(endpoint,
                                 debug=True,
@@ -99,6 +99,10 @@ def test_api_endpoint(insanic_application, authorization_token, endpoint, method
     except ValueError:
         pass
 
+    _test_api_endpoint_assertion(response, response_body, expected_response_body, expected_response_status)
+
+
+def _test_api_endpoint_assertion(response, response_body, expected_response_body, expected_response_status):
     response_status_category = int(expected_response_status / 100)
 
     if response_status_category == 2:
@@ -128,11 +132,11 @@ def test_api_endpoint(insanic_application, authorization_token, endpoint, method
             raise RuntimeError("Shouldn't be in here. Check response type.")
 
 
-
 TestParams = namedtuple('TestParams', ['method', 'endpoint', 'request_headers', 'request_body',
-                                       'expected_response_status', 'expected_response_body'])
+                                       'expected_response_status', 'expected_response_body', 'user_level'])
 def test_parameter_generator(method, endpoint, *, request_headers, request_body, expected_status_code,
-                             expected_response, check_authorization=True, check_permissions=True, **kwargs):
+                             expected_response, check_authorization=True, check_permissions=True,
+                             user_level=DEFAULT_USER_LEVEL, **kwargs):
 
     if check_permissions:
         if "permissions_endpoint" not in kwargs:
@@ -142,7 +146,7 @@ def test_parameter_generator(method, endpoint, *, request_headers, request_body,
 
     test_parameters_template = TestParams(method=method, endpoint=endpoint, request_headers=request_headers,
                                           request_body=request_body, expected_response_status=expected_status_code,
-                                          expected_response_body=expected_response)
+                                          expected_response_body=expected_response, user_level=user_level)
     if check_authorization:
         _req_headers = request_headers.copy()
         if "Authorization" in _req_headers:
@@ -163,7 +167,9 @@ def test_parameter_generator(method, endpoint, *, request_headers, request_body,
 
     yield tuple(test_parameters_template)
 
-def test_parameter(method, endpoint, request_headers, request_body, expected_response_status, expected_response_body):
+
+def test_parameter(method, endpoint, request_headers, request_body, expected_response_status, expected_response_body,
+                   user_level=DEFAULT_USER_LEVEL):
     return [tuple(TestParams(method=method, endpoint=endpoint, request_headers=request_headers,
                              request_body=request_body, expected_response_status=expected_response_status,
-                             expected_response_body=expected_response_body))]
+                             expected_response_body=expected_response_body, user_level=user_level))]

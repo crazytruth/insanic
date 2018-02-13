@@ -4,7 +4,8 @@ Changelog for insanic
 0.0.190 (unreleased)
 --------------------
 
-- Nothing changed yet.
+- FIX: jwt authentication to not request user
+- FEATURE: test user token generation factory depending on user level
 
 
 0.0.189 (2018-02-13)

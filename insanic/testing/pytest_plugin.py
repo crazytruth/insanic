@@ -22,7 +22,7 @@ from insanic.utils import jwt
 from insanic.conf import settings
 from insanic.loading import get_service
 from insanic.services import Service
-from insanic.testing.helpers import User, MockService
+from insanic.testing.helpers import MockService
 from insanic.tracing.core import xray_recorder
 from insanic.tracing.context import AsyncContext
 
@@ -78,17 +78,33 @@ def session_unused_tcp_port_factory():
     return factory
 
 
+@pytest.fixture(scope="session")
+def test_user_token_factory():
+    def factory(id=uuid.uuid4(), *, email, level):
+        payload = {"user_id": id.hex, 'email': email, 'level': level}
+        return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], jwt.jwt_encode_handler(payload)])
+
+    return factory
 
 @pytest.fixture(scope='session')
-def authorization_token(request, test_user):
-    payload = jwt.jwt_payload_handler(test_user)
-    token = jwt.jwt_encode_handler(payload)
-
-    return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], token])
+def test_user(test_user_token_factory):
+    return test_user_token_factory(email="staff@mmt.com", level=20)
 
 @pytest.fixture(scope='session')
-def test_user(user_id=19705):
-    return User(id=user_id, email="admin@mymusictaste.com", is_active=True, is_authenticated=True, is_staff=False)
+def test_staff_user(test_user_token_factory):
+    return test_user_token_factory(email="staff@mmt.com", level=30)
+
+
+# @pytest.fixture(scope='session')
+# def authorization_token(request, test_user):
+#     payload = jwt.jwt_payload_handler(test_user)
+#     token = jwt.jwt_encode_handler(payload)
+#
+#     return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], token])
+#
+# @pytest.fixture(scope='session')
+# def test_user(user_id=19705):
+#     return User(id=user_id, email="admin@mymusictaste.com", is_active=True, is_authenticated=True, is_staff=False)
 
 
 @pytest.fixture(scope="session")
