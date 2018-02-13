@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.0.188 (unreleased)
+0.0.188 (2018-02-13)
 --------------------
 
 - FIX: is_staff in helpers
