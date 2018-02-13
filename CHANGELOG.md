@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.0.190 (unreleased)
+0.0.190 (2018-02-13)
 --------------------
 
 - FIX: jwt authentication to not request user
