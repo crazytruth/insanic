@@ -81,7 +81,8 @@ def session_unused_tcp_port_factory():
 @pytest.fixture(scope="session")
 def test_user_token_factory():
     def factory(id=uuid.uuid4(), *, email, level):
-        payload = {"user_id": id.hex, 'email': email, 'level': level}
+        user = {"id": id.hex, 'email': email, 'level': level}
+        payload = jwt.jwt_payload_handler(user)
         return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], jwt.jwt_encode_handler(payload)])
 
     return factory
