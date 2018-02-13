@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.0.191 (unreleased)
+0.0.191 (2018-02-13)
 --------------------
 
 - FIX: permissions when user is not staff
