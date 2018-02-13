@@ -260,7 +260,7 @@ class Request(SanicRequest):
         Defaults are None, AnonymousUser & None.
         """
         self._authenticator = None
-        self.user = AnonymousUser()
+        self.user = {}
         self.auth = None
 
     @property
