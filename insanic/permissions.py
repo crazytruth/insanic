@@ -52,7 +52,7 @@ class IsAdminUser(BasePermission):
 
     async def has_permission(self, request, view):
         user = await request.user
-        return user and user['is_staff']
+        return user and user.get('is_staff')
 
 
 class IsAuthenticatedOrReadOnly(BasePermission):
@@ -77,7 +77,7 @@ class IsOwnerOrAdmin(BasePermission):
 
         user = await request.user
 
-        if user['is_staff']:
+        if user.get('is_staff'):
             return True
 
         try:
