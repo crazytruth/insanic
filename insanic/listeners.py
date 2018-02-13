@@ -1,7 +1,6 @@
 from insanic.conf import settings
 from insanic.connections import _connections, get_connection
 from insanic.services import IS_INFUSED
-from insanic.tracing.tracer import InsanicXRayMiddleware
 
 # async def before_server_stop_close_database(app, loop, **kwargs):
 async def after_server_stop_close_database(app, loop, **kwargs):

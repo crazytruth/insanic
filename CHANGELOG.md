@@ -4,15 +4,15 @@ Changelog for insanic
 0.0.188 (unreleased)
 --------------------
 
-- Nothing changed yet.
+- FIX: is_staff in helpers
 
 
 0.0.187 (2018-02-12)
 --------------------
 
 - BREAKING: changed name of MMTBaseView to InsanicView for opensourcedness(is this a word?)
-- FEATURE: DunnoValue is insanic tests
-- FEATURE: add is_staff of mock user namedtuple
+- FEATURE: DunnoValue in insanic tests
+- FEATURE: add is_staff to mock user namedtuple
 - REFACTOR: moved sampling rules to global settings
 - REFACTOR: refactor logging config
 - CHORE: tracing config
