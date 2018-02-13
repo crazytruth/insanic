@@ -4,7 +4,9 @@ Changelog for insanic
 0.0.191 (unreleased)
 --------------------
 
-- Nothing changed yet.
+- FIX: permissions when user is not staff
+- FIX: when user is not authenticated
+- FIX: token generation during tests
 
 
 0.0.190 (2018-02-13)
