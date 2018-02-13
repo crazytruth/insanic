@@ -4,7 +4,7 @@ Changelog for insanic
 0.0.189 (unreleased)
 --------------------
 
-- Nothing changed yet.
+- FIX: asynchronous permissions
 
 
 0.0.188 (2018-02-13)

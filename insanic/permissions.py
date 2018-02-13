@@ -50,8 +50,9 @@ class IsAdminUser(BasePermission):
     Allows access only to admin users.
     """
 
-    def has_permission(self, request, view):
-        return request.user and request.user.is_staff
+    async def has_permission(self, request, view):
+        user = await request.user
+        return user and user.is_staff
 
 
 class IsAuthenticatedOrReadOnly(BasePermission):
@@ -59,11 +60,13 @@ class IsAuthenticatedOrReadOnly(BasePermission):
     The request is authenticated as a user, or is a read-only request.
     """
 
-    def has_permission(self, request, view):
+    async def has_permission(self, request, view):
+        user = request.user
+
         return (
-            request.method in SAFE_METHODS or
-            request.user and
-            request.user.is_authenticated
+                request.method in SAFE_METHODS or
+                user and
+                user.is_authenticated
         )
 
 class IsOwnerOrAdmin(BasePermission):
