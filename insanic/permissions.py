@@ -81,6 +81,6 @@ class IsOwnerOrAdmin(BasePermission):
             return True
 
         try:
-            return user.get('id') == int(view.kwargs.get("user_id"))
+            return user.get('id') == view.kwargs.get("user_id")
         except TypeError:
             return False
