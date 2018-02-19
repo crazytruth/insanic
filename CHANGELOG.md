@@ -5,9 +5,11 @@ Changelog for insanic
 --------------------
 
 - FIX: int casting of user_id in permissions
+- FEATURE: Add AnonymousUser to user when not authenticated
 - UPDATE: Remove Request object protocol override in place of sanic's updated app interface
 - REFACTOR: remove unused code
 - REFACTOR: config abstraction for preparation for difference source config loading
+
 
 
 0.0.191 (2018-02-13)
