@@ -117,6 +117,12 @@ def event_loop():
 
 @pytest.fixture(scope='function', autouse=True)
 def monkeypatch_redis(monkeypatch, redisdb):
+    # because of aynschronous issues while testing, aioredis needs to be monkeypatched
+
+    port = redisdb.connection_pool.connection_kwargs['path'].split('/')[-1].split('.')[1]
+    settings.REDIS_PORT = int(port)
+    settings.REDIS_HOST = '127.0.0.1'
+
 
     await_list = []
 
@@ -134,7 +140,6 @@ def monkeypatch_redis(monkeypatch, redisdb):
             if isinstance(response, list):
                 response = [i.decode() if isinstance(i, bytes) else i for i in response]
             return response
-
 
         task = _coro_wrapper(response)
         await_list.append(task)
@@ -155,7 +160,7 @@ def monkeypatch_redis(monkeypatch, redisdb):
         return asyncio.ensure_future(redisdb.execute_command(*args, **kwargs))
 
     monkeypatch.setattr(RedisConnection, 'execute', execute)
-
+    #
 
 @pytest.fixture(scope='function', autouse=True)
 def monkeypatch_service(request, monkeypatch, test_user):

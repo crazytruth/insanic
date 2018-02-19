@@ -9,7 +9,7 @@ Changelog for insanic
 - UPDATE: Remove Request object protocol override in place of sanic's updated app interface
 - REFACTOR: remove unused code
 - REFACTOR: config abstraction for preparation for difference source config loading
-
+- FIX: override redis connection info when running tests
 
 
 0.0.191 (2018-02-13)
