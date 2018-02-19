@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.0.192 (unreleased)
+0.0.192 (2018-02-19)
 --------------------
 
 - FIX: int casting of user_id in permissions
