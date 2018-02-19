@@ -6,6 +6,7 @@ from insanic.handlers import ErrorHandler
 from insanic.monitor import blueprint_monitor
 from insanic.log import get_logging_config
 from insanic.protocol import InsanicHttpProtocol
+from insanic.request import Request
 from insanic.tracing import InsanicTracer
 
 LISTENER_TYPES = ("before_server_start", "after_server_start", "before_server_stop", "after_server_stop")
@@ -56,7 +57,8 @@ class Insanic(Sanic):
             except FileNotFoundError:
                 pass
 
-        super().__init__(name, router, error_handler, strict_slashes=True, log_config=get_logging_config())
+        super().__init__(name, router, error_handler, strict_slashes=True, log_config=get_logging_config(),
+                         request_class=Request)
 
         self.config = settings
 
