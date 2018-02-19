@@ -76,10 +76,6 @@ class Request(SanicRequest):
         self.authenticators = authenticators or ()
 
     @property
-    def tracing(self):
-        return "{0}.{1}".format(self._request_time, id(self))
-
-    @property
     def span(self):
         return self._span
 
@@ -260,26 +256,8 @@ class Request(SanicRequest):
         Defaults are None, AnonymousUser & None.
         """
         self._authenticator = None
-        self.user = {}
+        self.user = AnonymousUser()
         self.auth = None
-
-    @property
-    def POST(self):
-        # Ensure that request.POST uses our request parsing.
-        if not _hasattr(self, '_data'):
-            self._load_data_and_files()
-        if is_form_media_type(self.content_type):
-            return self._data
-        return {}
-
-    @property
-    def FILES(self):
-        # Leave this one alone for backwards compat with Django's request.FILES
-        # Different from the other two cases, which are not valid property
-        # names on the WSGIRequest class.
-        if not _hasattr(self, '_files'):
-            self._load_data_and_files()
-        return self._files
 
 
 def build_request_repr(request, path_override=None, GET_override=None,

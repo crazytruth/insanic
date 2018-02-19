@@ -78,13 +78,6 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
         return (user, jwt_value)
 
 
-    def get_user_view(self, request, user_id):
-        global UserView
-        if UserView is None:
-            uri, route = request.app.router.find_route_by_view_name('user.UserView')
-            UserView = route[0].view_class
-        return UserView
-
 
 class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
     """
@@ -124,7 +117,7 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         return payload
 
 
-class JSONWebTokenAuthentication(JSONWebTokenAuthentication):
+class HardJSONWebTokenAuthentication(JSONWebTokenAuthentication):
     async def authenticate_credentials(self, request, payload):
         """
         Returns an active user that matches the payload's user id and email.
@@ -162,3 +155,11 @@ class JSONWebTokenAuthentication(JSONWebTokenAuthentication):
         #     raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.unknown_error)
 
         return payload
+
+    #
+    # def get_user_view(self, request, user_id):
+    #     global UserView
+    #     if UserView is None:
+    #         uri, route = request.app.router.find_route_by_view_name('user.UserView')
+    #         UserView = route[0].view_class
+    #     return UserView

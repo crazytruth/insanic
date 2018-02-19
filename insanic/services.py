@@ -30,34 +30,6 @@ except (ImportError, ModuleNotFoundError) as e:
         logger.warn("Running without [infuse]. For production infuse is required!")
 
 
-class InterServiceAuth(namedtuple('InterServiceAuth', ['prefix', 'token'])):
-    """Http basic authentication helper.
-    """
-
-    def __new__(cls, prefix, token=''):
-        if prefix is None:
-            raise ValueError('None is not allowed as login value')
-
-        if token is None:
-            raise ValueError('None is not allowed as password value')
-
-        return super().__new__(cls, prefix, token)
-
-    @classmethod
-    def decode(cls, auth_header):
-        """Create a :class:`BasicAuth` object from an ``Authorization`` HTTP
-        header."""
-        split = auth_header.strip().split(' ')
-        if len(split) != 2:
-            raise ValueError('Could not parse authorization header.')
-
-        return cls(split[0], split[1])
-
-    def encode(self):
-        """Encode credentials."""
-        return '%s %s' % (self.prefix, self.token)
-
-
 class ServiceRegistry(dict):
     __instance = None
     _conn = None
@@ -100,9 +72,6 @@ class Service:
         self._schema = settings.SERVICES[self._service_name].get('schema', "http")
         self._host = settings.SERVICES[self._service_name].get('host')
         self._port = settings.SERVICES[self._service_name].get('externalserviceport')
-
-        # url_partial_path = "/api/v1/{0}".format(service_type)
-        # self.url = URL.build(scheme=settings.API_GATEWAY_SCHEME, host=api_host, port=settings.SERVICES[service_type].get('externalserviceport'), path=url_partial_path)
 
         self.remove_headers = ["content-length", 'user-agent', 'host', 'postman-token']
 

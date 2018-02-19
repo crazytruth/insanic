@@ -54,25 +54,6 @@ class InsanicView(HTTPMethodView):
     throttle_classes = []
     authentication_classes = [authentication.JSONWebTokenAuthentication,]
 
-
-    def key(self, key, **kwargs):
-
-        kwargs = {k:(v.decode() if isinstance(v, bytes) else v) for k,v in kwargs.items()}
-
-        try:
-            return ":".join([self._key[key].format(**kwargs)])
-        except KeyError:
-            raise KeyError("{0} key doesn't exist.".format(key))
-
-    def get_fields(self):
-        # fields = None means all
-        fields = None
-        if "fields" in self.request.query_params:
-            fields = [f.strip() for f in self.request.query_params.get('fields').split(',') if f]
-            if len(fields) == 0:
-                fields = None
-        return fields
-
     def _allowed_methods(self):
         return [m.upper() for m in self.http_method_names if hasattr(self, m)]
 
@@ -283,7 +264,3 @@ class InsanicView(HTTPMethodView):
 
         return response
 
-
-class ServiceOptions(InsanicView):
-    permission_classes = []
-    authentication_classes = []
