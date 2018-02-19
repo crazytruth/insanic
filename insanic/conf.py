@@ -35,7 +35,6 @@ class LazySettings(LazyObject):
 
     def __getattr__(self, name):
         if self._wrapped is empty:
-
             self._setup(name)
         return getattr(self._wrapped, name)
 
@@ -47,43 +46,31 @@ class LazySettings(LazyObject):
         return self._wrapped is not empty
 
 
-class SecretsConfig(Config):
+class BaseConfig(Config):
     LOGO = """
-                     ▄▄▄▄▄
-            ▀▀▀██████▄▄▄       __________________________
-          ▄▄▄▄▄  █████████▄  /                           \\
-         ▀▀▀▀█████▌▀ ▐▄ ▀▐█ |   Gotta go insanely fast !  |
-       ▀▀█████▄▄ ▀██████▄██ | ____________________________/
-       ▀▄▄▄▄▄  ▀▀█▄▀█════█▀ |/
-            ▀▀▀▄  ▀▀███ ▀       ▄▄
-         ▄███▀▀██▄████████▄ ▄▀▀▀▀▀▀█▌
-       ██▀▄▄▄██▀▄███▀ ▀▀████      ▄██
-    ▄▀▀▀▄██▄▀▀▌████▒▒▒▒▒▒███     ▌▄▄▀
-    ▌    ▐▀████▐███▒▒▒▒▒▐██▌
-    ▀▄▄▄▄▀   ▀▀████▒▒▒▒▄██▀
-              ▀▀█████████▀
-            ▄▄██▀██████▀█
-          ▄██▀     ▀▀▀  █
-         ▄█             ▐▌
-     ▄▄▄▄█▌              ▀█▄▄▄▄▀▀▄
-    ▌     ▐                ▀▀▄▄▄▀
-     ▀▀▄▄▀
-    """
+                         ▄▄▄▄▄
+                ▀▀▀██████▄▄▄       __________________________
+              ▄▄▄▄▄  █████████▄  /                           \\
+             ▀▀▀▀█████▌▀ ▐▄ ▀▐█ |   Gotta go insanely fast !  |
+           ▀▀█████▄▄ ▀██████▄██ | ____________________________/
+           ▀▄▄▄▄▄  ▀▀█▄▀█════█▀ |/
+                ▀▀▀▄  ▀▀███ ▀       ▄▄
+             ▄███▀▀██▄████████▄ ▄▀▀▀▀▀▀█▌
+           ██▀▄▄▄██▀▄███▀ ▀▀████      ▄██
+        ▄▀▀▀▄██▄▀▀▌████▒▒▒▒▒▒███     ▌▄▄▀
+        ▌    ▐▀████▐███▒▒▒▒▒▐██▌
+        ▀▄▄▄▄▀   ▀▀████▒▒▒▒▄██▀
+                  ▀▀█████████▀
+                ▄▄██▀██████▀█
+              ▄██▀     ▀▀▀  █
+             ▄█             ▐▌
+         ▄▄▄▄█▌              ▀█▄▄▄▄▀▀▄
+        ▌     ▐                ▀▀▄▄▄▀
+         ▀▀▄▄▀
+        """
 
-    def _find_package_name(self):
-
-        check_path = os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__))
-
-        # for i in range(3):
-        #     package_name = check_path[-1 * i].split('-')[-1]
-
-        package_name = check_path.split('/')[-1]
-        package_name = package_name.split('-')[-1]
-        return package_name
-
-
-    def __init__(self, defaults=None, *, settings_module=None):
-        super().__init__(defaults)
+    def __init__(self):
+        super().__init__()
         self.from_object(global_settings)
 
         self.SERVICE_NAME = self._find_package_name()
@@ -99,25 +86,24 @@ class SecretsConfig(Config):
             )
             raise e
 
-        try:
-            instance_module = importlib.import_module('instance')
-            self.from_object(instance_module)
-        except ImportError:
-            pass
 
-        self._load_secrets()
+    def _find_package_name(self):
+
+        try:
+            check_path = os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__))
+        except AttributeError:
+            check_path = os.getcwd()
+        finally:
+            package_name = check_path.split('/')[-1]
+            package_name = package_name.split('-')[-1]
+
+        return package_name
 
     def __getattr__(self, attr):
         try:
             return self.__getattribute__(attr)
         except AttributeError as e:
             return super().__getattr__(attr)
-
-
-    @cached_property
-    def app(self):
-        application = importlib.import_module(self.SERVICE_NAME)
-        return application.app
 
     # COMMON SETTINGS
     @cached_property
@@ -131,6 +117,20 @@ class SecretsConfig(Config):
         except FileNotFoundError:
             pass
         return False
+
+
+class SecretsConfig(BaseConfig):
+
+    def __init__(self):
+        super().__init__()
+
+        try:
+            instance_module = importlib.import_module('instance')
+            self.from_object(instance_module)
+        except ImportError:
+            pass
+
+        self._load_secrets()
 
     def _load_secrets(self):
 

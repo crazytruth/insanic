@@ -4,7 +4,10 @@ Changelog for insanic
 0.0.192 (unreleased)
 --------------------
 
-- Nothing changed yet.
+- FIX: int casting of user_id in permissions
+- UPDATE: Remove Request object protocol override in place of sanic's updated app interface
+- REFACTOR: remove unused code
+- REFACTOR: config abstraction for preparation for difference source config loading
 
 
 0.0.191 (2018-02-13)
