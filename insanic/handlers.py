@@ -1,9 +1,10 @@
 import logging
 
+from sanic import exceptions as sanic_exceptions
 from sanic.response import json, html
 from sanic.handlers import ErrorHandler as SanicErrorHandler, format_exc, SanicException, INTERNAL_SERVER_ERROR_HTML
 
-from insanic import status
+from insanic import exceptions, status
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 
@@ -19,6 +20,17 @@ INTERNAL_SERVER_ERROR_JSON = {
 logger = logging.getLogger('sanic.access')
 
 class ErrorHandler(SanicErrorHandler):
+
+    def __init__(self):
+        super().__init__()
+        self.add(sanic_exceptions.SanicException, self.sanic_exception_handler)
+
+    def sanic_exception_handler(self, request, exception):
+
+        if hasattr(exceptions, f"Sanic{exception.__class__.__name__}"):
+            exception = getattr(exceptions, f"Sanic{exception.__class__.__name__}")(exception.args[0])
+
+        return self.default(request, exception)
 
     def response(self, request, exception):
         """Fetches and executes an exception handler and returns a response
@@ -57,7 +69,7 @@ class ErrorHandler(SanicErrorHandler):
     def default(self, request, exception):
         if settings.DEBUG:
             self.log(format_exc())
-        if issubclass(type(exception), SanicException):
+        if issubclass(type(exception), exceptions.APIException):
             response = json(
                 {"message": getattr(exception, 'default_detail', status.REVERSE_STATUS[exception.status_code]),
                  "description": getattr(exception, 'detail', exception.args[0]),

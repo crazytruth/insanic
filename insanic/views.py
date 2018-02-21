@@ -5,6 +5,7 @@ from sanic.response import json, HTTPResponse, BaseHTTPResponse
 
 from insanic import authentication, exceptions, permissions, status
 from insanic.errors import GlobalErrorCodes
+from insanic.exceptions import MethodNotAllowed
 from insanic.log import error_logger
 
 
@@ -71,12 +72,6 @@ class InsanicView(HTTPMethodView):
         }
         return headers
 
-    @property
-    def route(self):
-
-
-        return ""
-
     def _get_device_info(self, ua):
 
         ua_os = ua.os
@@ -95,7 +90,7 @@ class InsanicView(HTTPMethodView):
         If `request.method` does not correspond to a handler method,
         determine what kind of exception to raise.
         """
-        raise json({}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        raise exceptions.MethodNotAllowed(request.method)
 
     async def perform_authentication(self, request):
         """
@@ -188,29 +183,6 @@ class InsanicView(HTTPMethodView):
         authenticators = self.get_authenticators()
         if authenticators:
             return authenticators[0].authenticate_header(request)
-
-    def handle_exception(self, exc):
-        """
-        Handle any exception that occurs, by returning an appropriate response,
-        or re-raising the error.
-        """
-        if isinstance(exc, (exceptions.NotAuthenticated,
-                            exceptions.AuthenticationFailed)):
-            # WWW-Authenticate header for 401 responses, else coerce to 403
-            auth_header = self.get_authenticate_header(self.request)
-
-            if auth_header:
-                exc.auth_header = auth_header
-            else:
-                exc.status_code = status.HTTP_403_FORBIDDEN
-
-        response = exception_handler(exc)
-
-        if response is None:
-            raise
-
-        response.exception = True
-        return response
 
     async def convert_keywords(self):
         pass

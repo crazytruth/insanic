@@ -1,5 +1,4 @@
 import math
-from sanic.exceptions import SanicException
 from .errors import GlobalErrorCodes
 from . import status
 
@@ -9,7 +8,7 @@ class ImproperlyConfigured(Exception):
     pass
 
 
-class APIException(SanicException):
+class APIException(Exception):
     """
     Base class for REST framework exceptions.
     Subclasses should provide `.status_code` and `.default_detail` properties.
@@ -49,6 +48,7 @@ class BadRequest(APIException):
 class InvalidUsage(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = 'Invalid Usage'
+    error_code = GlobalErrorCodes.method_not_allowed
 
 class ValidationError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
@@ -77,6 +77,7 @@ class PermissionDenied(APIException):
 class MethodNotAllowed(APIException):
     status_code = status.HTTP_405_METHOD_NOT_ALLOWED
     default_detail = "Method '%s' not allowed."
+    error_code = GlobalErrorCodes.method_not_allowed
 
     def __init__(self, method, detail=None):
         if detail is not None:
@@ -143,3 +144,7 @@ class ServiceUnavailable503Error(APIException):
 class UnprocessableEntity422Error(APIException):
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     default_detail = "Unprocessable Entity"
+
+
+class SanicInvalidUsage(InvalidUsage):
+    pass
