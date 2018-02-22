@@ -1,17 +1,51 @@
+import os
 from setuptools import setup, find_packages
 
-def readme():
-    with open('README.md') as f:
-        return f.read()
+here = os.path.dirname(__file__)
+
+
+def read(fname):
+    """
+    Read given file's content.
+    :param str fname: file name
+    :returns: file contents
+    :rtype: str
+    """
+    return open(os.path.join(here, fname)).read()
 
 
 version = '0.0.193.dev0'
+
+
+def pytest_command():
+    from commands.pytest import PyTestCommand
+    return PyTestCommand
+
+
+test_requires = [
+    "coverage",
+    "pytest",
+    "pytest-cov",
+    "pytest-sanic",
+    "pytest-sugar",
+    "pytest-xdist",
+    "aiohttp==1.3.5",
+    "chardet",
+    "beautifulsoup4"
+    # "docker",
+    # "aiobotocore",
+    # "pytest",
+    # "pytest-asyncio",
+    # "pytest-redis"
+]
 
 setup(
     name='insanic',
     version=version,
     description='API framework for sanic',
-    long_description=readme(),
+    long_description=(
+            read('README.md') + '\n\n' + read('CHANGELOG.md')
+    ),
     classifiers=[
         'Intended Audience :: Developers',
         'Development Status :: 3 - Alpha',
@@ -36,17 +70,18 @@ setup(
         'aws-xray-sdk'
     ],
     # test_suite='nose.collector',
-    tests_require=['pytest', ],
-    entry_points={
-        'pytest11': [
-            'insanic = insanic.testing.pytest_plugin',
-        ]
-    },
+    tests_require=test_requires,
+    test_suite='tests',
+    # entry_points={
+    #     'pytest11': [
+    #         'insanic = insanic.testing.plugin',
+    #     ]
+    # },
     extras_require={
-        "testing":  ["docker", "aiobotocore", "pytest", "pytest-asyncio", "pytest-redis"],
+        "testing": test_requires,
         "dev": ["zest.releaser[recommended]", "flake8"]
     },
-
+    cmdclass={'test': pytest_command()},
     include_package_data=True,
     zip_safe=False
 )
