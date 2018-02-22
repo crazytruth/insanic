@@ -48,7 +48,7 @@ class BadRequest(APIException):
 class InvalidUsage(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = 'Invalid Usage'
-    error_code = GlobalErrorCodes.method_not_allowed
+
 
 class ValidationError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
@@ -108,6 +108,7 @@ class Throttled(APIException):
     default_detail = 'Request was throttled.'
     extra_detail = ('Expected available in %(wait)d second.',
         'Expected available in %(wait)d seconds.')
+    error_code = GlobalErrorCodes.throttled
 
     def __init__(self, wait=None, detail=None):
         if detail is not None:
@@ -147,4 +148,7 @@ class UnprocessableEntity422Error(APIException):
 
 
 class SanicInvalidUsage(InvalidUsage):
-    pass
+    def __init__(self, detail=None, status_code=None):
+        super().__init__(detail, status_code=status_code)
+        if status_code == status.HTTP_405_METHOD_NOT_ALLOWED:
+            self.error_code = GlobalErrorCodes.method_not_allowed

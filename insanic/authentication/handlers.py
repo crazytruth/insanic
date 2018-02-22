@@ -6,6 +6,7 @@ from calendar import timegm
 
 from insanic.conf import settings
 
+
 def jwt_decode_handler(token):
     options = {
         'verify_exp': settings.JWT_AUTH['JWT_VERIFY_EXPIRATION'],
@@ -42,17 +43,15 @@ def jwt_response_payload_handler(token, user=None, request=None):
 
 
 def jwt_payload_handler(user):
-    username = user['email']
-    user_id = user['id']
+    username = user.email
+    user_id = user.id
 
     payload = {
         'user_id': user_id,
         'email': username,
+        'level': user.level,
         'exp': datetime.utcnow() + settings.JWT_AUTH['JWT_EXPIRATION_DELTA'],
     }
-
-    if user.get('level', 0) >= 30:
-        payload.update({'is_staff': True})
 
     if isinstance(user_id, uuid.UUID):
         payload['user_id'] = user_id.hex

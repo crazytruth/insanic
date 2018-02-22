@@ -1,51 +1,11 @@
+import asyncio
 from inspect import isawaitable
 
 from sanic.views import HTTPMethodView
-from sanic.response import json, HTTPResponse, BaseHTTPResponse
+from sanic.response import BaseHTTPResponse
 
-from insanic import authentication, exceptions, permissions, status
+from insanic import authentication, exceptions, permissions
 from insanic.errors import GlobalErrorCodes
-from insanic.exceptions import MethodNotAllowed
-from insanic.log import error_logger
-
-
-def exception_handler(request, exc):
-    """
-    Returns the response that should be used for any given exception.
-
-    By default we handle the REST framework `APIException`, and also
-    Django's built-in `ValidationError`, `Http404` and `PermissionDenied`
-    exceptions.
-
-    Any unhandled exceptions may return `None`, which will cause a 500 error
-    to be raised.
-    """
-    if isinstance(exc, exceptions.APIException):
-        headers = {}
-        if getattr(exc, 'auth_header', None):
-            headers['WWW-Authenticate'] = exc.auth_header
-        if getattr(exc, 'wait', None):
-            headers['Retry-After'] = '%d' % exc.wait
-
-        if isinstance(exc.detail, (list, dict)):
-            data = exc.detail
-        else:
-            data = {'detail': exc.detail}
-
-        return json(data, status=exc.status_code, headers=headers)
-    elif isinstance(exc, exceptions.PermissionDenied):
-        data = {'detail': 'Permission denied'}
-        return json(data, status=status.HTTP_403_FORBIDDEN)
-    else:
-        error_logger.error('Internal Server Error: %s', request.path, exc_info=exc,
-                           extra={
-                         'status_code': 500,
-                         'request': request
-                     }
-                           )
-
-    # Note: Unhandled exceptions will raise a 500 error.
-    return None
 
 
 class InsanicView(HTTPMethodView):
@@ -71,26 +31,6 @@ class InsanicView(HTTPMethodView):
             'Allow': ', '.join(self.allowed_methods),
         }
         return headers
-
-    def _get_device_info(self, ua):
-
-        ua_os = ua.os
-        ua_device = ua.device
-
-        device = {}
-        device['device_type'] = getattr(ua_os, "family")
-        device['device_model'] = getattr(ua_device, "family")
-        device['system_version'] = getattr(ua_os, "version_string")
-        device['application_version'] = ua.ua_string.split(' ', 1)[0]
-
-        return device
-
-    def http_method_not_allowed(self, request, *args, **kwargs):
-        """
-        If `request.method` does not correspond to a handler method,
-        determine what kind of exception to raise.
-        """
-        raise exceptions.MethodNotAllowed(request.method)
 
     async def perform_authentication(self, request):
         """
@@ -150,14 +90,19 @@ class InsanicView(HTTPMethodView):
         """
         raise exceptions.Throttled(wait)
 
-    def check_throttles(self, request):
+    async def check_throttles(self, request):
         """
         Check if request should be throttled.
         Raises an appropriate exception if the request is throttled.
         """
-        for throttle in self.get_throttles():
-            if not throttle.allow_request(request, self):
-                self.throttled(request, throttle.wait())
+        throttles = self.get_throttles()
+        throttle_results = await asyncio.gather(*[throttle.allow_request(request, self)
+                                                  for throttle in self.get_throttles()])
+
+        if not all(throttle_results):
+            for i in range(len(throttles)):
+                if not throttle_results[i]:
+                    self.throttled(request, throttles[i].wait())
 
     def initial(self, request, *args, **kwargs):
         """
@@ -192,6 +137,7 @@ class InsanicView(HTTPMethodView):
         `.dispatch()` is pretty much the same as Django's regular dispatch,
         but with extra hooks for startup, finalize, and exception handling.
         """
+
         self.args = args
         self.kwargs = kwargs
         self.request = request
@@ -202,37 +148,7 @@ class InsanicView(HTTPMethodView):
         await self.perform_authentication(self.request)
 
         await self.check_permissions(self.request)
-        self.check_throttles(self.request)
+        await self.check_throttles(self.request)
 
         # Get the appropriate handler method
-        if self.request.method.lower() in self.http_method_names:
-            handler = getattr(self, self.request.method.lower(),
-                              self.http_method_not_allowed)
-        else:
-            handler = self.http_method_not_allowed
-
-        response = handler(self.request, *self.args, **self.kwargs)
-        if isawaitable(response):
-            response = await response
-
-        self.response = self.finalize_response(self.request, response, *self.args, **self.kwargs)
-        return self.response
-
-
-    def finalize_response(self, request, response, *args, **kwargs):
-        """
-        Returns the final response object.
-        """
-        # Make the error obvious if a proper response is not returned
-
-
-        assert isinstance(response, BaseHTTPResponse), (
-            'Expected a `Response`, `HttpResponse` or `HttpStreamingResponse` '
-            'to be returned from the view, but received a `%s`'
-            % type(response)
-        )
-
-        response.headers.update(self.headers)
-
-        return response
-
+        return super().dispatch_request(request, *args, **kwargs)

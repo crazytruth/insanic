@@ -14,14 +14,23 @@ class GlobalErrorCodes(Enum):
     invalid_token = 999104
     invalid_signature = 999105
 
+    # user related
+    inactive_user = 999201
+
     # database related
-    redis_unable_to_process = 999201
+    redis_unable_to_process = 999301
 
     # general errors
-    invalid_usage = 999301
+    invalid_usage = 999401
+
+    # request related errors
+    method_not_allowed = 999501
+    throttled = 999502
 
     # server related errors
-    server_signature_error = 999001
-    service_unavailable = 999503
-    service_timeout = 999504
+    server_signature_error = 999601
+    service_unavailable = 999603
+    service_timeout = 999604
+
+
     unknown_error = 999999

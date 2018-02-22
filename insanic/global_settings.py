@@ -1,3 +1,4 @@
+from enum import IntEnum
 import datetime
 
 SECRET_KEY = ''
@@ -91,4 +92,12 @@ SAMPLING_RULES = {
         "fixed_target": DEFAULT_SAMPLING_FIXED_TARGET,
         "rate": DEFAULT_SAMPLING_RATE
     }
+}
+
+THROTTLES = {
+    "NUM_PROXIES": None,
+    "DEFAULT_THROTTLE_RATES": {
+        'user': None,
+        'anon': None,
+    },
 }
