@@ -11,7 +11,7 @@ class InsanicTracer:
     def _handle_error(cls, app, messages):
         error_message = "Tracing was not initialized because: " + ', '.join(messages)
 
-        if app.config.MMT_ENV not in app.config.TRACING['FAIL_SOFT_ENVIRONMENTS'] \
+        if app.config.get('MMT_ENV', 'local') not in app.config.TRACING['FAIL_SOFT_ENVIRONMENTS'] \
                 and app.config.TRACING['REQUIRED']:
             logger.critical(error_message)
             raise EnvironmentError(error_message)
