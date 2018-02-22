@@ -2,7 +2,7 @@ from sanic import server
 from sanic.server import HttpProtocol, CIDict, ServerError
 
 from insanic.log import access_logger, logger
-from insanic.request import Request
+
 
 class InsanicHttpProtocol(HttpProtocol):
 

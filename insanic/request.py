@@ -5,7 +5,6 @@ import time
 from httptools import parse_url
 from pprint import pformat
 
-
 from sanic.request import Request as SanicRequest, RequestParameters
 
 from insanic import exceptions
@@ -256,7 +255,7 @@ class Request(SanicRequest):
         Defaults are None, AnonymousUser & None.
         """
         self._authenticator = None
-        self.user = AnonymousUser()
+        self.user = AnonymousUser
         self.auth = None
 
 
