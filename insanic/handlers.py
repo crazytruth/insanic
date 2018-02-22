@@ -7,6 +7,7 @@ from sanic.handlers import ErrorHandler as SanicErrorHandler, format_exc, SanicE
 from insanic import exceptions, status
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
+from insanic.log import error_logger
 
 INTERNAL_SERVER_ERROR_JSON = {
   "message": "Server Error",
@@ -17,7 +18,6 @@ INTERNAL_SERVER_ERROR_JSON = {
   }
 }
 
-logger = logging.getLogger('sanic.access')
 
 class ErrorHandler(SanicErrorHandler):
 
@@ -28,7 +28,9 @@ class ErrorHandler(SanicErrorHandler):
     def sanic_exception_handler(self, request, exception):
 
         if hasattr(exceptions, f"Sanic{exception.__class__.__name__}"):
-            exception = getattr(exceptions, f"Sanic{exception.__class__.__name__}")(exception.args[0])
+            exception = getattr(exceptions, f"Sanic{exception.__class__.__name__}")(exception.args[0],
+                                                                                    status_code=exception.status_code)
+
 
         return self.default(request, exception)
 
@@ -58,7 +60,7 @@ class ErrorHandler(SanicErrorHandler):
                     'Exception raised in exception handler "{}" '
                     'for uri: "{}"\n{}').format(
                     handler.__name__, url, format_exc())
-                logger.error(response_message)
+                error_logger.error(response_message)
                 return self.handle_uncaught_exception(request, exception, response_message)
             else:
                 return self.handle_uncaught_exception(request, exception)
@@ -83,7 +85,7 @@ class ErrorHandler(SanicErrorHandler):
             response_message = (
                 'Exception occurred while handling uri: "{}"\n{}'.format(
                     request.path, format_exc()))
-            logger.error(response_message)
+            error_logger.error(response_message)
             response = html(html_output, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             response = self.handle_uncaught_exception(request, exception)
