@@ -7,10 +7,10 @@ from enum import Enum
 from collections import namedtuple
 from setuptools.command.test import test as TestCommand
 
+from insanic.authentication import UserLevels
 from insanic.errors import GlobalErrorCodes
 
-# User = namedtuple('User', ['id', 'email', 'is_active', 'is_authenticated', 'is_staff'])
-DEFAULT_USER_LEVEL = 20
+DEFAULT_USER_LEVEL = UserLevels.ACTIVE
 
 class PyTestCommand(TestCommand):
     user_options = [('pytest-args=', 'a', "Arguments to pass to pytest")]

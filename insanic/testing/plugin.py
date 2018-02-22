@@ -1,6 +1,4 @@
 import asyncio
-import aiobotocore
-import base64
 import docker
 import pytest
 import requests
@@ -94,18 +92,6 @@ def test_user(test_user_token_factory):
 @pytest.fixture(scope='session')
 def test_staff_user(test_user_token_factory):
     return test_user_token_factory(email="staff@mmt.com", level=30)
-
-
-# @pytest.fixture(scope='session')
-# def authorization_token(request, test_user):
-#     payload = jwt.jwt_payload_handler(test_user)
-#     token = jwt.jwt_encode_handler(payload)
-#
-#     return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], token])
-#
-# @pytest.fixture(scope='session')
-# def test_user(user_id=19705):
-#     return User(id=user_id, email="admin@mymusictaste.com", is_active=True, is_authenticated=True, is_staff=False)
 
 
 @pytest.fixture(scope="session")

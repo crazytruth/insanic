@@ -11,7 +11,7 @@ from yarl import URL
 from sanic.config import Config
 from configparser import ConfigParser
 
-from insanic import global_settings
+from insanic import config
 from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import LazyObject, empty, cached_property
 
@@ -71,7 +71,7 @@ class BaseConfig(Config):
 
     def __init__(self):
         super().__init__()
-        self.from_object(global_settings)
+        self.from_object(config)
 
         self.SERVICE_NAME = self._find_package_name()
         self.SETTINGS_MODULE = "{0}.config".format(self.SERVICE_NAME)
