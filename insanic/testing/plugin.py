@@ -16,9 +16,10 @@ from pytest_asyncio.plugin import unused_tcp_port
 from zipfile import ZipFile
 
 from redis.connection import Connection
-from insanic.utils import jwt
+from insanic.authentication import handlers
 from insanic.conf import settings
 from insanic.loading import get_service
+from insanic.models import User
 from insanic.services import Service
 from insanic.testing.helpers import MockService
 from insanic.tracing.core import xray_recorder
@@ -79,9 +80,9 @@ def session_unused_tcp_port_factory():
 @pytest.fixture(scope="session")
 def test_user_token_factory():
     def factory(id=uuid.uuid4(), *, email, level):
-        user = {"id": id.hex, 'email': email, 'level': level}
-        payload = jwt.jwt_payload_handler(user)
-        return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], jwt.jwt_encode_handler(payload)])
+        user = User(id=id.hex, email=email, level=level)
+        payload = handlers.jwt_payload_handler(user)
+        return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_encode_handler(payload)])
 
     return factory
 

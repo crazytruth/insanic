@@ -9,19 +9,6 @@ from insanic.views import InsanicView
 from insanic.models import User
 
 
-@pytest.fixture(scope="session")
-def test_user_token_factory():
-    from insanic.conf import settings
-    from insanic.authentication import handlers
-
-    def factory(id=uuid.uuid4(), *, email, level):
-        user = User(**{"id": id.hex, 'email': email, 'level': level})
-        payload = handlers.jwt_payload_handler(user)
-        return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_encode_handler(payload)])
-
-    return factory
-
-
 def test_view_allowed_methods():
     class TestView(InsanicView):
         def patch(self, request):

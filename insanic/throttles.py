@@ -1,5 +1,5 @@
 import time
-
+import ujson as json
 # from django.core.cache import cache as default_cache
 
 from insanic.conf import settings
@@ -24,9 +24,10 @@ class BaseThrottle(object):
         if present and number of proxies is > 0. If not use all of
         HTTP_X_FORWARDED_FOR if it is available, if not use REMOTE_ADDR.
         """
-        xff = request.META.get('HTTP_X_FORWARDED_FOR')
-        remote_addr = request.META.get('REMOTE_ADDR')
-        num_proxies = settings.NUM_PROXIES
+        xff = request.headers.get('x_forwarded_for')
+        remote_addr = request.ip
+
+        num_proxies = settings.THROTTLES['NUM_PROXIES']
 
         if num_proxies is not None:
             if num_proxies == 0 or xff is None:
@@ -54,7 +55,7 @@ class SimpleRateThrottle(BaseThrottle):
     Period should be one of: ('s', 'sec', 'm', 'min', 'h', 'hour', 'd', 'day')
     Previous request information used for throttling is stored in the cache.
     """
-    cache = get_connection('redis')
+    # cache = get_connection('redis')
     timer = time.time
     cache_format = 'throttle_%(scope)s_%(ident)s'
     scope = None
@@ -113,9 +114,10 @@ class SimpleRateThrottle(BaseThrottle):
         if self.key is None:
             return True
 
-        redis = await self.cache
+        redis = await get_connection('redis')
         async with redis.get() as conn:
-            self.history = await conn.get(self.key, [])
+            history = await conn.get(self.key)
+            self.history = json.loads(history) if history else []
 
         self.now = self.timer()
 
@@ -133,9 +135,9 @@ class SimpleRateThrottle(BaseThrottle):
         into the cache.
         """
         self.history.insert(0, self.now)
-        redis = await self.cache
+        redis = await get_connection('redis')
         async with redis.get() as conn:
-            await conn.set(self.key, self.history, self.duration)
+            await conn.set(self.key, json.dumps(self.history), expire=self.duration)
         return True
 
     def throttle_failure(self):

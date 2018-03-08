@@ -1,6 +1,8 @@
 """
 Provides a set of pluggable permission policies.
 """
+from insanic.models import _AnonymousUser
+
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 
 
@@ -13,13 +15,7 @@ class BasePermission(object):
         """
         Return `True` if permission is granted, `False` otherwise.
         """
-        return True
-
-    async def has_object_permission(self, request, view, obj):
-        """
-        Return `True` if permission is granted, `False` otherwise.
-        """
-        return True
+        raise NotImplementedError(".has_permission() needs to be overridden.")
 
 
 class AllowAny(BasePermission):
@@ -42,7 +38,7 @@ class IsAuthenticated(BasePermission):
     async def has_permission(self, request, view):
         user = await request.user
 
-        return user and user.is_authenticated
+        return not isinstance(user, _AnonymousUser) and user.is_authenticated
 
 
 class IsAdminUser(BasePermission):
@@ -52,7 +48,7 @@ class IsAdminUser(BasePermission):
 
     async def has_permission(self, request, view):
         user = await request.user
-        return user and user.is_staff
+        return not isinstance(user, _AnonymousUser) and user.is_staff
 
 
 class IsAuthenticatedOrReadOnly(BasePermission):
@@ -61,11 +57,11 @@ class IsAuthenticatedOrReadOnly(BasePermission):
     """
 
     async def has_permission(self, request, view):
-        user = request.user
+        user = await request.user
 
         return (
                 request.method in SAFE_METHODS or
-                user
+                not isinstance(user, _AnonymousUser)
         )
 
 class IsOwnerOrAdmin(BasePermission):
@@ -82,5 +78,15 @@ class IsOwnerOrAdmin(BasePermission):
 
         try:
             return user.id == view.kwargs.get("user_id")
-        except TypeError:
+        except TypeError:  # pragma: no cover
             return False
+
+
+class IsAnonymousUser(BasePermission):
+    """
+    Permission to check this api can only be access by non authenticated user.
+    """
+
+    async def has_permission(self, request, view):
+        user = await request.user
+        return isinstance(user, _AnonymousUser)

@@ -23,25 +23,6 @@ def jwt_decode_handler(token):
         algorithms=[settings.JWT_AUTH['JWT_ALGORITHM']]
     )
 
-def jwt_get_username_from_payload_handler(payload):
-    """
-    Override this function if username is formatted differently in payload
-    """
-    return payload.get('email')
-
-
-def jwt_get_user_id_from_payload_handler(payload):
-    """
-    Override this function if username is formatted differently in payload
-    """
-    return payload.get('user_id')
-
-def jwt_response_payload_handler(token, user=None, request=None):
-    return {
-        'token': token,
-    }
-
-
 def jwt_payload_handler(user):
     username = user.email
     user_id = user.id
@@ -52,9 +33,6 @@ def jwt_payload_handler(user):
         'level': user.level,
         'exp': datetime.utcnow() + settings.JWT_AUTH['JWT_EXPIRATION_DELTA'],
     }
-
-    if isinstance(user_id, uuid.UUID):
-        payload['user_id'] = user_id.hex
 
     # Include original issued at time for a brand new token,
     # to allow token refresh

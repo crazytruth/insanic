@@ -11,20 +11,19 @@ from yarl import URL
 from sanic.config import Config
 from configparser import ConfigParser
 
-from insanic import config
-from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import LazyObject, empty, cached_property
+from . import global_settings
 
 logger = logging.getLogger('root')
 
 
 class LazySettings(LazyObject):
-
     """
     A lazy proxy for either global Django settings or a custom settings object.
     The user can manually configure settings prior to using them. Otherwise,
     Django uses the settings module pointed to by DJANGO_SETTINGS_MODULE.
     """
+
     def _setup(self, name=None):
         """
         Load the settings module pointed to by the environment variable. This
@@ -33,10 +32,50 @@ class LazySettings(LazyObject):
         """
         self._wrapped = SecretsConfig()
 
+    def __repr__(self):
+        # Hardcode the class name as otherwise it yields 'Settings'.
+        if self._wrapped is empty:
+            return '<LazySettings [Unevaluated]>'
+        return '<LazySettings "%(settings_module)s">' % {
+            'settings_module': self._wrapped.SETTINGS_MODULE,
+        }
+
     def __getattr__(self, name):
+        """Return the value of a setting and cache it in self.__dict__."""
         if self._wrapped is empty:
             self._setup(name)
-        return getattr(self._wrapped, name)
+        val = getattr(self._wrapped, name)
+        self.__dict__[name] = val
+        return val
+
+    def __setattr__(self, name, value):
+        """
+        Set the value of setting. Clear all cached values if _wrapped changes
+        (@override_settings does this) or clear single values when set.
+        """
+        if name == '_wrapped':
+            self.__dict__.clear()
+        else:
+            self.__dict__.pop(name, None)
+        super().__setattr__(name, value)
+
+    def __delattr__(self, name):
+        """Delete a setting and clear it from cache if needed."""
+        super().__delattr__(name)
+        self.__dict__.pop(name, None)
+
+    def configure(self, default_settings=global_settings, **options):
+        """
+        Called to manually configure the settings. The 'default_settings'
+        parameter sets where to retrieve any unspecified values from (its
+        argument must support attribute access (__getattr__)).
+        """
+        if self._wrapped is not empty:
+            raise RuntimeError('Settings already configured.')
+        holder = UserSettingsHolder(default_settings)
+        for name, value in options.items():
+            setattr(holder, name, value)
+        self._wrapped = holder
 
     @property
     def configured(self):
@@ -71,21 +110,22 @@ class BaseConfig(Config):
 
     def __init__(self):
         super().__init__()
-        self.from_object(config)
+        self.from_object(global_settings)
 
         self.SERVICE_NAME = self._find_package_name()
-        self.SETTINGS_MODULE = "{0}.config".format(self.SERVICE_NAME)
 
-        try:
-            config_module = importlib.import_module(self.SETTINGS_MODULE)
-            self.from_object(config_module)
-        except ImportError as e:
-            logger.debug(
-                "Could not import settings '%s' (Is it on sys.path? Is there an import error in the settings file?): %s %s"
-                % (self.SETTINGS_MODULE, e, sys.path)
-            )
-            raise e
+        if self.SERVICE_NAME != "insanic":
+            self.SETTINGS_MODULE = "{0}.config".format(self.SERVICE_NAME)
 
+            try:
+                config_module = importlib.import_module(self.SETTINGS_MODULE)
+                self.from_object(config_module)
+            except ImportError as e:
+                logger.debug(
+                    "Could not import settings '%s' (Is it on sys.path? Is there an import error in the settings file?): %s %s"
+                    % (self.SETTINGS_MODULE, e, sys.path)
+                )
+                raise e
 
     def _find_package_name(self):
 
@@ -296,5 +336,54 @@ class SecretsConfig(BaseConfig):
         web_service['schema'] = settings.get('WEB_SCHEMA', 'http')
         services_config.update({'web': web_service})
         return services_config
+
+
+class UserSettingsHolder:
+    """Holder for user configured settings."""
+    # SETTINGS_MODULE doesn't make much sense in the manually configured
+    # (standalone) case.
+    SETTINGS_MODULE = None
+
+    def __init__(self, default_settings):
+        """
+        Requests for configuration variables not in this class are satisfied
+        from the module specified in default_settings (if possible).
+        """
+        self.__dict__['_deleted'] = set()
+        self.default_settings = default_settings
+
+    def __getattr__(self, name):
+        if name in self._deleted:
+            raise AttributeError
+        return getattr(self.default_settings, name)
+
+    def __setattr__(self, name, value):
+        self._deleted.discard(name)
+        if name == 'DEFAULT_CONTENT_TYPE':
+            warnings.warn('The DEFAULT_CONTENT_TYPE setting is deprecated.', RemovedInDjango30Warning)
+        super().__setattr__(name, value)
+
+    def __delattr__(self, name):
+        self._deleted.add(name)
+        if hasattr(self, name):
+            super().__delattr__(name)
+
+    def __dir__(self):
+        return sorted(
+            s for s in list(self.__dict__) + dir(self.default_settings)
+            if s not in self._deleted
+        )
+
+    def is_overridden(self, setting):
+        deleted = (setting in self._deleted)
+        set_locally = (setting in self.__dict__)
+        set_on_default = getattr(self.default_settings, 'is_overridden', lambda s: False)(setting)
+        return deleted or set_locally or set_on_default
+
+    def __repr__(self):
+        return '<%(cls)s>' % {
+            'cls': self.__class__.__name__,
+        }
+
 
 settings = LazySettings()

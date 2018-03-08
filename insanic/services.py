@@ -1,11 +1,10 @@
 import aiohttp
 import aioredis
 import datetime
-import hashlib
 import ujson as json
 
 from asyncio import get_event_loop
-from collections import namedtuple
+
 from sanic.constants import HTTP_METHODS
 from yarl import URL
 
@@ -13,7 +12,6 @@ from insanic import exceptions, status
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.log import logger
-from insanic.utils import to_object
 
 IS_INFUSED = False
 try:
@@ -157,11 +155,11 @@ class Service:
         # headers.update({"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) "
         #                               "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"})
 
-        m = hashlib.sha256()
-        m.update('mmt-server-{0}'.format(self._service_name).encode())
-        m.update(settings.WEB_SECRET_KEY.encode())
-
-        headers.update({"mmt-token": m.hexdigest()})
+        # m = hashlib.sha256()
+        # m.update('mmt-server-{0}'.format(self._service_name).encode())
+        # m.update(settings.WEB_SECRET_KEY.encode())
+        #
+        # headers.update({"mmt-token": m.hexdigest()})
         return headers
 
     def _try_json_decode(self, data):
@@ -272,16 +270,4 @@ class Service:
             pass
 
         return resp, response_status
-        #
-        # if return_obj:
-        #     result = to_object(response)
-        # else:
-        #     result = response
-        #
-        # if include_status_code:
-        #     return result, response_status
-        # else:
-        #     return result
-
-
 

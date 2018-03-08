@@ -4,8 +4,20 @@ Changelog for insanic
 0.0.193 (unreleased)
 --------------------
 
-- Nothing changed yet.
-
+- MAJOR: remove thumbnails
+- MAJOR: throttling support
+- FEATURE: new permission IsAnonymousUser
+- UPDATE: better sanic exception handling
+- UPDATE: refactor and user and anonymous user object when authenticating
+- UPDATE: TESTS!
+- UPDATE: cache_get_response doesn't take status as a parameter, it is saved in the cache now
+- UPDATE: permissions actually works lol
+- REFACTOR: tentative settings refactor for vault settings
+- REFACTOR: create separate test command for testing insanic
+- REFACTOR: change cache_get_response decorator to class for easier testing
+- REFACTOR: tracing sampler to own class. No longer in Insanic app
+- CHORE: better logging on errors
+- DEPRECATED: has_object_permissions is now deprecated
 
 0.0.192 (2018-02-19)
 --------------------

@@ -26,6 +26,7 @@ test_requires = [
     "coverage",
     "pytest",
     "pytest-cov",
+    "pytest-redis",
     "pytest-sanic",
     "pytest-sugar",
     "pytest-xdist",

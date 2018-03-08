@@ -1,8 +1,8 @@
 import asyncio
 from inspect import isawaitable
 
+
 from sanic.views import HTTPMethodView
-from sanic.response import BaseHTTPResponse
 
 from insanic import authentication, exceptions, permissions
 from insanic.errors import GlobalErrorCodes
@@ -13,7 +13,7 @@ class InsanicView(HTTPMethodView):
 
     permission_classes = [permissions.IsAuthenticated]
     throttle_classes = []
-    authentication_classes = [authentication.JSONWebTokenAuthentication,]
+    authentication_classes = [authentication.JSONWebTokenAuthentication, ]
 
     def _allowed_methods(self):
         return [m.upper() for m in self.http_method_names if hasattr(self, m)]
@@ -51,16 +51,16 @@ class InsanicView(HTTPMethodView):
             if not await permission.has_permission(request, self):
                 self.permission_denied(request)
 
-    async def check_object_permissions(self, request, obj):
-        """
-        Check if the request should be permitted for a given object.
-        Raises an appropriate exception if the request is not permitted.
-        """
-        for permission in self.get_permissions():
-            if not await permission.has_object_permission(request, self, obj):
-                self.permission_denied(
-                    request, message=getattr(permission, 'message', None)
-                )
+    # async def check_object_permissions(self, request, obj):
+    #     """
+    #     Check if the request should be permitted for a given object.
+    #     Raises an appropriate exception if the request is not permitted.
+    #     """
+    #     for permission in self.get_permissions():
+    #         if not await permission.has_object_permission(request, self, obj):
+    #             self.permission_denied(
+    #                 request, message=getattr(permission, 'message', None)
+    #             )
 
 
     def permission_denied(self, request, message=None):
@@ -83,7 +83,6 @@ class InsanicView(HTTPMethodView):
         """
         return [throttle() for throttle in self.throttle_classes]
 
-
     def throttled(self, request, wait):
         """
         If request is throttled, determine what kind of exception to raise.
@@ -96,38 +95,19 @@ class InsanicView(HTTPMethodView):
         Raises an appropriate exception if the request is throttled.
         """
         throttles = self.get_throttles()
-        throttle_results = await asyncio.gather(*[throttle.allow_request(request, self)
-                                                  for throttle in self.get_throttles()])
+        throttle_results = await asyncio.gather(*[t.allow_request(request, self)
+                                                  for t in throttles])
 
         if not all(throttle_results):
             for i in range(len(throttles)):
                 if not throttle_results[i]:
                     self.throttled(request, throttles[i].wait())
 
-    def initial(self, request, *args, **kwargs):
-        """
-        Runs anything that needs to occur prior to calling the method handler.
-        """
-
-        # Ensure that the incoming request is permitted
-        self.perform_authentication(request)
-        self.check_permissions(request)
-        self.check_throttles(request)
-
     def get_authenticators(self):
         """
         Instantiates and returns the list of authenticators that this view can use.
         """
         return [auth() for auth in self.authentication_classes]
-
-    def get_authenticate_header(self, request):
-        """
-        If a request is unauthenticated, determine the WWW-Authenticate
-        header to use for 401 responses, if any.
-        """
-        authenticators = self.get_authenticators()
-        if authenticators:
-            return authenticators[0].authenticate_header(request)
 
     async def convert_keywords(self):
         pass
@@ -151,4 +131,8 @@ class InsanicView(HTTPMethodView):
         await self.check_throttles(self.request)
 
         # Get the appropriate handler method
-        return super().dispatch_request(request, *args, **kwargs)
+        response = super().dispatch_request(request, *args, **kwargs)
+
+        if isawaitable(response):
+            response = await response
+        return response

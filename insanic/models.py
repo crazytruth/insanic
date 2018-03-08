@@ -27,16 +27,22 @@ class User:
         return self.level == authentication.UserLevels.BANNED
 
     def __str__(self):
-        return 'User'
+
+        if not self.is_authenticated:
+            user_type = "AnonymousUser"
+        else:
+            if self.is_staff:
+                user_type = "StaffUser"
+            else:
+                user_type = "User"
+
+        return ",".join([user_type, self.id, self.email])
 
 
 class _AnonymousUser(User):
 
     def __init__(self):
         super().__init__(id='', email='', level=-1)
-
-    def __str__(self):
-        return "AnonymousUser"
 
 
 # need only 1 instance so.. just instantiate and use

@@ -154,16 +154,3 @@ async def get_connection(alias):
         _conn = await _conn
 
     return _conn
-
-
-async def get_future_connection(alias, future):
-    _conn = getattr(_connections, alias)
-
-    if isawaitable(_conn) and not isinstance(_conn, aioredis.RedisPool):
-        _conn = await _conn
-        future.set_result(_conn)
-
-    # return _conn
-
-
-

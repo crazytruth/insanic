@@ -50,6 +50,18 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
     Token based authentication using the JSON Web Token standard.
     """
 
+    def get_jwt_value(self, request):
+        """
+        Gets the jwt from the request headers and returns the token
+        """
+        raise NotImplementedError(".get_jwt_value() must be overridden.")  # pragma: no cover
+
+    async def authenticate_credentials(self, request, payload):
+        """
+        Returns an active user that matches the payload's user id and email.
+        """
+        raise NotImplementedError(".authenticate_credentials() must be overridden.")  # pragma: no cover
+
     async def authenticate(self, request):
         """
         Returns a two-tuple of `User` and token if a valid signature has been
@@ -72,7 +84,7 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
 
         user = await self.authenticate_credentials(request, payload)
 
-        return (user, jwt_value)
+        return user, jwt_value
 
 
 class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
@@ -107,7 +119,7 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         header in a `401 Unauthenticated` response, or `None` if the
         authentication scheme should return `403 Permission Denied` responses.
         """
-        return '{0} realm="{1}"'.format(request.app.config.JWT_AUTH_HEADER_PREFIX, self.www_authenticate_realm)
+        return '{0} realm="{1}"'.format(settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], self.www_authenticate_realm)
 
     async def authenticate_credentials(self, request, payload):
         user_id = payload.get('id', payload.get('user_id'))
@@ -158,12 +170,6 @@ class HardJSONWebTokenAuthentication(JSONWebTokenAuthentication):
         #     msg = 'User account is disabled.'
         #     raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.unknown_error)
 
-        return payload
+        user = await super().authenticate_credentials(request, payload)
 
-    #
-    # def get_user_view(self, request, user_id):
-    #     global UserView
-    #     if UserView is None:
-    #         uri, route = request.app.router.find_route_by_view_name('user.UserView')
-    #         UserView = route[0].view_class
-    #     return UserView
+        return user

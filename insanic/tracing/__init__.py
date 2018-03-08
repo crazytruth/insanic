@@ -3,7 +3,7 @@ import socket
 
 from insanic.log import logger
 from insanic.tracing.tracer import InsanicXRayMiddleware
-
+from insanic.tracing.sampling import Sampler
 
 class InsanicTracer:
 
@@ -50,5 +50,7 @@ class InsanicTracer:
                 @app.listener('after_server_start')
                 async def after_server_start_start_tracing(app, loop=None, **kwargs):
                     app.tracer = InsanicXRayMiddleware(app, loop)
+
+                app.sampler = Sampler(app)
             else:
                 cls._handle_error(app, messages)
