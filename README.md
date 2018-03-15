@@ -1,3 +1,5 @@
+<img src="https://github.com/MyMusicTaste/insanic/blob/master/insanic.png" width="200">
+
 # insanic
 
 > A microservice framework that extends [sanic](sanic).
