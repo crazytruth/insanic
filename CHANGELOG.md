@@ -1,8 +1,8 @@
 Changelog for insanic
 =====================
 
-0.0.193 (unreleased)
---------------------
+0.1.0 (2018-03-21)
+------------------
 
 - MAJOR: now pulls settings from VAULT
 - MAJOR: remove thumbnails
