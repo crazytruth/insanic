@@ -10,4 +10,5 @@ exclude commands
 exclude *.png
 exclude insanic_ascii
 exclude tests
+exclude tests/sanic
 recursive-exclude tests *.py
