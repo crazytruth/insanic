@@ -9,4 +9,5 @@ exclude fixtures
 exclude commands
 exclude *.png
 exclude insanic_ascii
+exclude tests
 recursive-exclude tests *.py
