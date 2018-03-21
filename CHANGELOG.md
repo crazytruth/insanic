@@ -4,6 +4,7 @@ Changelog for insanic
 0.0.193 (unreleased)
 --------------------
 
+- MAJOR: now pulls settings from VAULT
 - MAJOR: remove thumbnails
 - MAJOR: throttling support
 - FEATURE: new permission IsAnonymousUser

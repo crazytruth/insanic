@@ -7,3 +7,6 @@ exclude insanic/log/templates
 exclude insanic/log/templates/500.html
 exclude fixtures
 exclude commands
+exclude *.png
+exclude insanic_ascii
+recursive-exclude tests *.py
