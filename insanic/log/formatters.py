@@ -25,11 +25,19 @@ class JSONFormatter(logging.Formatter):
             self._fmt_dict = fmt
 
         self.hostname = socket.gethostname()
-        self.extra_fields = {"service": settings.get('SERVICE_NAME'), "environment": settings.get('MMT_ENV'),
-                             "insanic_version": __version__, "service_version": "0.0.1"}
+        self._extra_fields = None
 
-        for k,v in self.extra_fields.items():
-            setattr(self, k, v)
+        # for k,v in self.extra_fields.items():
+        #     setattr(self, k, v)
+
+    @property
+    def extra_fields(self):
+        if not self._extra_fields:
+            self._extra_fields = {"service": settings.get('SERVICE_NAME'),
+                                  "environment": settings.get('MMT_ENV'),
+                                  "insanic_version": __version__, "service_version": "0.0.1"}
+        return self._extra_fields
+
 
     def formatTime(self, record, datefmt=None):
         s = super().formatTime(record, datefmt)

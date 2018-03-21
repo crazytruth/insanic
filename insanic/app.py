@@ -15,14 +15,13 @@ MIDDLEWARE_TYPES = ('request', 'response')
 class Insanic(Sanic):
     database = None
 
-
-
     def __init__(self, name, router=None, error_handler=None, app_config=()):
 
         if error_handler is None:
             error_handler = ErrorHandler()
 
         from insanic.conf import settings
+        self.version = ""
 
         for c in app_config:
             try:
@@ -50,10 +49,14 @@ class Insanic(Sanic):
                 if module_name.startswith(m):
                     self.register_middleware(getattr(middleware, module_name), attach_to=m)
 
+        self.blueprint(blueprint_monitor)
+
+    def run(self, *args, **kwargs):
         SanicUserAgent.init_app(self)
         InsanicTracer.init_app(self)
+        super().run(*args, **kwargs)
 
-        self.blueprint(blueprint_monitor)
+
 
     def _helper(self, **kwargs):
         """Helper function used by `run` and `create_server`."""

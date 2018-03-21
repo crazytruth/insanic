@@ -9,7 +9,6 @@ from sanic.request import Request as SanicRequest, RequestParameters
 
 from insanic import exceptions
 from insanic.conf import settings
-from insanic.models import AnonymousUser
 from insanic.utils import force_str
 from insanic.utils.mediatypes import parse_header, HTTP_HEADER_ENCODING
 
@@ -254,6 +253,7 @@ class Request(SanicRequest):
 
         Defaults are None, AnonymousUser & None.
         """
+        from insanic.models import AnonymousUser
         self._authenticator = None
         self.user = AnonymousUser
         self.auth = None

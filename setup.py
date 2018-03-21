@@ -30,14 +30,12 @@ test_requires = [
     "pytest-sanic",
     "pytest-sugar",
     "pytest-xdist",
-    "aiohttp==1.3.5",
     "chardet",
-    "beautifulsoup4"
+    # "beautifulsoup4"
     # "docker",
     # "aiobotocore",
     # "pytest",
     # "pytest-asyncio",
-    # "pytest-redis"
 ]
 
 setup(
@@ -64,11 +62,13 @@ setup(
     install_requires=[
         'sanic==0.7.0',
         'sanic-useragent',
-        'aiohttp<=2.3.0',
+        'aiohttp>=3.0.0',
         'aiodns',
+        # 'yarl==1.1.1',
         'aioredis>=0.3.0,<1.0.0',
         'PyJWT',
-        'aws-xray-sdk'
+        'aws-xray-sdk',
+        "python-consul"
     ],
     # test_suite='nose.collector',
     tests_require=test_requires,

@@ -6,6 +6,7 @@ from insanic.authentication import handlers
 from insanic.conf import settings
 from insanic.models import User
 
+settings.configure(SERVICE_NAME="insanic")
 
 @pytest.fixture
 def insanic_application():
@@ -15,8 +16,13 @@ def insanic_application():
 @pytest.fixture(autouse=True)
 def set_redis_connection_info(redisdb, monkeypatch):
     port = redisdb.connection_pool.connection_kwargs['path'].split('/')[-1].split('.')[1]
-    monkeypatch.setitem(settings, 'REDIS_PORT', int(port))
-    monkeypatch.setitem(settings, 'REDIS_HOST', '127.0.0.1')
+    db = redisdb.connection_pool.connection_kwargs['db']
+    # monkeypatch.setitem(settings, 'REDIS_PORT', int(port))
+    # monkeypatch.setitem(settings, 'REDIS_HOST', '127.0.0.1')
+    monkeypatch.setattr(settings, 'REDIS_PORT', int(port))
+    monkeypatch.setattr(settings, 'REDIS_HOST', '127.0.0.1')
+    monkeypatch.setattr(settings, 'REDIS_DB', db)
+
     # settings.REDIS_PORT = int(port)
     # settings.REDIS_HOST = '127.0.0.1'
 

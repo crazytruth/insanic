@@ -12,6 +12,7 @@ from insanic.errors import GlobalErrorCodes
 
 DEFAULT_USER_LEVEL = UserLevels.ACTIVE
 
+
 class PyTestCommand(TestCommand):
     user_options = [('pytest-args=', 'a', "Arguments to pass to pytest")]
 
@@ -23,6 +24,7 @@ class PyTestCommand(TestCommand):
         import shlex
         # import here, cause outside the eggs aren't loaded
         import pytest
+
         errno = pytest.main(shlex.split(self.pytest_args))
         sys.exit(errno)
 

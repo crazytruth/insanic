@@ -73,7 +73,8 @@ def get_logging_config():
         }
     )
 
-    if not settings.IS_DOCKER:
+    from insanic.scopes import is_docker
+    if not is_docker:
         LOGGING_CONFIG_DEFAULTS['loggers']['root']['level'] = logging.DEBUG
         LOGGING_CONFIG_DEFAULTS['loggers']['sanic.error']['level'] = logging.DEBUG
         LOGGING_CONFIG_DEFAULTS['loggers']['sanic.access']['level'] = logging.DEBUG

@@ -11,7 +11,9 @@ from yarl import URL
 from insanic import exceptions, status
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
+from insanic.functional import cached_property_with_ttl
 from insanic.log import logger
+from insanic.scopes import is_docker
 
 IS_INFUSED = False
 try:
@@ -55,6 +57,7 @@ class ServiceRegistry(dict):
 # registry = ServiceRegistry()
 
 class Service:
+    remove_headers = ["content-length", 'user-agent', 'host', 'postman-token']
 
     def __init__(self, service_type):
 
@@ -63,25 +66,34 @@ class Service:
         self._session = None
         self._breaker = None
 
+    def _service_spec(self, raise_exception=False):
+        spec = settings.SERVICE_LIST.get(self._service_name, {})
+        if spec == {} and raise_exception:
+            self.raise_503()
+        return spec
 
-        if service_type not in settings.SERVICES.keys():
-            raise AssertionError("Invalid service type.")
+    def raise_503(self):
+        raise exceptions.ServiceUnavailable503Error(detail=f"{self._service_name} is currently unavailable.",
+                                                    error_code=GlobalErrorCodes.service_unavailable,
+                                                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-        self._schema = settings.SERVICES[self._service_name].get('schema', "http")
-        self._host = settings.SERVICES[self._service_name].get('host')
-        self._port = settings.SERVICES[self._service_name].get('externalserviceport')
+    @cached_property_with_ttl(ttl=60)
+    def schema(self):
+        return self._service_spec().get('schema', 'http')
 
-        self.remove_headers = ["content-length", 'user-agent', 'host', 'postman-token']
+    @cached_property_with_ttl(ttl=60)
+    def host(self):
+        host = self._service_spec(True).get('host')
+        return host
 
+    @cached_property_with_ttl(ttl=60)
+    def port(self):
+        return self._service_spec(True).get('internal_service_port' if is_docker else 'external_service_port')
 
     @property
     def url(self):
-        url_partial_path = "/api/v1/{0}".format(self._service_name)
-
-        return URL.build(scheme=self._schema, host=self._host,
-                         port=self._port,
-                         path=url_partial_path)
-
+        url_partial_path = "/api/v1/"
+        return URL(f"{self.schema}://{self.host}:{self.port}{url_partial_path}")
 
     @property
     async def breaker(self):

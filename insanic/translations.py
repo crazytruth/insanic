@@ -2,10 +2,17 @@ import os
 import gettext
 
 from insanic.conf import settings
+from insanic.functional import LazyObject
 
 __all__ = ['Translations']
 
-class Translations(dict):
+
+class Translations(LazyObject):
+    def _setup(self):
+        self._wrapped = _Translations()
+
+
+class _Translations(dict):
 
     def __init__(self):
         self._domain = settings.SERVICE_NAME

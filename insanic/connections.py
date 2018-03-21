@@ -63,8 +63,8 @@ class ConnectionHandler:
 
         if alias == "redis":
             _pool = await aioredis.create_pool((settings.REDIS_HOST, settings.REDIS_PORT),
-                                              encoding='utf-8', db=settings.REDIS_DB, loop=self.loop,
-                                              minsize=5, maxsize=10)
+                                               encoding='utf-8', db=int(settings.REDIS_DB), loop=self.loop,
+                                               minsize=5, maxsize=10)
 
             return _pool
 

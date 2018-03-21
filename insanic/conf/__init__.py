@@ -1,21 +1,24 @@
+import consul
 import importlib
 import logging
 import os
 import sys
-import types
 import ujson as json
 import urllib.parse
 import urllib.request
+
+from hvac import Client as VaultClient
+from hvac.exceptions import Forbidden
 from yarl import URL
-
 from sanic.config import Config
-from configparser import ConfigParser
 
-from insanic.functional import LazyObject, empty, cached_property
+from insanic.exceptions import ImproperlyConfigured
+from insanic.functional import LazyObject, empty, cached_property, cached_property_with_ttl
+from insanic.scopes import is_docker
 from . import global_settings
 
 logger = logging.getLogger('root')
-
+ENVIRONMENT_VARIABLE = "VAULT_ROLE_ID"
 
 class LazySettings(LazyObject):
     """
@@ -30,7 +33,16 @@ class LazySettings(LazyObject):
         is used the first time we need any settings at all, if the user has not
         previously configured the settings manually.
         """
-        self._wrapped = SecretsConfig()
+        role_id = os.environ.get(ENVIRONMENT_VARIABLE)
+        if not role_id:
+            desc = ("setting %s" % name) if name else "settings"
+            raise ImproperlyConfigured(
+                "Requested %s, but settings are not configured. "
+                "You must either define the environment variable %s "
+                "or call settings.configure() before accessing settings."
+                % (desc, ENVIRONMENT_VARIABLE))
+
+        self._wrapped = VaultConfig(role_id)
 
     def __repr__(self):
         # Hardcode the class name as otherwise it yields 'Settings'.
@@ -45,7 +57,7 @@ class LazySettings(LazyObject):
         if self._wrapped is empty:
             self._setup(name)
         val = getattr(self._wrapped, name)
-        self.__dict__[name] = val
+        # self.__dict__[name] = val
         return val
 
     def __setattr__(self, name, value):
@@ -155,9 +167,7 @@ class BaseConfig(Config):
         super().__init__()
         self.from_object(global_settings)
 
-        self.SERVICE_NAME = self._find_package_name()
-
-        if self.SERVICE_NAME != "insanic":
+        if self.SERVICE_NAME != "insanic" and self.SERVICE_NAME is not None:
             self.SETTINGS_MODULE = "{0}.config".format(self.SERVICE_NAME)
 
             try:
@@ -170,18 +180,6 @@ class BaseConfig(Config):
                 )
                 raise e
 
-    def _find_package_name(self):
-
-        try:
-            check_path = os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__))
-        except AttributeError:
-            check_path = os.getcwd()
-        finally:
-            package_name = check_path.split('/')[-1]
-            package_name = package_name.split('-')[-1]
-
-        return package_name
-
     def __getattr__(self, attr):
         try:
             return self.__getattribute__(attr)
@@ -189,195 +187,241 @@ class BaseConfig(Config):
             return super().__getattr__(attr)
 
     # COMMON SETTINGS
-    @cached_property
-    def IS_DOCKER(self):
-        try:
-            with open('/proc/self/cgroup', 'r') as proc_file:
-                for line in proc_file:
-                    fields = line.strip().split('/')
-                    if fields[1] == 'docker':
-                        return True
-        except FileNotFoundError:
-            pass
-        return False
+    # @cached_property
+    # def IS_DOCKER(self):
+    #     try:
+    #         with open('/proc/self/cgroup', 'r') as proc_file:
+    #             for line in proc_file:
+    #                 fields = line.strip().split('/')
+    #                 if fields[1] == 'docker':
+    #                     return True
+    #     except FileNotFoundError:
+    #         pass
+    #     return False
 
-
-class SecretsConfig(BaseConfig):
-
-    def __init__(self):
-        super().__init__()
-
-        try:
-            instance_module = importlib.import_module('instance')
-            self.from_object(instance_module)
-        except ImportError:
-            pass
-
-        self._load_secrets()
-
-    def _load_secrets(self):
-
-        try:
-            with open('/run/secrets/{0}'.format(self.SERVICE_NAME)) as f:
-                docker_secrets = f.read()
-
-            docker_secrets = json.loads(docker_secrets)
-
-            for k, v in docker_secrets.items():
-                try:
-                    v = int(v)
-                except ValueError:
-                    pass
-
-                self.update({k: v})
-        except FileNotFoundError as e:
-            logger.debug("Docker secrets not found %s" % e.strerror)
-            filename = os.path.join(os.getcwd(), 'instance.py')
-            module = types.ModuleType('config')
-            module.__file__ = filename
-
-            try:
-                with open(filename) as f:
-                    exec(compile(f.read(), filename, 'exec'),
-                         module.__dict__)
-            except IOError as e:
-                logger.debug('Unable to load configuration file (%s)' % e.strerror)
-            for key in dir(module):
-                if key.isupper():
-                    self[key] = getattr(module, key)
-
-    def _locate_service_ini(self):
-
-        for root, dirs, files in os.walk('..'):
-            if "services.ini" in files:
-                return os.path.join(root, "services.ini")
-        return None
+    # @cached_property
+    # def SERVICE_NAME(self):
+    #     split_path = sys.argv[0].split('/')
+    #
+    #     # this means python was run in interactive mode
+    #     if len(split_path) == 0:
+    #         check_path = os.getcwd()
+    #     else:
+    #         try:
+    #             check_path = os.path.dirname(sys.argv[0])
+    #         except AttributeError:
+    #             check_path = os.getcwd()
+    #
+    #     package_name = check_path.split('/')[-1]
+    #     package_name = package_name.split('-')[-1]
+    #
+    #     return package_name
 
     @property
-    def SWARM_MANAGER_HOST(self):
+    def SERVICE_NAME(self):
+        return self._service_name
 
-        url = URL(self.CONSUL_ADDR)
-        url = url.with_path(self.CONSUL_SWARM_MANAGER_ENDPOINT)
+    @SERVICE_NAME.setter
+    def SERVICE_NAME(self, val):
+        self._service_name = val
 
-        swarm_hosts = []
 
-        for _ in range(3):
-            with urllib.request.urlopen(str(url)) as response:
-                if response.status == 200:
-                    manager_nodes = json.loads(response.read().decode())
+class VaultConfig(BaseConfig):
+    CONSUL_HOST = "consul.mmt.local"
+    CONSUL_PORT = "8500"
 
-                    if len(manager_nodes['Nodes']):
-                        for node in manager_nodes['Nodes']:
-                            swarm_hosts.append({"host": node['Node']['Address'], "port": self.SWARM_PORT})
-                        break
+    @property
+    def VAULT_SCHEME(self):
+        return "http"
+
+    @property
+    def VAULT_HOST(self):
+        return "vault.mmt.local"
+
+    @property
+    def VAULT_PORT(self):
+        return 8200
+
+    @property
+    def VAULT_URL(self):
+        url = URL(f"{self.VAULT_SCHEME}://{self.VAULT_HOST}:{self.VAULT_PORT}")
+        return str(url)
+
+    @property
+    def VAULT_ROLE_ID(self):
+        return self._role_id
+
+    @property
+    def MMT_ENV(self):
+        env = os.environ.get('MMT_ENV', None)
+        if env is None:
+            logger.warning("MMT_ENV is not set in environment variables.  Please set `export MMT_ENV=<environment>`.")
+        return env
+        # if not self._env:
+        #     self._env = os.environ.get('MMT_ENV', None)
+        #     if self._env is None:
+        #         logger.warning("MMT_ENV is not set in environment variables.  Please set `export MMT_ENV=<environment>`.")
+        # return self._env
+
+    def can_vault(self, raise_exception=False):
+        can_vault = self.VAULT_ROLE_ID is not None and self.MMT_ENV is not None
+        if can_vault:
+            return can_vault
         else:
-            raise RuntimeError("Couldn't initialize service configurations.")
+            if raise_exception:
+                raise EnvironmentError(
+                    f"VAULT_ROLE_ID and MMT_ENV are required for importing configurations from vault.")
+            return can_vault
 
-        return swarm_hosts[0]
+    def __init__(self, role_id=None):
 
-    def _get_network_overlay_id(self, swarm_host_url):
-        url = swarm_host_url.with_path('/networks')
-        url = url.with_query(filter=json.dumps(["name=mmt-server-*"]))
-        with urllib.request.urlopen(str(url)) as response:
-            networks = json.loads(response.read())
+        self.vault_client = VaultClient(url=self.VAULT_URL)
+        self.consul_client = consul.Consul()
 
-        for n in networks:
-            if n['Name'].endswith(self.SWARM_NETWORK_OVERLAY):
-                return n['Id']
+        self._role_id = role_id
+        super().__init__()
+
+        self._load_from_vault()
+
+    # def _load_secrets(self):
+    #
+    #     try:
+    #         with open('/run/secrets/{0}'.format(self.SERVICE_NAME)) as f:
+    #             docker_secrets = f.read()
+    #
+    #         docker_secrets = json.loads(docker_secrets)
+    #
+    #         for k, v in docker_secrets.items():
+    #             try:
+    #                 v = int(v)
+    #             except ValueError:
+    #                 pass
+    #
+    #             self.update({k: v})
+    #     except FileNotFoundError as e:
+    #         logger.debug("Docker secrets not found %s" % e.strerror)
+    #         filename = os.path.join(os.getcwd(), 'instance.py')
+    #         module = types.ModuleType('config')
+    #         module.__file__ = filename
+    #
+    #         try:
+    #             with open(filename) as f:
+    #                 exec(compile(f.read(), filename, 'exec'),
+    #                      module.__dict__)
+    #         except IOError as e:
+    #             logger.debug('Unable to load configuration file (%s)' % e.strerror)
+    #         for key in dir(module):
+    #             if key.isupper():
+    #                 self[key] = getattr(module, key)
+
+    def _load_from_vault(self):
+
+        try:
+            self.can_vault(raise_exception=True)
+        except EnvironmentError as e:
+            logger.critical(f"Configs not set from VAULT!! {e.args[0]}")
         else:
-            raise RuntimeError('Network overlay not found: {0}'.format(self.SWARM_NETWORK_OVERLAY))
+            try:
+                common_settings = self.vault_client.read(f"/secret/msa/{self.MMT_ENV}/common")
+                service_settings = self.vault_client.read(f"/secret/msa/{self.MMT_ENV}/{self.SERVICE_NAME}")
+            except Forbidden:
+                msg = f"Unable to load settings from vault. Please check settings exists for " \
+                      f"the environment and service. ENV: {self.MMT_ENV} SERVICE: {self.SERVICE_NAME}"
+                logger.critical(msg)
+                raise EnvironmentError(msg)
+            else:
+                common_settings = common_settings['data']
+                service_settings = service_settings['data']
+
+                for k, v in common_settings.items():
+                    self[k.upper()] = v
+
+                for k, v in service_settings.items():
+                    self[k.upper()] = v
 
     @cached_property
-    def SERVICES(self):
+    def SERVICE_NAME(self):
+        if self.can_vault():
+            login_response = self.vault_client.auth_approle(self.VAULT_ROLE_ID)
+            return login_response['auth']['metadata']['role_name'].split('-')[-1]
+        else:
+            return super().SERVICE_NAME
+
+    @cached_property_with_ttl(ttl=60)
+    def SWARM_MANAGER_HOSTS(self):
+        nodes = self.consul_client.catalog.nodes()
+        return [n['Address'] for n in nodes[1] if n["Meta"].get('role', None) == "manager"]
+
+    @property
+    def SWARM_MANAGER_SCHEME(self):
+        return "http"
+
+    @cached_property_with_ttl(ttl=5)
+    def SWARM_MANAGER_HOST(self):
+        # return random.choice(self.SWARM_MANAGER_HOSTS)
+        return "manager.mmt.local"
+
+    @property
+    def SWARM_MANAGER_PORT(self):
+        return 2375
+
+    @property
+    def SWARM_MANAGER_URL(self):
+        return URL(f"{self.SWARM_MANAGER_SCHEME}://{self.SWARM_MANAGER_HOST}:{self.SWARM_MANAGER_PORT}")
+
+    @cached_property
+    def SERVICE_LIST(self):
 
         service_template = {
-            "githuborganization": "MyMusicTaste",
-            "pullrepository": 1,
-            "isservice": 1,
-            "createsoftlink": 0,
-            'isexternal': 0
+            "host": "",
+            "external_service_port": "",
+            "internal_service_port": ""
         }
 
-        if self.IS_DOCKER:
+        query_params = {
+            "filters": json.dumps({"name": {"mmt-server": True}})
+        }
 
-            query_params = {
-                "filter": json.dumps(["name=mmt-server"])
-            }
-            try:
-                consul_addr = self.CONSUL_ADDR
-            except AttributeError:
-                consul_addr = None
+        url = self.SWARM_MANAGER_URL
 
-            if consul_addr:
-                try:
-                    url = URL.build(scheme='http', **self.SWARM_MANAGER_HOST)
-                except TypeError as e:
-                    raise TypeError(e.args[0])
+        url = url.with_path("/services")
+        url = url.with_query(**query_params)
+
+        services_endpoint = str(url)
+
+        with urllib.request.urlopen(services_endpoint) as response:
+            swarm_services = response.read()
+
+        swarm_services = json.loads(swarm_services)
+
+        services_config = {}
+
+        for s in swarm_services:
+            service_spec = s['Spec']
+            service_name = service_spec['Name'].rsplit('-', 1)[-1].lower()
+
+            for p in service_spec['EndpointSpec']['Ports']:
+                if p['PublishMode'] == 'ingress':
+                    external_service_port = p['PublishedPort']
+                    internal_service_port = p['TargetPort']
+                    break
             else:
-                url = URL.build(scheme="http", host=self.SWARM_HOST, port=self.SWARM_PORT)
+                external_service_port = None
+                internal_service_port = None
 
-            url = url.with_path("/services")
-            url = url.with_query(**query_params)
-            services_endpoint = str(url)
+            if "service_name" in services_config:
+                pass
+            elif external_service_port is None or internal_service_port is None:
+                continue
+            else:
+                services_config[service_name] = service_template.copy()
+                services_config[service_name]['external_service_port'] = external_service_port
+                services_config[service_name]['internal_service_port'] = internal_service_port
 
-            with urllib.request.urlopen(services_endpoint) as response:
-                swarm_services = response.read()
-
-            swarm_services = json.loads(swarm_services)
-
-            network_overlay_id = self._get_network_overlay_id(url)
-
-            services_config = {}
-            for s in swarm_services:
-                if not s['Spec']['Name'].startswith('mmt-server'):
-                    continue
-
-                service_spec = s['Spec']
-                service_name = service_spec['Name'].rsplit('-', 1)[-1].lower()
-                # check if service already exists
-                if service_name in services_config:
-                    raise EnvironmentError("Duplicate Services.. Something wrong {0}".format(service_name))
+                if is_docker:
+                    services_config[service_name]['host'] = s['Spec']['Name'].rsplit('_', 1)[-1]
                 else:
-                    services_config[service_name] = service_template.copy()
-
-                # scan attached networks for overlay
-                for n in service_spec['TaskTemplate']['Networks']:
-                    if n['Target'] == network_overlay_id:
-                        break
-                else:
-                    raise EnvironmentError("Network overlay not attached to {0}".format(service_name.upper()))
-
-                for p in service_spec['EndpointSpec']['Ports']:
-                    if p['PublishMode'] == 'ingress':
-                        internal_service_port = p['TargetPort']
-                        external_service_port = p['PublishedPort']
-                        break
-                else:
-                    raise EnvironmentError("External service port not found for {0}".format(service_name))
-
-                services_config[service_name]['externalserviceport'] = external_service_port
-                services_config[service_name]['internalserviceport'] = internal_service_port
-                services_config[service_name]['repositoryname'] = "mmt-server-{0}".format(service_name)
-                services_config[service_name]['host'] = s['Spec']['Name'].rsplit('_', 1)[-1]
-
-        else:
-            services_location = self._locate_service_ini()
-            config = ConfigParser()
-            config.read(services_location)
-
-            services_config = {}
-            for section in config.sections():
-                if config[section].getboolean('isService', False):
-                    config[section]['host'] = 'localhost'
-                    services_config.update({section: config[section]})
-
-        web_service = service_template.copy()
-        web_service['isexternal'] = 1
-        web_service['internalserviceport'] = 8000
-        web_service['externalserviceport'] = settings.WEB_PORT
-        web_service['host'] = settings.WEB_HOST
-        web_service['schema'] = settings.get('WEB_SCHEMA', 'http')
-        services_config.update({'web': web_service})
+                    services_config[service_name]['host'] = self.SWARM_MANAGER_HOST
         return services_config
 
 
@@ -393,7 +437,13 @@ class UserSettingsHolder:
         from the module specified in default_settings (if possible).
         """
         self.__dict__['_deleted'] = set()
-        self.default_settings = default_settings
+
+        final_settings = Config()
+        final_settings.from_object(global_settings)
+        final_settings.from_object(default_settings)
+
+        self.default_settings = final_settings
+
 
     def __getattr__(self, name):
         if name in self._deleted:
