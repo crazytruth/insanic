@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.1.1 (unreleased)
+0.1.1 (2018-03-22)
 ------------------
 
 - Add hvac to requirements
