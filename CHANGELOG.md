@@ -4,7 +4,7 @@ Changelog for insanic
 0.1.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- change location of secrets in vault
 
 
 0.1.1 (2018-03-22)

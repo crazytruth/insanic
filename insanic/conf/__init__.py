@@ -322,8 +322,8 @@ class VaultConfig(BaseConfig):
             logger.critical(f"Configs not set from VAULT!! {e.args[0]}")
         else:
             try:
-                common_settings = self.vault_client.read(f"/secret/msa/{self.MMT_ENV}/common")
-                service_settings = self.vault_client.read(f"/secret/msa/{self.MMT_ENV}/{self.SERVICE_NAME}")
+                common_settings = self.vault_client.read(f"msa/{self.MMT_ENV}/common")
+                service_settings = self.vault_client.read(f"msa/{self.MMT_ENV}/{self.SERVICE_NAME}")
             except Forbidden:
                 msg = f"Unable to load settings from vault. Please check settings exists for " \
                       f"the environment and service. ENV: {self.MMT_ENV} SERVICE: {self.SERVICE_NAME}"
