@@ -3,7 +3,7 @@ import uvloop
 from sanic.response import json, text
 
 from insanic import status, authentication
-from insanic.authentication import UserLevels
+from insanic.choices import UserLevels
 from insanic.conf import settings
 from insanic.exceptions import ImproperlyConfigured
 from insanic.models import User

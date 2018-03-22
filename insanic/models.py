@@ -1,4 +1,4 @@
-from insanic import authentication
+from insanic.choices import UserLevels
 
 
 class User:
@@ -12,7 +12,7 @@ class User:
 
     @property
     def is_staff(self):
-        return self.level >= authentication.UserLevels.STAFF
+        return self.level >= UserLevels.STAFF
 
     @property
     def is_authenticated(self):
@@ -20,11 +20,11 @@ class User:
 
     @property
     def is_active(self):
-        return self.level >= authentication.UserLevels.ACTIVE
+        return self.level >= UserLevels.ACTIVE
 
     @property
     def is_banned(self):
-        return self.level == authentication.UserLevels.BANNED
+        return self.level == UserLevels.BANNED
 
     def __str__(self):
 

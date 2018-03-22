@@ -68,7 +68,8 @@ setup(
         'aioredis>=0.3.0,<1.0.0',
         'PyJWT',
         'aws-xray-sdk',
-        "python-consul"
+        "python-consul",
+        "hvac"
     ],
     # test_suite='nose.collector',
     tests_require=test_requires,

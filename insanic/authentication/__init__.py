@@ -10,8 +10,6 @@ from insanic.errors import GlobalErrorCodes
 from insanic.authentication import handlers
 from insanic.models import User
 
-from .levels import UserLevels
-
 UNUSABLE_PASSWORD_PREFIX = '!'
 
 

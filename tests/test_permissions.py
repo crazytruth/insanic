@@ -4,7 +4,8 @@ import uuid
 from sanic.response import text
 
 from insanic import status
-from insanic.authentication import JSONWebTokenAuthentication, UserLevels
+from insanic.authentication import JSONWebTokenAuthentication
+from insanic.choices import UserLevels
 from insanic.permissions import BasePermission, AllowAny, IsAuthenticated, IsAdminUser, \
     IsAuthenticatedOrReadOnly, IsOwnerOrAdmin, IsAnonymousUser
 from insanic.views import InsanicView

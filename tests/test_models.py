@@ -1,6 +1,6 @@
 import pytest
 
-from insanic.authentication import UserLevels
+from insanic.choices import UserLevels
 from insanic.models import User, AnonymousUser
 
 TEST_USER_ID = "1"

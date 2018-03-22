@@ -3,7 +3,7 @@ import uuid
 
 from sanic.response import json
 from insanic import Insanic, authentication, permissions, status
-from insanic.authentication import UserLevels
+from insanic.choices import UserLevels
 from insanic.errors import GlobalErrorCodes
 from insanic.views import InsanicView
 from insanic.models import User

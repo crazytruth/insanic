@@ -7,7 +7,7 @@ from enum import Enum
 from collections import namedtuple
 from setuptools.command.test import test as TestCommand
 
-from insanic.authentication import UserLevels
+from insanic.choices import UserLevels
 from insanic.errors import GlobalErrorCodes
 
 DEFAULT_USER_LEVEL = UserLevels.ACTIVE

@@ -4,7 +4,8 @@ Changelog for insanic
 0.1.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Add hvac to requirements
+- Fix circular imports with userlevels
 
 
 0.1.0 (2018-03-21)
@@ -13,6 +14,8 @@ Changelog for insanic
 - MAJOR: now pulls settings from VAULT
 - MAJOR: remove thumbnails
 - MAJOR: throttling support
+- MAJOR: updated logo
+- FEATURE: can create services that haven't been declared. Will just throw 503 when route information doens't exist.
 - FEATURE: new permission IsAnonymousUser
 - UPDATE: better sanic exception handling
 - UPDATE: refactor and user and anonymous user object when authenticating

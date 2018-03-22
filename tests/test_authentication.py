@@ -5,7 +5,8 @@ from sanic.response import json
 
 from insanic import status, Insanic
 from insanic.authentication import BaseAuthentication, JSONWebTokenAuthentication, \
-    HardJSONWebTokenAuthentication, handlers, UserLevels
+    HardJSONWebTokenAuthentication, handlers
+from insanic.choices import UserLevels
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.models import User
