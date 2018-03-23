@@ -1,12 +1,13 @@
 import pytest
-import uuid
 
+from sanic import exceptions
+from sanic.exceptions import SanicException, _sanic_exceptions
 from sanic.response import json
 from insanic import Insanic, authentication, permissions, status
 from insanic.choices import UserLevels
 from insanic.errors import GlobalErrorCodes
 from insanic.views import InsanicView
-from insanic.models import User
+
 
 
 def test_view_allowed_methods():
@@ -47,6 +48,21 @@ def test_view_invalid_method():
     assert response.status == status.HTTP_405_METHOD_NOT_ALLOWED
     assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.method_not_allowed
 
+
+def test_not_found():
+    app = Insanic('test')
+
+    class DummyView(InsanicView):
+        authentication_classes = ()
+
+        def get(self, request):
+            return json({})
+
+    app.add_route(DummyView.as_view(), '/')
+
+    request, response = app.test_client.get('/aaaa')
+
+    assert response.status == status.HTTP_404_NOT_FOUND
 
 def test_view_only_json_authentication():
     app = Insanic('test')
@@ -181,3 +197,38 @@ def test_throttle():
 
     assert response.status == status.HTTP_429_TOO_MANY_REQUESTS
     assert str(wait_time) in response.json['description']
+
+
+@pytest.mark.parametrize("sanic_exception", _sanic_exceptions.values())
+def test_sanic_error_handling(sanic_exception):
+    app = Insanic('test')
+
+    class ContentRange:
+        total = 120
+
+    if sanic_exception.status_code == 416:
+        raised_exception = sanic_exception("a", ContentRange())
+    else:
+        raised_exception = sanic_exception("a")
+
+    class DummyView(InsanicView):
+        authentication_classes = ()
+        permission_classes = ()
+
+        def get(self, request):
+            raise raised_exception
+
+    app.add_route(DummyView.as_view(), '/')
+
+    request, response = app.test_client.get('/')
+
+    assert response.status == raised_exception.status_code
+    if raised_exception.status_code == 416:
+        assert response.json is None
+    else:
+        assert response.json['description'] == "a"
+
+    if hasattr(raised_exception, "headers"):
+        for k, v in raised_exception.headers.items():
+            assert k in response.headers.keys()
+            assert str(v) == response.headers[k]

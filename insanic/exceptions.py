@@ -152,3 +152,8 @@ class SanicInvalidUsage(InvalidUsage):
         super().__init__(detail, status_code=status_code)
         if status_code == status.HTTP_405_METHOD_NOT_ALLOWED:
             self.error_code = GlobalErrorCodes.method_not_allowed
+
+
+class SanicNotFound(APIException):
+    status_code = status.HTTP_404_NOT_FOUND
+    default_detail = "Not Found"

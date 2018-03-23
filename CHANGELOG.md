@@ -4,7 +4,8 @@ Changelog for insanic
 0.1.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Sanic error handling
+- remove development from xray patch
 
 
 0.1.2 (2018-03-22)

@@ -97,14 +97,17 @@ class ErrorHandler(SanicErrorHandler):
                 status=getattr(exception, 'status_code', status.HTTP_500_INTERNAL_SERVER_ERROR),
                 headers=getattr(exception, 'headers', headers),
             )
-        elif self.debug:
-            html_output = self._render_traceback_html(exception, request)
+        elif issubclass(type(exception), SanicException):
 
-            response_message = (
-                'Exception occurred while handling uri: "{}"\n{}'.format(
-                    request.path, format_exc()))
-            error_logger.error(response_message)
-            response = html(html_output, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            response = json(
+                {
+                    "message": status.REVERSE_STATUS[exception.status_code],
+                    "description": getattr(exception, 'detail', exception.args[0]),
+                    "error_code": getattr(exception, 'error_code', GlobalErrorCodes.error_unspecified)
+                },
+                status=getattr(exception, 'status_code', status.HTTP_500_INTERNAL_SERVER_ERROR),
+                headers=getattr(exception, 'headers', {}),
+            )
         else:
             response = self.handle_uncaught_exception(request, exception)
 

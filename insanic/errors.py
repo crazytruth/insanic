@@ -32,5 +32,5 @@ class GlobalErrorCodes(Enum):
     service_unavailable = 999603
     service_timeout = 999604
 
-
+    error_unspecified = 999998
     unknown_error = 999999
