@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.1.3 (unreleased)
+0.1.3 (2018-03-23)
 ------------------
 
 - Sanic error handling
