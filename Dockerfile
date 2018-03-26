@@ -12,7 +12,6 @@ ONBUILD ARG ADDITIONAL_APK
 ONBUILD COPY requirements.txt /tmp
 
 RUN apk add --update --no-cache --virtual .build-deps  \
-        mariadb-dev musl-dev
         build-base gcc libffi-dev openssl-dev jpeg-dev && \
     pip install --upgrade \
     --index http://nexus.mmt.local:8081/repository/pypi/pypi \
