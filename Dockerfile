@@ -8,9 +8,11 @@ RUN mkdir -p $INSTALL_PATH
 WORKDIR $INSTALL_PATH
 
 ONBUILD ARG SERVICE
+ONBUILD ARG ADDITIONAL_APK
 ONBUILD COPY requirements.txt /tmp
 
 RUN apk add --update --no-cache --virtual .build-deps  \
+        mariadb-dev musl-dev
         build-base gcc libffi-dev openssl-dev jpeg-dev && \
     pip install --upgrade \
     --index http://nexus.mmt.local:8081/repository/pypi/pypi \
@@ -35,7 +37,7 @@ RUN apk add --update --no-cache --virtual .build-deps  \
 
 
 ONBUILD RUN apk add --update --no-cache --virtual .build-deps  \
-        build-base gcc libffi-dev openssl-dev jpeg-dev && \
+        build-base gcc libffi-dev openssl-dev jpeg-dev $ADDITIONAL_APK && \
     pip install --upgrade \
     --index http://nexus.mmt.local:8081/repository/pypi/pypi \
     --index-url http://nexus.mmt.local:8081/repository/pypi/simple \
