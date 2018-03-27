@@ -36,7 +36,7 @@ RUN apk add --update --no-cache --virtual .build-deps  \
 
 
 ONBUILD RUN apk add --update --no-cache --virtual .build-deps  \
-        build-base gcc libffi-dev openssl-dev jpeg-dev $ADDITIONAL_APK && \
+        build-base gcc libffi-dev openssl-dev jpeg-dev linux-headers $ADDITIONAL_APK && \
     pip install --upgrade \
     --index http://nexus.mmt.local:8081/repository/pypi/pypi \
     --index-url http://nexus.mmt.local:8081/repository/pypi/simple \
