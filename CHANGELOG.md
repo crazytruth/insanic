@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.1.4 (unreleased)
+0.1.4 (2018-03-28)
 ------------------
 
 - UPGRADE: Upgrade aioredis for 1.1.0 compatibility
