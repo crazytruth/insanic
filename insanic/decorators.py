@@ -7,6 +7,9 @@ from insanic.conf import settings
 from insanic.connections import get_connection
 from sanic.response import json
 
+SEGMENT_DELIMITER = ":"
+QUERY_PARAM_DELIMITER = "|"
+
 
 class cache_get_response:
     """
@@ -29,7 +32,7 @@ class cache_get_response:
             request = view.request
             assert request.method == "GET", "Can only cache GET methods."
 
-            redis = await get_connection('redis')
+            redis = await get_connection('insanic')
             key = self.get_key(request)
             response = await self.get(redis, key)
             if response:
@@ -55,14 +58,14 @@ class cache_get_response:
         to_join = [service_name, uri]
         query_params = request.query_params
         for key in sorted(list(query_params.keys())):
-            query_param = query_params.get(key)
+            query_param = QUERY_PARAM_DELIMITER.join(query_params.getlist(key))
             to_join.extend([key, query_param])
 
-        key = ":".join(to_join)
+        key = SEGMENT_DELIMITER.join(to_join)
         return key
 
     async def get(self, redis, key):
-        async with redis.get() as conn:
+        with await redis as conn:
             value = await conn.get(key)
             if value:
                 value = jsonloads(value)
@@ -74,5 +77,5 @@ class cache_get_response:
 
         cache_data = jsondumps({"status": response.status, "body": jsonloads(response.body)})
 
-        async with redis.get() as conn:
+        with await redis as conn:
             await conn.set(key, cache_data, expire=ttl)
