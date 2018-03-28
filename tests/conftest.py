@@ -6,7 +6,14 @@ from insanic.authentication import handlers
 from insanic.conf import settings
 from insanic.models import User
 
+from pytest_redis import factories
+
 settings.configure(SERVICE_NAME="insanic")
+
+for cache_name, cache_config in settings.INSANIC_CACHES.items():
+    globals()[f"redisdb_{cache_name}"] = factories.redisdb('redis_proc', db=cache_config.get('DATABASE'))
+
+
 
 @pytest.fixture
 def insanic_application():
