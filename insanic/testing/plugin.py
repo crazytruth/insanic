@@ -13,10 +13,12 @@ from collections import OrderedDict
 from functools import partial
 from io import BytesIO
 from pytest_asyncio.plugin import unused_tcp_port
+from pytest_redis import factories
 from zipfile import ZipFile
 
 from redis.connection import Connection
 from insanic.authentication import handlers
+from insanic.connections import _connections
 from insanic.conf import settings
 from insanic.loading import get_service
 from insanic.models import User
@@ -102,6 +104,21 @@ def event_loop():
     loop.close()
 
 
+# to create pytest-redis connection fixtures for each database
+# for cache_name, cache_config in _connections.caches.items():
+# for cache_name, cache_config in settings.INSANIC_CACHES.items():
+#     globals()[f"redisdb_{cache_name}"] = factories.redisdb('redis_proc', db=cache_config.get('DATABASE'))
+@pytest.fixture(scope='function', autouse=True)
+async def close_connections(event_loop):
+    _connections.loop = event_loop
+    yield
+
+    close_tasks = _connections.close_all()
+    await close_tasks
+
+
+
+
 @pytest.fixture(scope='function', autouse=True)
 def monkeypatch_redis(monkeypatch, redisdb):
     # because of aynschronous issues while testing, aioredis needs to be monkeypatched
@@ -110,44 +127,48 @@ def monkeypatch_redis(monkeypatch, redisdb):
     settings.REDIS_PORT = int(port)
     settings.REDIS_HOST = '127.0.0.1'
 
+    yield
 
-    await_list = []
-
-    # the following two functions are required to make redis-py compatible with aioredis
-    def parse_response(connection, command_name, **options):
-        if isinstance(command_name, bytes):
-            command_name = command_name.decode()
-
-        response = connection.read_response()
-
-        if command_name == "FLUSHALL":
-            return response
-
-        async def _coro_wrapper(response):
-            if isinstance(response, list):
-                response = [i.decode() if isinstance(i, bytes) else i for i in response]
-            return response
-
-        task = _coro_wrapper(response)
-        await_list.append(task)
-
-        return task
-
-    def send_command(self, *args):
-        if isinstance(args[0], bytes):
-            args = list(args)
-            args[0] = args[0].decode()
-        self.send_packed_command(self.pack_command(*args))
-
-    monkeypatch.setattr(redisdb, 'parse_response', parse_response)
-    monkeypatch.setattr(Connection, 'send_command', send_command)
-
-
-    def execute(self, *args, **kwargs):
-        return asyncio.ensure_future(redisdb.execute_command(*args, **kwargs))
-
-    monkeypatch.setattr(RedisConnection, 'execute', execute)
+    # await_list = []
     #
+    # # the following two functions are required to make redis-py compatible with aioredis
+    # def parse_response(connection, command_name, **options):
+    #     if isinstance(command_name, bytes):
+    #         command_name = command_name.decode()
+    #
+    #     response = connection.read_response()
+    #
+    #     if command_name == "FLUSHALL":
+    #         return response
+    #
+    #     async def _coro_wrapper(response):
+    #         if isinstance(response, list):
+    #             response = [i.decode() if isinstance(i, bytes) else i for i in response]
+    #         return response
+    #
+    #     task = _coro_wrapper(response)
+    #     await_list.append(task)
+    #
+    #     return task
+    #
+    # def send_command(self, *args):
+    #     if isinstance(args[0], bytes):
+    #         args = list(args)
+    #         args[0] = args[0].decode()
+    #     self.send_packed_command(self.pack_command(*args))
+    #
+    # monkeypatch.setattr(redisdb, 'parse_response', parse_response)
+    # monkeypatch.setattr(Connection, 'send_command', send_command)
+    #
+    # def execute(self, *args, **kwargs):
+    #     return redisdb.execute_command(*args, **kwargs)
+    #     # async def _coro_wrapper(*args, **kwargs):
+    #     #     return redisdb.execute_command(*args, **kwargs)
+    #     #
+    #     # return _coro_wrapper(*args, **kwargs)
+    #
+    # monkeypatch.setattr(RedisConnection, 'execute', execute)
+
 
 @pytest.fixture(scope='function', autouse=True)
 def monkeypatch_service(request, monkeypatch, test_user):
@@ -198,11 +219,17 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
     running_containers = OrderedDict()
     running_services = OrderedDict()
     if launch_service:
-        DOCKER_PRIVATE_REPO = os.environ['INSANIC_TEST_DOCKER_REPO']
-        DOCKER_USERNAME = os.environ['INSANIC_TEST_DOCKER_USER']
-        DOCKER_PASSWORD = os.environ['INSANIC_TEST_DOCKER_PASSWORD']
-        DOCKER_WEB_SRC_TAG = os.environ['INSANIC_TEST_WEB_SRC_TAG']
-        TEST_PROJECT_ENV = os.environ['INSANIC_TEST_PROJECT_ENV']
+        # DOCKER_PRIVATE_REPO = os.environ['INSANIC_TEST_DOCKER_REPO']
+        # DOCKER_USERNAME = os.environ['INSANIC_TEST_DOCKER_USER']
+        # DOCKER_PASSWORD = os.environ['INSANIC_TEST_DOCKER_PASSWORD']
+        # DOCKER_WEB_SRC_TAG = os.environ['INSANIC_TEST_WEB_SRC_TAG']
+        # TEST_PROJECT_ENV = os.environ['INSANIC_TEST_PROJECT_ENV']
+
+        DOCKER_PRIVATE_REPO = settings.INSANIC_TEST_DOCKER_REPO
+        DOCKER_USERNAME = settings.INSANIC_TEST_DOCKER_USER
+        DOCKER_PASSWORD = settings.INSANIC_TEST_DOCKER_PASSWORD
+        DOCKER_WEB_SRC_TAG = settings.INSANIC_TEST_WEB_SRC_TAG
+        TEST_PROJECT_ENV = settings.INSANIC_TEST_PROJECT_ENV
 
         repository = None
         force_exit = None
