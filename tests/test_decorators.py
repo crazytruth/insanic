@@ -9,7 +9,7 @@ from insanic.exceptions import ValidationError
 from insanic.views import InsanicView
 
 
-def test_cache_get_response(insanic_application, redisdb):
+def test_cache_get_response(insanic_application, redisdb_insanic):
     response_body = {"insanic": ["gotta", "go"]}
 
     cache_decorator = cache_get_response()
@@ -33,7 +33,7 @@ def test_cache_get_response(insanic_application, redisdb):
 
     # check response value is equal to cached value
     cache_key = cache_decorator.get_key(request)
-    cache_value = json.loads(redisdb.get(cache_key).decode())
+    cache_value = json.loads(redisdb_insanic.get(cache_key).decode())
 
     assert cache_value['body'] == response_body
     assert cache_value['status'] == response.status
