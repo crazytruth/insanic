@@ -12,6 +12,35 @@ SERVICE_NAME = None
 
 SERVICE_CONNECTIONS = []
 
+INSANIC_CACHES = {
+    "insanic": {
+        "ENGINE": "aioredis",
+        "CONNECTION_INTERFACE": "create_redis_pool",
+        "CLOSE_CONNECTION_INTERFACE": (('close',), ("wait_closed",)),
+        "DATABASE": 1
+    },
+    "throttle": {
+        "ENGINE": "aioredis",
+        "CONNECTION_INTERFACE": "create_redis_pool",
+        "CLOSE_CONNECTION_INTERFACE": (('close',), ("wait_closed",)),
+        "DATABASE": 2
+    },
+    "infuse": {
+        "ENGINE": "aioredis",
+        "CONNECTION_INTERFACE": "create_redis_pool",
+        "CLOSE_CONNECTION_INTERFACE": (('close',), ("wait_closed",)),
+        "DATABASE": 3
+    },
+}
+
+CACHES = {
+    "default": {
+        "ENGINE": "aioredis",
+        "CONNECTION_INTERFACE": "create_redis_pool",
+        "CLOSE_CONNECTION_INTERFACE": (('close',), ("wait_closed",))
+    },
+}
+
 REDIS_HOST = "localhost"
 REDIS_PORT = 6379
 REDIS_DB = 0
@@ -90,3 +119,10 @@ THROTTLES = {
         'anon': None,
     },
 }
+
+CONSUL_HOST = "consul.mmt.local"
+CONSUL_PORT = "8500"
+VAULT_SCHEME = "http"
+VAULT_HOST = "vault.mmt.local"
+VAULT_PORT = 8200
+# VAULT_APPROLE_BIND_SECRET = "pull" # value can be pull or push

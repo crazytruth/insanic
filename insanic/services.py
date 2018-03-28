@@ -10,6 +10,7 @@ from yarl import URL
 
 from insanic import exceptions, status
 from insanic.conf import settings
+from insanic.connections import get_connection
 from insanic.errors import GlobalErrorCodes
 from insanic.functional import cached_property_with_ttl
 from insanic.log import logger
@@ -98,12 +99,9 @@ class Service:
     @property
     async def breaker(self):
         if self._breaker is None:
-
-            # conn = await get_connection('redis')
-            # conn = await conn.acquire()
-
-            conn = await aioredis.create_redis((settings.REDIS_HOST, settings.REDIS_PORT),
-                                               encoding='utf-8', db=settings.REDIS_DB)
+            # conn = await aioredis.create_redis((settings.REDIS_HOST, settings.REDIS_PORT),
+            #                                    encoding='utf-8', db=settings.REDIS_DB)
+            conn = await get_connection('infuse')
 
             self._registry.conn = conn
 
