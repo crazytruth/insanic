@@ -1,4 +1,5 @@
 import copy
+import os
 import sys
 import ujson as json
 import uuid
@@ -24,6 +25,7 @@ class PyTestCommand(TestCommand):
         import shlex
         # import here, cause outside the eggs aren't loaded
         import pytest
+        os.environ['MMT_ENV'] = "test"
 
         errno = pytest.main(shlex.split(self.pytest_args))
         sys.exit(errno)

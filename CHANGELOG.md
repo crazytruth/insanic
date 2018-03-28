@@ -4,7 +4,12 @@ Changelog for insanic
 0.1.4 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- UPGRADE: Upgrade aioredis for 1.1.0 compatibility
+- REFACTOR: cache connection usages
+- ADD: insanic default cache in default settings to divide cache usages
+- ADD: add different cache fixtures for insanic tests(not plugin)
+- FIX: but in cache_get_response decorator when query params has more than 1 item
+- REMOVE: monkeypatching redisdb for asyncio compatibility
 
 
 0.1.3 (2018-03-23)

@@ -6,6 +6,7 @@ from insanic.conf import settings
 from insanic.connections import get_connection
 from insanic.exceptions import ImproperlyConfigured
 
+THROTTLE_CACHE = "throttle"
 
 class BaseThrottle(object):
     """
@@ -55,7 +56,7 @@ class SimpleRateThrottle(BaseThrottle):
     Period should be one of: ('s', 'sec', 'm', 'min', 'h', 'hour', 'd', 'day')
     Previous request information used for throttling is stored in the cache.
     """
-    # cache = get_connection('redis')
+
     timer = time.time
     cache_format = 'throttle_%(scope)s_%(ident)s'
     scope = None
@@ -114,8 +115,8 @@ class SimpleRateThrottle(BaseThrottle):
         if self.key is None:
             return True
 
-        redis = await get_connection('redis')
-        async with redis.get() as conn:
+        redis = await get_connection(THROTTLE_CACHE)
+        with await redis as conn:
             history = await conn.get(self.key)
             self.history = json.loads(history) if history else []
 
@@ -135,8 +136,8 @@ class SimpleRateThrottle(BaseThrottle):
         into the cache.
         """
         self.history.insert(0, self.now)
-        redis = await get_connection('redis')
-        async with redis.get() as conn:
+        redis = await get_connection(THROTTLE_CACHE)
+        with await redis as conn:
             await conn.set(self.key, json.dumps(self.history), expire=self.duration)
         return True
 

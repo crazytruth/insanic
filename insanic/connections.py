@@ -7,18 +7,19 @@ from inspect import isawaitable, CO_ITERABLE_COROUTINE
 from threading import local
 
 from insanic.conf import settings
+from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import cached_property
 
-logger = logging.getLogger('sanic')
+logger = logging.getLogger('root')
 
 class ConnectionHandler:
 
-    def __init__(self, databases=None):
+    def __init__(self):
         """
         databases is an optional dictionary of database definitions (structured
         like settings.DATABASES).
         """
-        self._databases = databases
+        self._caches = None
         self._connections = local()
         self._loop = None
 
@@ -35,24 +36,21 @@ class ConnectionHandler:
 
 
     @cached_property
-    def databases(self):
-        if self._databases is None:
-            self._databases = {
-                "redis": {
-                    "ENGINE": "aioredis",
-                    "CONNECTION_INTERFACE" : "create_pool",
-                    "CLOSE_CONNECTION_INTERFACE": (('close',), ("wait_closed",))
-                },
-            }
+    def caches(self):
+        if self._caches is None:
+            caches = settings.INSANIC_CACHES
 
-        return self._databases
+            for k, v in settings.CACHES.items():
+                if k in caches:
+                    raise ImproperlyConfigured(f"Cannot override {k}.  This is a "
+                                               f"protected cache reserved for insanic use.")
+                caches.update({k: v})
+
+            self._caches = caches
+
+        return self._caches
 
     async def _get_connection(self, alias):
-        # if hasattr(self._connections, alias):
-        #     return getattr(self._connections, alias)
-
-        # db = self.databases[alias]
-        # conn = await self.connect(alias)
         conn = await self.connect(alias)
         setattr(self._connections, alias, conn)
 
@@ -60,13 +58,18 @@ class ConnectionHandler:
 
     async def connect(self, alias):
         # if alias == "redis_client":
+        connection_config = self.caches[alias]
 
-        if alias == "redis":
+        if connection_config['ENGINE'] == "aioredis":
             _pool = await aioredis.create_pool((settings.REDIS_HOST, settings.REDIS_PORT),
-                                               encoding='utf-8', db=int(settings.REDIS_DB), loop=self.loop,
-                                               minsize=5, maxsize=10)
+                                               encoding='utf-8',
+                                               db=int(connection_config.get("DATABASE", settings.REDIS_DB)),
+                                               loop=self.loop,
+                                               minsize=1, maxsize=10)
+        else:
+            raise ImproperlyConfigured(f"This engine has not been implemented in insanic yet.")
 
-            return _pool
+        return _pool
 
     def __getitem__(self, alias):
         if hasattr(self._connections, alias):
@@ -91,12 +94,12 @@ class ConnectionHandler:
         delattr(self._connections, item)
 
     def __iter__(self):
-        return iter(self.databases)
+        return iter(self.caches)
 
     def close_all(self):
 
         close_tasks = []
-        for a in self.databases.keys():
+        for a in self.caches.keys():
             close_tasks.append(asyncio.ensure_future(self.close(a)))
 
         return asyncio.gather(*close_tasks)
@@ -112,7 +115,7 @@ class ConnectionHandler:
             # if isawaitable(_conn):
             #     _conn = await _conn
 
-            close_connection_interface = self.databases[alias].get('CLOSE_CONNECTION_INTERFACE', [])
+            close_connection_interface = self.caches[alias].get('CLOSE_CONNECTION_INTERFACE', [])
 
             logger.info("Closing database connection: {0}".format(alias))
             for close_attr in close_connection_interface:
@@ -130,15 +133,14 @@ class ConnectionHandler:
                         await closing
         except AttributeError:
             pass
-
         except Exception as e:
             logger.info("Error when closing connection: {0}".format(alias))
             logger.info(e)
             traceback.print_exc()
         finally:
-
             if hasattr(self._connections, alias):
                 delattr(self._connections, alias)
+            self.loop = None
 
 
     def all(self):
@@ -150,7 +152,7 @@ _connections = ConnectionHandler()
 async def get_connection(alias):
     _conn = getattr(_connections, alias)
 
-    if isawaitable(_conn) and not isinstance(_conn, aioredis.RedisPool):
+    if isawaitable(_conn) and not isinstance(_conn, aioredis.ConnectionsPool):
         _conn = await _conn
 
-    return _conn
+    return aioredis.Redis(_conn)

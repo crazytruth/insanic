@@ -65,7 +65,7 @@ setup(
         'aiohttp>=3.0.0',
         'aiodns',
         # 'yarl==1.1.1',
-        'aioredis>=0.3.0,<1.0.0',
+        'aioredis>=1.1.0',
         'PyJWT',
         'aws-xray-sdk',
         "python-consul",

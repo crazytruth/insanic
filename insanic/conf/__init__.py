@@ -164,10 +164,12 @@ class BaseConfig(Config):
     #     """
 
     def __init__(self):
+        self._service_name = empty
         super().__init__()
         self.from_object(global_settings)
 
-        if self.SERVICE_NAME != "insanic" and self.SERVICE_NAME is not None:
+    def _load_from_service(self):
+        if self.SERVICE_NAME != "insanic" and self.SERVICE_NAME is not empty:
             self.SETTINGS_MODULE = "{0}.config".format(self.SERVICE_NAME)
 
             try:
@@ -185,37 +187,6 @@ class BaseConfig(Config):
             return self.__getattribute__(attr)
         except AttributeError as e:
             return super().__getattr__(attr)
-
-    # COMMON SETTINGS
-    # @cached_property
-    # def IS_DOCKER(self):
-    #     try:
-    #         with open('/proc/self/cgroup', 'r') as proc_file:
-    #             for line in proc_file:
-    #                 fields = line.strip().split('/')
-    #                 if fields[1] == 'docker':
-    #                     return True
-    #     except FileNotFoundError:
-    #         pass
-    #     return False
-
-    # @cached_property
-    # def SERVICE_NAME(self):
-    #     split_path = sys.argv[0].split('/')
-    #
-    #     # this means python was run in interactive mode
-    #     if len(split_path) == 0:
-    #         check_path = os.getcwd()
-    #     else:
-    #         try:
-    #             check_path = os.path.dirname(sys.argv[0])
-    #         except AttributeError:
-    #             check_path = os.getcwd()
-    #
-    #     package_name = check_path.split('/')[-1]
-    #     package_name = package_name.split('-')[-1]
-    #
-    #     return package_name
 
     @property
     def SERVICE_NAME(self):
@@ -257,11 +228,6 @@ class VaultConfig(BaseConfig):
         if env is None:
             logger.warning("MMT_ENV is not set in environment variables.  Please set `export MMT_ENV=<environment>`.")
         return env
-        # if not self._env:
-        #     self._env = os.environ.get('MMT_ENV', None)
-        #     if self._env is None:
-        #         logger.warning("MMT_ENV is not set in environment variables.  Please set `export MMT_ENV=<environment>`.")
-        # return self._env
 
     def can_vault(self, raise_exception=False):
         can_vault = self.VAULT_ROLE_ID is not None and self.MMT_ENV is not None
@@ -275,12 +241,14 @@ class VaultConfig(BaseConfig):
 
     def __init__(self, role_id=None):
 
+        super().__init__()
+
         self.vault_client = VaultClient(url=self.VAULT_URL)
         self.consul_client = consul.Consul()
 
         self._role_id = role_id
-        super().__init__()
 
+        self._load_from_service()
         self._load_from_vault()
 
     # def _load_secrets(self):
