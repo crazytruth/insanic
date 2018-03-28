@@ -7,16 +7,13 @@ import os
 import uuid
 import uvloop
 
-from aioredis.connection import RedisConnection
 from aws_xray_sdk.core.recorder import CONTEXT_MISSING_KEY
 from collections import OrderedDict
 from functools import partial
 from io import BytesIO
 from pytest_asyncio.plugin import unused_tcp_port
-from pytest_redis import factories
 from zipfile import ZipFile
 
-from redis.connection import Connection
 from insanic.authentication import handlers
 from insanic.connections import _connections
 from insanic.conf import settings
@@ -41,7 +38,7 @@ def silence_tracer(event_loop):
     os.environ[CONTEXT_MISSING_KEY] = "LOG_ERROR"
     xray_recorder.configure(context=AsyncContext(loop=event_loop))
 
-    segment = xray_recorder.begin_segment(name="test", sampling=0)
+    xray_recorder.begin_segment(name="test", sampling=0)
     yield
     try:
         xray_recorder.end_segment()
@@ -53,13 +50,16 @@ def silence_tracer(event_loop):
 def test_session_id():
     return str(uuid.uuid4())
 
+
 @pytest.fixture(scope="module", autouse=True)
 def test_module_id():
     return str(uuid.uuid4())
 
+
 @pytest.fixture(scope="function", autouse=True)
 def test_function_id():
     return str(uuid.uuid4())
+
 
 @pytest.fixture(scope="session")
 def session_unused_tcp_port_factory():
@@ -88,9 +88,11 @@ def test_user_token_factory():
 
     return factory
 
+
 @pytest.fixture(scope='session')
 def test_user(test_user_token_factory):
     return test_user_token_factory(email="staff@mmt.com", level=20)
+
 
 @pytest.fixture(scope='session')
 def test_staff_user(test_user_token_factory):
@@ -174,10 +176,11 @@ def monkeypatch_service(request, monkeypatch, test_user):
     else:
         monkeypatch.setattr(Service, '_dispatch', partial(MockService.mock_dispatch, test_user=test_user))
 
+
 async def wait_for_container(service, health_endpoint):
     for _ in range(30):
         try:
-            val = await service.http_dispatch('GET', health_endpoint, skip_breaker=True)
+            await service.http_dispatch('GET', health_endpoint, skip_breaker=True)
         except Exception as e:
             await asyncio.sleep(1)
         else:
@@ -202,6 +205,7 @@ def _download_bimil(tmpdir):
             if f.filename.startswith('settings'):
                 with z.open(f) as settings_file:
                     tmpdir.join(settings_file.name).write_binary(settings_file.read())
+
 
 @pytest.fixture(scope="session", autouse=True)
 async def run_services(request, test_session_id, session_unused_tcp_port_factory, tmpdir_factory):
@@ -228,13 +232,12 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
         DOCKER_WEB_SRC_TAG = settings.INSANIC_TEST_WEB_SRC_TAG
         TEST_PROJECT_ENV = settings.INSANIC_TEST_PROJECT_ENV
 
-        repository = None
         force_exit = None
         docker_client = docker.DockerClient(base_url="unix:///var/run/docker.sock")
         try:
 
             web_login_config = {"username": DOCKER_USERNAME, "password": DOCKER_PASSWORD}
-            login_response = docker_client.login(registry=DOCKER_PRIVATE_REPO, **web_login_config)
+            docker_client.login(registry=DOCKER_PRIVATE_REPO, **web_login_config)
 
             for service_name in settings.SERVICE_CONNECTIONS:
                 service_config = settings.SERVICE_LIST.get(service_name, {})
@@ -245,7 +248,6 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
                 settings.SERVICE_LIST.update({service_name: {"host": "localhost",
                                                              "external_service_port": bind_port,
                                                              "internal_service_port": internal_service_port}})
-
 
                 params = {
                     "name": "test-{0}-{1}".format(test_session_id, service_name),
@@ -265,9 +267,9 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
                     src_params["name"] = "test-{0}-{1}".format(test_session_id, "src")
                     src_params['labels'] = {"test_session": test_session_id}
 
-                    src_image = docker_client.images.pull(src_params['image'].rsplit(':', 1)[0],
-                                                          tag=src_params['image'].rsplit(':', 1)[1],
-                                                          auth_config=web_login_config)
+                    docker_client.images.pull(src_params['image'].rsplit(':', 1)[0],
+                                              tag=src_params['image'].rsplit(':', 1)[1],
+                                              auth_config=web_login_config)
                     src_container = docker_client.containers.run(**src_params)
 
                     temp_bimil = tmpdir_factory.mktemp('.bimil')
@@ -285,9 +287,9 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
                         "volumes": {temp_bimil.strpath: {'bind': '/opt/django/.bimil', 'mode': 'rw'}},
                         "entrypoint": ["/usr/bin/python", "/opt/django/mmt_mk2/manage.py", "runserver"],
                     })
-                    app_image = docker_client.images.pull(params['image'].rsplit(':', 1)[0],
-                                                          tag=params['image'].rsplit(':', 1)[1],
-                                                          auth_config=web_login_config)
+                    docker_client.images.pull(params['image'].rsplit(':', 1)[0],
+                                              tag=params['image'].rsplit(':', 1)[1],
+                                              auth_config=web_login_config)
                     app_container = docker_client.containers.run(**params)
 
                     celery_params = params.copy()

@@ -1,5 +1,5 @@
 from sanic import server
-from sanic.server import HttpProtocol, CIDict, ServerError
+from sanic.server import HttpProtocol, ServerError
 
 from insanic.log import access_logger, logger
 

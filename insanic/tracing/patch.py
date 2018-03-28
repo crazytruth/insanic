@@ -6,6 +6,7 @@ from aws_xray_sdk.ext.util import inject_trace_header, http
 from insanic.conf import settings
 from insanic.tracing.core import xray_recorder
 
+
 def patch():
     """
     Patch insanic service client so it generates subsegments
@@ -30,6 +31,7 @@ def _inject_header(wrapped, instance, args, kwargs):
     inject_trace_header(headers, xray_recorder.current_subsegment())
     return wrapped(*args, **kwargs)
 
+
 async def _xray_traced_service_dispatch(wrapped, instance, args, kwargs):
     result = await xray_recorder.record_subsegment_async(
         wrapped, instance, args, kwargs,
@@ -40,8 +42,9 @@ async def _xray_traced_service_dispatch(wrapped, instance, args, kwargs):
 
     return result
 
+
 def service_processor(wrapped, instance, args, kwargs,
-                       return_value, exception, subsegment, stack):
+                      return_value, exception, subsegment, stack):
 
     method = kwargs.get('method') or args[0]
     url = kwargs.get('url') or args[1]

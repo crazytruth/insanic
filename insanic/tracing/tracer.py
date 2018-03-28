@@ -23,14 +23,12 @@ class InsanicXRayMiddleware:
         recorder.configure(service=app.sampler.tracing_service_name, context=AsyncContext(loop=loop),
                            sampling=app.sampler.sampling_rules,
                            daemon_address=f"{app.config['HOST']}:{app.config['PORT']}",
-                           context_missing="LOG_ERROR" if app.config.MMT_ENV=="local" else "RUNTIME_ERROR")
+                           context_missing="LOG_ERROR" if app.config.MMT_ENV == "local" else "RUNTIME_ERROR")
 
         self.app = app
         logger.info("initializing xray middleware")
 
         self._recorder = recorder
-
-        self.listeners['after_server_start'].append(after_server_start_start_tracing)
 
         @app.middleware('request')
         async def start_trace(request):
@@ -116,5 +114,3 @@ class InsanicXRayMiddleware:
         stack = traceback.extract_stack(limit=self._recorder._max_trace_back)
         segment.add_exception(exception, stack)
         self._recorder.end_segment()
-
-

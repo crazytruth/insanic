@@ -5,6 +5,7 @@ from insanic.log import logger
 from insanic.tracing.tracer import InsanicXRayMiddleware
 from insanic.tracing.sampling import Sampler
 
+
 class InsanicTracer:
 
     @classmethod

@@ -38,7 +38,6 @@ class JSONFormatter(logging.Formatter):
                                   "insanic_version": __version__, "service_version": "0.0.1"}
         return self._extra_fields
 
-
     def formatTime(self, record, datefmt=None):
         s = super().formatTime(record, datefmt)
 
@@ -55,7 +54,7 @@ class JSONFormatter(logging.Formatter):
         super().format(record)
         # Add ours
         record.hostname = self.hostname
-        for k,v in self.extra_fields.items():
+        for k, v in self.extra_fields.items():
             setattr(record, k, v)
 
         # Apply format
@@ -86,8 +85,6 @@ class JSONFormatter(logging.Formatter):
 
         self._structuring(data, record)
         return json.dumps(data, sort_keys=True)
-
-
 
     def usesTime(self):
         return any([value.find('%(asctime)') >= 0

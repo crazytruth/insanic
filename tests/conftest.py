@@ -14,7 +14,6 @@ for cache_name, cache_config in settings.INSANIC_CACHES.items():
     globals()[f"redisdb_{cache_name}"] = factories.redisdb('redis_proc', db=cache_config.get('DATABASE'))
 
 
-
 @pytest.fixture
 def insanic_application():
     return Insanic("test")

@@ -2,14 +2,14 @@ from insanic.conf import settings
 from insanic.connections import _connections, get_connection
 from insanic.services import IS_INFUSED
 
-# async def before_server_stop_close_database(app, loop, **kwargs):
+
 async def after_server_stop_close_database(app, loop, **kwargs):
     close_tasks = _connections.close_all()
     await close_tasks
 
+
 async def after_server_start_connect_database(app, loop=None, **kwargs):
     _connections.loop = loop
-
 
 
 async def after_server_start_half_open_circuit(app, loop=None, **kwargs):
@@ -24,9 +24,7 @@ async def after_server_start_half_open_circuit(app, loop=None, **kwargs):
         redis = await get_connection('infuse')
         conn = await redis
 
-
         circuit_breaker_storage = CircuitAioRedisStorage(STATE_HALF_OPEN, conn, settings.SERVICE_NAME)
-
         breaker = await AioCircuitBreaker.initialize(fail_max=settings.INFUSE_MAX_FAILURE,
                                                      reset_timeout=settings.INFUSE_RESET_TIMEOUT,
                                                      state_storage=circuit_breaker_storage,

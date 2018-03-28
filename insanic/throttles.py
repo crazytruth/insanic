@@ -8,6 +8,7 @@ from insanic.exceptions import ImproperlyConfigured
 
 THROTTLE_CACHE = "throttle"
 
+
 class BaseThrottle(object):
     """
     Rate throttling of requests.

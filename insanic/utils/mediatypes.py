@@ -5,9 +5,6 @@ See http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.7
 """
 from __future__ import unicode_literals
 
-# from django.http.multipartparser import parse_header
-# from django.utils.encoding import python_2_unicode_compatible
-
 # Header encoding (see RFC5987)
 HTTP_HEADER_ENCODING = 'iso-8859-1'
 
@@ -30,6 +27,7 @@ def parse_header(line):
                 value = value.replace(b'\\\\', b'\\').replace(b'\\"', b'"')
             pdict[name] = value
     return key, pdict
+
 
 def media_type_matches(lhs, rhs):
     """
@@ -104,3 +102,18 @@ class _MediaType(object):
         for key, val in self.params.items():
             ret += "; %s=%s" % (key, val)
         return ret
+
+
+def _parse_header_params(s):
+    plist = []
+    while s[:1] == b';':
+        s = s[1:]
+        end = s.find(b';')
+        while end > 0 and s.count(b'"', 0, end) % 2:
+            end = s.find(b';', end + 1)
+        if end < 0:
+            end = len(s)
+        f = s[:end]
+        plist.append(f.strip())
+        s = s[end:]
+    return plist

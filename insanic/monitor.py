@@ -7,7 +7,7 @@ from insanic.status import HTTP_200_OK
 
 blueprint_monitor = Blueprint('monitor')
 
-#
+
 # A service has an health check API endpoint (e.g. HTTP /health) that returns the health of the service.
 # The API endpoint handler performs various checks, such as
 #

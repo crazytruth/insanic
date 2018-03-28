@@ -1,13 +1,11 @@
 import pytest
 
-from sanic import exceptions
-from sanic.exceptions import SanicException, _sanic_exceptions
+from sanic.exceptions import _sanic_exceptions
 from sanic.response import json
 from insanic import Insanic, authentication, permissions, status
 from insanic.choices import UserLevels
 from insanic.errors import GlobalErrorCodes
 from insanic.views import InsanicView
-
 
 
 def test_view_allowed_methods():
@@ -63,6 +61,7 @@ def test_not_found():
     request, response = app.test_client.get('/aaaa')
 
     assert response.status == status.HTTP_404_NOT_FOUND
+
 
 def test_view_only_json_authentication():
     app = Insanic('test')
@@ -176,7 +175,9 @@ def test_throttle():
     wait_time = 1000
 
     from insanic.throttles import BaseThrottle
+
     class ForceThrottle(BaseThrottle):
+
         async def allow_request(self, *args, **kwargs):
             return False
 

@@ -1,5 +1,4 @@
 import jwt
-import uuid
 
 from datetime import datetime
 from calendar import timegm
@@ -22,6 +21,7 @@ def jwt_decode_handler(token):
         issuer=settings.JWT_AUTH['JWT_ISSUER'],
         algorithms=[settings.JWT_AUTH['JWT_ALGORITHM']]
     )
+
 
 def jwt_payload_handler(user):
     username = user.email
@@ -57,5 +57,3 @@ def jwt_encode_handler(payload):
         settings.JWT_AUTH['JWT_PRIVATE_KEY'] or settings.SECRET_KEY,
         settings.JWT_AUTH['JWT_ALGORITHM']
     ).decode('utf-8')
-
-

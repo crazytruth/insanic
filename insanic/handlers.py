@@ -1,8 +1,6 @@
-import logging
-
 from sanic import exceptions as sanic_exceptions
-from sanic.response import json, html
-from sanic.handlers import ErrorHandler as SanicErrorHandler, format_exc, SanicException, INTERNAL_SERVER_ERROR_HTML
+from sanic.response import json
+from sanic.handlers import ErrorHandler as SanicErrorHandler, format_exc, SanicException
 
 from insanic import exceptions, status
 from insanic.conf import settings
@@ -10,12 +8,12 @@ from insanic.errors import GlobalErrorCodes
 from insanic.log import error_logger
 
 INTERNAL_SERVER_ERROR_JSON = {
-  "message": "Server Error",
-  "description": "Something has blown up really bad. Somebody should be notified?",
-  "error_code": {
-      "name": "unknown_error",
-      "value": 99999
-  }
+    "message": "Server Error",
+    "description": "Something has blown up really bad. Somebody should be notified?",
+    "error_code": {
+        "name": "unknown_error",
+        "value": 99999
+    }
 }
 
 
@@ -44,7 +42,6 @@ class ErrorHandler(SanicErrorHandler):
         #     exception.status_code = status.HTTP_403_FORBIDDEN
 
         return self.default(request, exception)
-
 
     def response(self, request, exception):
         """Fetches and executes an exception handler and returns a response
@@ -79,7 +76,6 @@ class ErrorHandler(SanicErrorHandler):
         response.exception = exception
         return response
 
-
     def default(self, request, exception):
         if settings.DEBUG:
             self.log(format_exc())
@@ -112,7 +108,6 @@ class ErrorHandler(SanicErrorHandler):
             response = self.handle_uncaught_exception(request, exception)
 
         return response
-
 
     def handle_uncaught_exception(self, request, exception, custom_message=INTERNAL_SERVER_ERROR_JSON):
 

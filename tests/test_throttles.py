@@ -7,7 +7,6 @@ from insanic.choices import UserLevels
 from insanic.conf import settings
 from insanic.exceptions import ImproperlyConfigured
 from insanic.models import User
-from insanic.request import Request
 from insanic.throttles import AnonRateThrottle, UserRateThrottle, BaseThrottle, ScopedRateThrottle, SimpleRateThrottle
 from insanic.views import InsanicView
 
@@ -105,7 +104,7 @@ class TestThrottling:
             if expect is not None:
                 assert response.headers['Retry-After'] == expect
             else:
-                assert not 'Retry-After' in response.headers
+                assert 'Retry-After' not in response.headers
 
     def test_seconds_fields(self, insanic_application, monkeypatch):
         """

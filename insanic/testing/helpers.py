@@ -30,9 +30,11 @@ class PyTestCommand(TestCommand):
         errno = pytest.main(shlex.split(self.pytest_args))
         sys.exit(errno)
 
+
 class BaseMockService:
 
     service_responses = {}
+
     def _key_for_request(self, method, endpoint):
         return (method.upper(), endpoint)
 
@@ -138,6 +140,8 @@ def _test_api_endpoint_assertion(response, response_body, expected_response_body
 
 TestParams = namedtuple('TestParams', ['method', 'endpoint', 'request_headers', 'request_body',
                                        'expected_response_status', 'expected_response_body', 'user_level'])
+
+
 def test_parameter_generator(method, endpoint, *, request_headers, request_body, expected_status_code,
                              expected_response, check_authorization=True, check_permissions=True,
                              user_level=DEFAULT_USER_LEVEL, **kwargs):
@@ -156,9 +160,10 @@ def test_parameter_generator(method, endpoint, *, request_headers, request_body,
         if "Authorization" in _req_headers:
             del _req_headers['Authorization']
 
-        p = test_parameters_template._replace(request_headers=_req_headers,
-                                              expected_response_status=401,
-                                              expected_response_body=GlobalErrorCodes.authentication_credentials_missing)
+        p = test_parameters_template. \
+            _replace(request_headers=_req_headers,
+                     expected_response_status=401,
+                     expected_response_body=GlobalErrorCodes.authentication_credentials_missing)
         # parameters.append(p)
         yield tuple(p)
 

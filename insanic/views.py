@@ -62,7 +62,6 @@ class InsanicView(HTTPMethodView):
     #                 request, message=getattr(permission, 'message', None)
     #             )
 
-
     def permission_denied(self, request, message=None):
         """
         If request is not permitted, determine what kind of exception to raise.

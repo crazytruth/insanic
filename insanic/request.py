@@ -2,7 +2,6 @@ import hashlib
 import io
 import time
 
-from httptools import parse_url
 from pprint import pformat
 
 from sanic.request import Request as SanicRequest, RequestParameters
@@ -29,8 +28,10 @@ class Empty:
     """
     pass
 
+
 def _hasattr(obj, name):
     return not getattr(obj, name) is Empty
+
 
 class Request(SanicRequest):
     """
@@ -53,15 +54,12 @@ class Request(SanicRequest):
         '_request_time', '_span'
     )
 
-
-
     def __init__(self, url_bytes, headers, version, method, transport,
                  authenticators=None):
 
         super().__init__(url_bytes, headers, version, method, transport)
         # self._request = request
         self._request_time = int(time.time() * 1000000)
-
 
         self._data = Empty
         self._files = Empty
@@ -80,7 +78,6 @@ class Request(SanicRequest):
     @span.setter
     def span(self, value):
         self._span = value
-
 
     @property
     def content_type(self):
@@ -309,4 +306,3 @@ def build_request_repr(request, path_override=None, GET_override=None,
                       str(cookies),
                       str(meta),
                       str(query_params)))
-

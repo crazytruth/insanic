@@ -71,6 +71,7 @@ class cached_property(object):
         res = instance.__dict__[self.func.__name__] = self.func(instance)
         return res
 
+
 empty = object()
 
 
@@ -152,11 +153,9 @@ class LazyObject(object):
             return result
         return copy.deepcopy(self._wrapped, memo)
 
-
     __bytes__ = new_method_proxy(bytes)
     __str__ = new_method_proxy(str)
     __bool__ = new_method_proxy(bool)
-
 
     # Introspection support
     __dir__ = new_method_proxy(dir)

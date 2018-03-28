@@ -3,8 +3,6 @@ import sys
 
 
 def get_logging_config():
-    from insanic.conf import settings
-
     LOGGING_CONFIG_DEFAULTS = dict(
         version=1,
         disable_existing_loggers=False,

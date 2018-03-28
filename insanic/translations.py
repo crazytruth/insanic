@@ -34,4 +34,3 @@ class _Translations(dict):
         if self.get(item, None) is None:
             self[item] = gettext.translation(self._domain, self._localedir, languages=[item], fallback=True)
         return super().__getitem__(item)
-

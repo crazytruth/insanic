@@ -45,7 +45,6 @@ def test_cache_get_response(insanic_application, redisdb_insanic):
 
 
 def test_cache_get_response_400(insanic_application, redisdb):
-    response_body = {"insanic": ["gotta", "go"]}
 
     cache_decorator = cache_get_response()
 
@@ -70,7 +69,7 @@ def test_cache_get_response_400(insanic_application, redisdb):
     cache_key = cache_decorator.get_key(request)
     cache_value = redisdb.get(cache_key)
 
-    assert cache_value == None
+    assert cache_value is None
 
     cached_keys = redisdb.keys('insanic:*')
     assert cached_keys == []

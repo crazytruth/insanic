@@ -60,9 +60,9 @@ class IsAuthenticatedOrReadOnly(BasePermission):
         user = await request.user
 
         return (
-                request.method in SAFE_METHODS or
-                not isinstance(user, _AnonymousUser)
+                request.method in SAFE_METHODS or not isinstance(user, _AnonymousUser)
         )
+
 
 class IsOwnerOrAdmin(BasePermission):
     """

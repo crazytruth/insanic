@@ -31,6 +31,7 @@ test_requires = [
     "pytest-sugar",
     "pytest-xdist",
     "chardet",
+    "pytest-flake8"
     # "beautifulsoup4"
     # "docker",
     # "aiobotocore",
@@ -87,4 +88,3 @@ setup(
     include_package_data=True,
     zip_safe=False
 )
-

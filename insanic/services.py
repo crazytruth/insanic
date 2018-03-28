@@ -1,5 +1,4 @@
 import aiohttp
-import aioredis
 import datetime
 import ujson as json
 
@@ -55,9 +54,9 @@ class ServiceRegistry(dict):
             super().__setitem__(key, item)
         return item
 
-# registry = ServiceRegistry()
 
 class Service:
+
     remove_headers = ["content-length", 'user-agent', 'host', 'postman-token']
 
     def __init__(self, service_type):
@@ -120,7 +119,6 @@ class Service:
                                                   connector=aiohttp.TCPConnector(limit_per_host=10))
         return self._session
 
-
     def _construct_url(self, endpoint, query_params={}):
 
         url = self.url.with_path(endpoint)
@@ -129,19 +127,18 @@ class Service:
         return url
         # return urljoin(self._base_url, endpoint)
 
-
     async def http_dispatch(self, method, endpoint, req_ctx={}, *, query_params={}, payload={}, headers={},
                             return_obj=True, propagate_error=False, skip_breaker=False, include_status_code=False):
 
         if method.upper() not in HTTP_METHODS:
             raise ValueError("{0} is not a valid method.".format(method))
 
-        response, status_code =  await self._dispatch(method, endpoint, req_ctx,
-                                                      query_params=query_params, payload=payload,
-                                                      headers=headers, return_obj=return_obj,
-                                                      propagate_error=propagate_error,
-                                                      skip_breaker=skip_breaker,
-                                                      include_status_code=include_status_code)
+        response, status_code = await self._dispatch(method, endpoint, req_ctx,
+                                                     query_params=query_params, payload=payload,
+                                                     headers=headers, return_obj=return_obj,
+                                                     propagate_error=propagate_error,
+                                                     skip_breaker=skip_breaker,
+                                                     include_status_code=include_status_code)
 
         response_text = await response.text()
         response_final = self._try_json_decode(response_text)
@@ -149,7 +146,6 @@ class Service:
         if include_status_code:
             return response_final, status_code
         return response_final
-
 
     def _prepare_headers(self, headers):
         for h in self.remove_headers:
@@ -200,7 +196,7 @@ class Service:
                 # resp = await request_method(str(outbound_request.url), headers=outbound_request.headers, data=payload)
 
                 resp = await breaker.call(request_method, str(outbound_request.url),
-                                               headers=outbound_request.headers, data=payload)
+                                          headers=outbound_request.headers, data=payload)
             else:
                 resp = await request_method(str(outbound_request.url), headers=outbound_request.headers, data=payload)
 
@@ -214,7 +210,8 @@ class Service:
         except aiohttp.client_exceptions.ClientResponseError as e:
             response = self._try_json_decode(response)
             status_code = e.code
-            error_code = GlobalErrorCodes.invalid_usage if status_code == status.HTTP_400_BAD_REQUEST else GlobalErrorCodes.unknown_error
+            error_code = GlobalErrorCodes.invalid_usage if status_code == status.HTTP_400_BAD_REQUEST \
+                else GlobalErrorCodes.unknown_error
             exc = exceptions.APIException(detail=response.get('description', response),
                                           error_code=response.get('error_code',
                                                                   error_code),
@@ -266,7 +263,6 @@ class Service:
                                               error_code=GlobalErrorCodes.unknown_error,
                                               status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
             raise exc
         except aiohttp.client_exceptions.ClientPayloadError as e:
             raise
@@ -280,4 +276,3 @@ class Service:
             pass
 
         return resp, response_status
-

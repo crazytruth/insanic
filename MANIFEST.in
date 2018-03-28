@@ -1,6 +1,6 @@
 include *.py
 include LICENSE
-include README.rst
+include README.md
 include CHANGELOG.md
 exclude Dockerfile
 exclude insanic/log/templates

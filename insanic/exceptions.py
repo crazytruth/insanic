@@ -37,13 +37,16 @@ class APIException(Exception):
     def __repr__(self):
         self.__str__()
 
+
 class ParseError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = 'Malformed request.'
 
+
 class BadRequest(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = "Bad request."
+
 
 class InvalidUsage(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
@@ -53,6 +56,7 @@ class InvalidUsage(APIException):
 class ValidationError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = "Validation Error"
+
 
 class NotFound(APIException):
     status_code = status.HTTP_404_NOT_FOUND
@@ -107,7 +111,7 @@ class Throttled(APIException):
     status_code = status.HTTP_429_TOO_MANY_REQUESTS
     default_detail = 'Request was throttled.'
     extra_detail = ('Expected available in %(wait)d second.',
-        'Expected available in %(wait)d seconds.')
+                    'Expected available in %(wait)d seconds.')
     error_code = GlobalErrorCodes.throttled
 
     def __init__(self, wait=None, detail=None):
@@ -125,6 +129,7 @@ class Throttled(APIException):
             else:
                 self.detail += ' ' + (self.extra_detail[1] % {'wait': self.wait})
 
+
 class FieldError(Exception):
     """Some kind of problem with a model field."""
     pass
@@ -138,9 +143,11 @@ class RawPostDataException(Exception):
     """
     pass
 
+
 class ServiceUnavailable503Error(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     default_detail = "Service unavailable."
+
 
 class UnprocessableEntity422Error(APIException):
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY

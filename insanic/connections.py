@@ -3,7 +3,7 @@ import asyncio
 import logging
 import traceback
 
-from inspect import isawaitable, CO_ITERABLE_COROUTINE
+from inspect import isawaitable
 from threading import local
 
 from insanic.conf import settings
@@ -11,6 +11,7 @@ from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import cached_property
 
 logger = logging.getLogger('root')
+
 
 class ConnectionHandler:
 
@@ -33,7 +34,6 @@ class ConnectionHandler:
     @loop.setter
     def loop(self, loop):
         self._loop = loop
-
 
     @cached_property
     def caches(self):
@@ -142,9 +142,9 @@ class ConnectionHandler:
                 delattr(self._connections, alias)
             self.loop = None
 
-
     def all(self):
         return [self[alias] for alias in self]
+
 
 _connections = ConnectionHandler()
 

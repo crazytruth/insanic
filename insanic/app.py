@@ -1,7 +1,6 @@
 from sanic import Sanic
 from sanic_useragent import SanicUserAgent
 
-from insanic.functional import cached_property
 from insanic.handlers import ErrorHandler
 from insanic.monitor import blueprint_monitor
 from insanic.log import get_logging_config
@@ -11,6 +10,7 @@ from insanic.tracing import InsanicTracer
 
 LISTENER_TYPES = ("before_server_start", "after_server_start", "before_server_stop", "after_server_stop")
 MIDDLEWARE_TYPES = ('request', 'response')
+
 
 class Insanic(Sanic):
     database = None
@@ -56,8 +56,6 @@ class Insanic(Sanic):
         SanicUserAgent.init_app(self)
         InsanicTracer.init_app(self)
         super().run(*args, **kwargs)
-
-
 
     def _helper(self, **kwargs):
         """Helper function used by `run` and `create_server`."""
