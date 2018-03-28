@@ -117,17 +117,14 @@ async def close_connections(event_loop):
     await close_tasks
 
 
-
-
-@pytest.fixture(scope='function', autouse=True)
-def monkeypatch_redis(monkeypatch, redisdb):
+@pytest.fixture(scope='session', autouse=True)
+def monkeypatch_redis(redis_proc):
     # because of aynschronous issues while testing, aioredis needs to be monkeypatched
 
-    port = redisdb.connection_pool.connection_kwargs['path'].split('/')[-1].split('.')[1]
-    settings.REDIS_PORT = int(port)
-    settings.REDIS_HOST = '127.0.0.1'
+    settings.REDIS_PORT = redis_proc.port
+    settings.REDIS_HOST = redis_proc.host
 
-    yield
+    # yield
 
     # await_list = []
     #

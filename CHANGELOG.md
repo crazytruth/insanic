@@ -4,7 +4,7 @@ Changelog for insanic
 0.1.5 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: redis port settings when running tests
 
 
 0.1.4 (2018-03-28)
