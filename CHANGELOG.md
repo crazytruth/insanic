@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.1.8 (unreleased)
+0.1.8 (2018-03-29)
 ------------------
 
 - FIX: remove content type when making requests in test_api_endpoint
