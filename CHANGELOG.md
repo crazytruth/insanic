@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.1.6 (unreleased)
+0.1.6 (2018-03-29)
 ------------------
 
 - REFACTOR: flake8 compliance
