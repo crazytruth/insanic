@@ -87,9 +87,11 @@ def test_api_endpoint(insanic_application, test_user_token_factory, endpoint, me
 
     handler = getattr(insanic_application.test_client, method.lower())
 
-    request_headers.update({"content-type": "application/json", "accept": "application/json"})
-    if "Authorization" in request_headers:
-        request_headers.update({"Authorization": test_user_token_factory(email="test@mmt.com", level=user_level)})
+    request_headers.update({"accept": "application/json"})
+    if "content-type" not in [h.lower() for h in request_headers.keys()]:
+        request_headers.update({"content-type": "application/json"})
+    if "authorization" in [h.lower() for h in request_headers.keys()]:
+        request_headers.update({"authorization": test_user_token_factory(email="test@mmt.com", level=user_level)})
 
     request, response = handler(endpoint,
                                 debug=True,

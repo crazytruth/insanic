@@ -4,7 +4,8 @@ Changelog for insanic
 0.1.6 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- REFACTOR: flake8 compliance
+- FEAT: support content type in test_api_endpoints
 
 
 0.1.5 (2018-03-28)
