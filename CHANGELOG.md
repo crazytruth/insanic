@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.1.9 (unreleased)
+0.1.9 (2018-03-29)
 ------------------
 
 - REVERT: authorization header check in test_api_endpoint
