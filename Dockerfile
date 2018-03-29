@@ -11,6 +11,9 @@ ONBUILD ARG SERVICE
 ONBUILD ARG ADDITIONAL_APK
 ONBUILD COPY requirements.txt /tmp
 
+ONBUILD ENV ADDITIONAL_APK=$ADDITIONAL_APK
+ONBUILD RUN echo $ADDITIONAL_APK
+
 RUN apk add --update --no-cache --virtual .build-deps  \
         build-base gcc libffi-dev openssl-dev jpeg-dev && \
     pip install --upgrade \
