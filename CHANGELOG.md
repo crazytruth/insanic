@@ -4,7 +4,8 @@ Changelog for insanic
 0.1.7 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: fix for when content-type is not json and data sent as json
+- REVERT: authorization header in test_api_endpoint
 
 
 0.1.6 (2018-03-29)
