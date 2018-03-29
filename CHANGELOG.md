@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.1.7 (unreleased)
+0.1.7 (2018-03-29)
 ------------------
 
 - FIX: fix for when content-type is not json and data sent as json
