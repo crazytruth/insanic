@@ -16,9 +16,11 @@ from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import LazyObject, empty, cached_property, cached_property_with_ttl
 from insanic.scopes import is_docker
 from . import global_settings
+from .base import BaseConfig
 
 logger = logging.getLogger('root')
 ENVIRONMENT_VARIABLE = "VAULT_ROLE_ID"
+PROTECTED_VARIABLES = ["MMT_ENV", "SERVICE_NAME", "SERVICE_LIST"]
 
 
 class LazySettings(LazyObject):
@@ -50,14 +52,14 @@ class LazySettings(LazyObject):
         if self._wrapped is empty:
             return '<LazySettings [Unevaluated]>'
         return '<LazySettings "%(settings_module)s">' % {
-            'settings_module': self._wrapped.SETTINGS_MODULE,
+            'settings_module': self._wrapped.__class__.__name__,
         }
 
     def __getattr__(self, name):
         """Return the value of a setting and cache it in self.__dict__."""
         if self._wrapped is empty:
             self._setup(name)
-        val = getattr(self._wrapped, name)
+        val = self.__dict__.get(name) or getattr(self._wrapped, name)
         # self.__dict__[name] = val
         return val
 
@@ -74,6 +76,7 @@ class LazySettings(LazyObject):
 
     def __delattr__(self, name):
         """Delete a setting and clear it from cache if needed."""
+
         super().__delattr__(name)
         self.__dict__.pop(name, None)
 
@@ -98,131 +101,29 @@ class LazySettings(LazyObject):
         return self._wrapped is not empty
 
 
-class BaseConfig(Config):
-    LOGO = """
-                                  ***********.
-                              **********************
-                                      *******./@@@&(@@@@@@((((@/ (
-                                          ** @@#&@%@@@@/@@@#@@@*@@@       __________________________
-                         *****,             @@@@@,   % @@@@&@,,*@@@.     /                           \\
-                     *******************  #@ /. @@@ @@&&@@@ @@@@@@@*(   |   Gotta go insanely fast !  |
-                     *,  ,************** @@/@ , @@@@@&  @@@@ @@@@ @@@   | ____________________________/
-                         ,,****,      .** ,&@# &@/%  &/@@@.(*@@@..*@ @  |/
-                 ,*****************         @@@ @   . @@@.@&&@(&   @,
-                            ,************   .@@@@ @@%@@,         ./@
-                 ,                   .*******  @@%@@. #@ @@ @ &  %@@
-                      *********,          .****   #@*@@&&&&&@@*@@@
-                             ,******,           * *** #@@@@@@@@@@@@@
-                                     .*,          * ******
-                         ,***************,   ,****************               *********,
-                     ********************* *************************,     **       *****
-                  *************     ********************************** *             ****
-                ********,,************ ***********&&&&&&&&&(***********                **,
-               ****** *******    ***************,&&&&&&&&&&&&&&%*******              ,@@@@@@
-         %@@,,@#.*************,******.**********&&&&&&&&&&&&&&&&*******            @@@@@@#
-         @@@@@@@@@@@@@*************************,&&&&&&&&&&&&&&&*******
-        @@@@@@@@@@@@@@   **, ,*****************#&&&&&&&&&&&&&&********
-         @@@@@@@@@@@@%      *******,***********#&&&&&&&&&&&&&,********
-          @@@@@@@@@@@            ****,********* &&&&&&&&&&&&,*******,
-             &@@@@@                   **********&&&&&&&&&&*********
-                                     * ***************************
-                                        ************************
-                                   *****,*,***************,**
-                                *******,   ***************, ***
-                             *******         ***********,   ***
-                          *****                              ***
-                        ****,                                 **,
-                      ****,                                   ***
-                    ,****                                      ***
-                    *****                                       *****
-                    **                                            ********    ******
-         ****************,                                          ,**************
-         ,***************
-              ,******
-
+class VaultConfig(BaseConfig):
+    vault_logo = """
+██╗   ██╗ █████╗ ██╗   ██╗██╗  ████████╗
+██║   ██║██╔══██╗██║   ██║██║  ╚══██╔══╝
+██║   ██║███████║██║   ██║██║     ██║   
+╚██╗ ██╔╝██╔══██║██║   ██║██║     ██║   
+ ╚████╔╝ ██║  ██║╚██████╔╝███████╗██║   
+  ╚═══╝  ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝          
     """
 
-    # """
-    #                      ▄▄▄▄▄
-    #             ▀▀▀██████▄▄▄       __________________________
-    #           ▄▄▄▄▄  █████████▄  /                           \\
-    #          ▀▀▀▀█████▌▀ ▐▄ ▀▐█ |   Gotta go insanely fast !  |
-    #        ▀▀█████▄▄ ▀██████▄██ | ____________________________/
-    #        ▀▄▄▄▄▄  ▀▀█▄▀█════█▀ |/
-    #             ▀▀▀▄  ▀▀███ ▀       ▄▄
-    #          ▄███▀▀██▄████████▄ ▄▀▀▀▀▀▀█▌
-    #        ██▀▄▄▄██▀▄███▀ ▀▀████      ▄██
-    #     ▄▀▀▀▄██▄▀▀▌████▒▒▒▒▒▒███     ▌▄▄▀
-    #     ▌    ▐▀████▐███▒▒▒▒▒▐██▌
-    #     ▀▄▄▄▄▀   ▀▀████▒▒▒▒▄██▀
-    #               ▀▀█████████▀
-    #             ▄▄██▀██████▀█
-    #           ▄██▀     ▀▀▀  █
-    #          ▄█             ▐▌
-    #      ▄▄▄▄█▌              ▀█▄▄▄▄▀▀▄
-    #     ▌     ▐                ▀▀▄▄▄▀
-    #      ▀▀▄▄▀
-    #     """
+    vault_common_path = "msa/{env}/common"
+    vault_service_path = "msa/{env}/{service_name}"
 
-    def __init__(self):
-        self._service_name = empty
+    def __init__(self, role_id=None):
+
         super().__init__()
-        self.from_object(global_settings)
 
-    def _load_from_service(self):
-        if self.SERVICE_NAME != "insanic" and self.SERVICE_NAME is not empty:
-            self.SETTINGS_MODULE = "{0}.config".format(self.SERVICE_NAME)
+        self.vault_client = VaultClient(url=self.VAULT_URL)
+        self.consul_client = consul.Consul()
 
-            try:
-                config_module = importlib.import_module(self.SETTINGS_MODULE)
-                self.from_object(config_module)
-            except ImportError as e:
-                logger.debug(
-                    "Could not import settings '%s' (Is it on sys.path? Is there an import "
-                    "error in the settings file?): %s %s"
-                    % (self.SETTINGS_MODULE, e, sys.path)
-                )
-                raise e
+        self._role_id = role_id
 
-    def __getattr__(self, attr):
-        try:
-            return self.__getattribute__(attr)
-        except AttributeError as e:
-            return super().__getattr__(attr)
-
-    @property
-    def SERVICE_NAME(self):
-        return self._service_name
-
-    @SERVICE_NAME.setter
-    def SERVICE_NAME(self, val):
-        self._service_name = val
-
-
-class VaultConfig(BaseConfig):
-    CONSUL_HOST = "consul.mmt.local"
-    CONSUL_PORT = "8500"
-
-    @property
-    def VAULT_SCHEME(self):
-        return "http"
-
-    @property
-    def VAULT_HOST(self):
-        return "vault.mmt.local"
-
-    @property
-    def VAULT_PORT(self):
-        return 8200
-
-    @property
-    def VAULT_URL(self):
-        url = URL(f"{self.VAULT_SCHEME}://{self.VAULT_HOST}:{self.VAULT_PORT}")
-        return str(url)
-
-    @property
-    def VAULT_ROLE_ID(self):
-        return self._role_id
+        self.load_from_vault()
 
     @property
     def MMT_ENV(self):
@@ -240,18 +141,6 @@ class VaultConfig(BaseConfig):
                 raise EnvironmentError(
                     f"VAULT_ROLE_ID and MMT_ENV are required for importing configurations from vault.")
             return can_vault
-
-    def __init__(self, role_id=None):
-
-        super().__init__()
-
-        self.vault_client = VaultClient(url=self.VAULT_URL)
-        self.consul_client = consul.Consul()
-
-        self._role_id = role_id
-
-        self._load_from_service()
-        self._load_from_vault()
 
     # def _load_secrets(self):
     #
@@ -284,39 +173,84 @@ class VaultConfig(BaseConfig):
     #             if key.isupper():
     #                 self[key] = getattr(module, key)
 
-    def _load_from_vault(self):
+    def load_from_vault(self, raise_exception=False):
 
         try:
             self.can_vault(raise_exception=True)
         except EnvironmentError as e:
             logger.critical(f"Configs not set from VAULT!! {e.args[0]}")
+            if raise_exception:
+                raise
         else:
             try:
-                common_settings = self.vault_client.read(f"msa/{self.MMT_ENV}/common")
-                service_settings = self.vault_client.read(f"msa/{self.MMT_ENV}/{self.SERVICE_NAME}")
+                common_settings = self.vault_client.read(self.vault_common_path.format(env=self.MMT_ENV))
+                service_settings = self.vault_client.read(
+                    self.vault_service_path.format(env=self.MMT_ENV, service_name=self.SERVICE_NAME))
             except Forbidden:
                 msg = f"Unable to load settings from vault. Please check settings exists for " \
                       f"the environment and service. ENV: {self.MMT_ENV} SERVICE: {self.SERVICE_NAME}"
+                if not is_docker:
+                    msg = self.vault_logo + msg
                 logger.critical(msg)
-                raise EnvironmentError(msg)
+                # raise EnvironmentError(msg)
+                if raise_exception:
+                    raise
             else:
                 common_settings = common_settings['data']
                 service_settings = service_settings['data']
 
                 for k, v in common_settings.items():
-                    self[k.upper()] = v
+                    setattr(self, k.upper(), v)
 
                 for k, v in service_settings.items():
-                    self[k.upper()] = v
+                    setattr(self, k.upper(), v)
 
-    @cached_property
+    @property
     def SERVICE_NAME(self):
-        if self.can_vault():
-            login_response = self.vault_client.auth_approle(self.VAULT_ROLE_ID)
-            return login_response['auth']['metadata']['role_name'].split('-')[-1]
-        else:
-            return super().SERVICE_NAME
+        if self._service_name is empty:
+            if self.can_vault():
+                login_response = self.vault_client.auth_approle(self.VAULT_ROLE_ID)
+                self._service_name = login_response['auth']['metadata']['role_name'].split('-')[-1]
+            else:
+                self._service_name = super().SERVICE_NAME
+        return self._service_name
 
+    @SERVICE_NAME.setter
+    def SERVICE_NAME(self, val):
+        self._service_name = val
+
+    # consul related properties
+    @property
+    def CONSUL_HOST(self):
+        return "consul.mmt.local"
+
+    @property
+    def CONSUL_PORT(self):
+        return "8500"
+
+    # vault related properties
+    @property
+    def VAULT_SCHEME(self):
+        return "http"
+
+    @property
+    def VAULT_HOST(self):
+        return "vault.mmt.local"
+
+    @property
+    def VAULT_PORT(self):
+        return 8200
+
+    @property
+    def VAULT_URL(self):
+        url = URL(f"{self.VAULT_SCHEME}://{self.VAULT_HOST}:{self.VAULT_PORT}")
+        return str(url)
+
+    @property
+    def VAULT_ROLE_ID(self):
+        return self._role_id
+
+    # swarm related properties
     @cached_property_with_ttl(ttl=60)
     def SWARM_MANAGER_HOSTS(self):
         nodes = self.consul_client.catalog.nodes()
@@ -339,6 +273,7 @@ class VaultConfig(BaseConfig):
     def SWARM_MANAGER_URL(self):
         return URL(f"{self.SWARM_MANAGER_SCHEME}://{self.SWARM_MANAGER_HOST}:{self.SWARM_MANAGER_PORT}")
 
+    # service related properties
     @cached_property
     def SERVICE_LIST(self):
 
@@ -394,8 +329,13 @@ class VaultConfig(BaseConfig):
                     services_config[service_name]['host'] = self.SWARM_MANAGER_HOST
         return services_config
 
+    def __repr__(self):
+        return '<%(cls)s>' % {
+            'cls': self.__class__.__name__,
+        }
 
-class UserSettingsHolder:
+
+class UserSettingsHolder:  # pragma: no cover
     """Holder for user configured settings."""
     # SETTINGS_MODULE doesn't make much sense in the manually configured
     # (standalone) case.
