@@ -127,7 +127,10 @@ class BaseConfig:
         """
         for key in dir(obj):
             if key.isupper():
-                setattr(self, key, getattr(obj, key))
+                try:
+                    setattr(self, key, getattr(obj, key))
+                except AttributeError:
+                    pass
 
     def load_environment_vars(self, prefix=INSANIC_PREFIX):
         """

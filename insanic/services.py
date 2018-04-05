@@ -8,6 +8,7 @@ from sanic.constants import HTTP_METHODS
 from yarl import URL
 
 from insanic import exceptions, status
+from insanic.authentication.handlers import jwt_service_encode_handler, jwt_service_payload_handler
 from insanic.conf import settings
 from insanic.connections import get_connection
 from insanic.errors import GlobalErrorCodes
@@ -65,6 +66,11 @@ class Service:
         self._service_name = service_type
         self._session = None
         self._breaker = None
+        self._service_auth_token = jwt_service_encode_handler(jwt_service_payload_handler(self))
+
+    @property
+    def service_name(self):
+        return self._service_name
 
     def _service_spec(self, raise_exception=False):
         spec = settings.SERVICE_LIST.get(self._service_name, {})
@@ -157,15 +163,10 @@ class Service:
         # headers.update({"Referrer": "https://staging.mymusictaste.com"})
         headers.update({"Date": datetime.datetime.utcnow()
                        .replace(tzinfo=datetime.timezone.utc).strftime("%a, %d %b %y %T %z")})
-        # headers.update({"user-agent": "mmt-service-{0}/{1}".format(settings.SERVICE_NAME, '0.0.1')})
-        # headers.update({"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) "
-        #                               "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"})
 
-        # m = hashlib.sha256()
-        # m.update('mmt-server-{0}'.format(self._service_name).encode())
-        # m.update(settings.WEB_SECRET_KEY.encode())
-        #
-        # headers.update({"mmt-token": m.hexdigest()})
+        headers.update(
+            {"MMT-Authorization": f"{settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX']} {self._service_auth_token}"})
+
         return headers
 
     def _try_json_decode(self, data):

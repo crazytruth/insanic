@@ -4,7 +4,7 @@ Changelog for insanic
 0.1.10 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- Inject service tokens on inter service requests
 
 
 0.1.9 (2018-03-29)

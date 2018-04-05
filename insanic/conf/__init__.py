@@ -100,6 +100,15 @@ class LazySettings(LazyObject):
         """
         return self._wrapped is not empty
 
+    def get(self, item, default=empty):
+        try:
+            if default is empty:
+                return getattr(self, item)
+            else:
+                return getattr(self, item, default)
+        except AttributeError:
+            return None
+
 
 class VaultConfig(BaseConfig):
     vault_logo = """
@@ -116,13 +125,11 @@ class VaultConfig(BaseConfig):
 
     def __init__(self, role_id=None):
 
-        super().__init__()
-
+        self._role_id = role_id
         self.vault_client = VaultClient(url=self.VAULT_URL)
         self.consul_client = consul.Consul()
 
-        self._role_id = role_id
-
+        super().__init__()
         self.load_from_vault()
 
     @property

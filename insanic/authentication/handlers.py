@@ -1,4 +1,5 @@
 import jwt
+import socket
 
 from datetime import datetime
 from calendar import timegm
@@ -57,3 +58,17 @@ def jwt_encode_handler(payload):
         settings.JWT_AUTH['JWT_PRIVATE_KEY'] or settings.SECRET_KEY,
         settings.JWT_AUTH['JWT_ALGORITHM']
     ).decode('utf-8')
+
+
+def jwt_service_payload_handler(service):
+    payload = {
+        "source": settings.SERVICE_NAME,
+        "aud": service.service_name,
+        "source_ip": socket.gethostbyname(socket.gethostname()),
+        "destination_version": "0.0.1"
+    }
+    return payload
+
+
+def jwt_service_encode_handler(payload):
+    return jwt.encode(payload, settings.SERVICE_TOKEN_KEY, settings.JWT_SERVICE_AUTH['JWT_ALGORITHM'])
