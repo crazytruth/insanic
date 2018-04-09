@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.1.10 (unreleased)
+0.1.10 (2018-04-09)
 -------------------
 
 - BREAKING: remove MMT_ENV in *.config
