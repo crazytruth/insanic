@@ -122,51 +122,8 @@ async def close_connections(event_loop):
 @pytest.fixture(scope='session', autouse=True)
 def monkeypatch_redis(redis_proc):
     # because of aynschronous issues while testing, aioredis needs to be monkeypatched
-
     settings.REDIS_PORT = redis_proc.port
     settings.REDIS_HOST = redis_proc.host
-
-    # yield
-
-    # await_list = []
-    #
-    # # the following two functions are required to make redis-py compatible with aioredis
-    # def parse_response(connection, command_name, **options):
-    #     if isinstance(command_name, bytes):
-    #         command_name = command_name.decode()
-    #
-    #     response = connection.read_response()
-    #
-    #     if command_name == "FLUSHALL":
-    #         return response
-    #
-    #     async def _coro_wrapper(response):
-    #         if isinstance(response, list):
-    #             response = [i.decode() if isinstance(i, bytes) else i for i in response]
-    #         return response
-    #
-    #     task = _coro_wrapper(response)
-    #     await_list.append(task)
-    #
-    #     return task
-    #
-    # def send_command(self, *args):
-    #     if isinstance(args[0], bytes):
-    #         args = list(args)
-    #         args[0] = args[0].decode()
-    #     self.send_packed_command(self.pack_command(*args))
-    #
-    # monkeypatch.setattr(redisdb, 'parse_response', parse_response)
-    # monkeypatch.setattr(Connection, 'send_command', send_command)
-    #
-    # def execute(self, *args, **kwargs):
-    #     return redisdb.execute_command(*args, **kwargs)
-    #     # async def _coro_wrapper(*args, **kwargs):
-    #     #     return redisdb.execute_command(*args, **kwargs)
-    #     #
-    #     # return _coro_wrapper(*args, **kwargs)
-    #
-    # monkeypatch.setattr(RedisConnection, 'execute', execute)
 
 
 @pytest.fixture(scope='function', autouse=True)
