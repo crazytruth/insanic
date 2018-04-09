@@ -7,6 +7,7 @@ Changelog for insanic
 - Inject service tokens on inter service requests
 - add IsServiceOnly permission
 - authorization header overwrite when request headers declared during endpoint tests
+- DEPRECATED: return_obj in service http_dispatch has been removed
 
 
 0.1.9 (2018-03-29)
