@@ -1,6 +1,7 @@
 import datetime
 
 SECRET_KEY = ''
+SERVICE_TOKEN_KEY = ""
 
 ADMINS = (
     ('David', 'david@mymusictaste.com')
@@ -82,7 +83,7 @@ JWT_SERVICE_AUTH = {
     'JWT_ALGORITHM': 'HS256',
     'JWT_ROLE': 'service',
     'JWT_AUTH_HEADER_PREFIX': 'MSA',
-
+    'JWT_VERIFY': True,
 }
 
 INTERNAL_IPS = ()

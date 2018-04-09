@@ -68,6 +68,11 @@ class AuthenticationFailed(APIException):
     default_detail = 'Incorrect authentication credentials.'
 
 
+class ServiceAuthenticationFailed(APIException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    default_detail = 'Incorrect authentication credentials from service.'
+
+
 class NotAuthenticated(APIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     default_detail = 'Authentication credentials were not provided.'

@@ -1,4 +1,3 @@
-import hashlib
 import io
 import time
 
@@ -7,7 +6,7 @@ from pprint import pformat
 from sanic.request import Request as SanicRequest, RequestParameters
 
 from insanic import exceptions
-from insanic.conf import settings
+from insanic.functional import empty
 from insanic.utils import force_str
 from insanic.utils.mediatypes import parse_header, HTTP_HEADER_ENCODING
 
@@ -21,19 +20,73 @@ def is_form_media_type(media_type):
             base_media_type == 'multipart/form-data')
 
 
-class Empty:
-    """
-    Placeholder for unset attributes.
-    Cannot use `None`, as that may be a valid value.
-    """
-    pass
-
-
 def _hasattr(obj, name):
-    return not getattr(obj, name) is Empty
+    return not getattr(obj, name) is empty
 
 
-class Request(SanicRequest):
+class ServiceAuthenticationMixin:
+
+    @property
+    async def service(self):
+        if not hasattr(self, '_service'):
+            await self._service_authenticate()
+        return self._service
+
+    @service.setter
+    def service(self, value):
+        self._service = value
+
+    @property
+    def service_auth(self):
+        """
+        Returns any non-user authentication information associated with the
+        request, such as an authentication token.
+        """
+        if not hasattr(self, '_service_auth'):
+            self._service_authenticate()
+        return self._service_auth
+
+    @service_auth.setter
+    def service_auth(self, value):
+        """
+        Sets any non-user authentication information associated with the
+        request, such as an authentication token.
+        """
+        self._service_auth = value
+
+    async def _service_authenticate(self):
+        """
+        Attempt to authenticate the request using each authentication instance
+        in turn.
+        Returns a three-tuple of (authenticator, user, authtoken).
+        """
+        for authenticator in self.service_authenticators:
+            try:
+                service_auth_tuple = await authenticator.authenticate(self)
+            except exceptions.APIException:
+                self._not_service_authenticated()
+                raise
+
+            if service_auth_tuple is not None:
+                self._service_authenticator = authenticator
+                self.service, self.service_auth = service_auth_tuple
+                return
+
+        self._not_service_authenticated()
+
+    def _not_service_authenticated(self):
+        """
+        Set authenticator, user & authtoken representing an unauthenticated request.
+
+        Defaults are None, AnonymousUser & None.
+        """
+        from insanic.models import AnonymousRequestService
+        self._service_authenticator = None
+        self.service = AnonymousRequestService
+        self.service_auth = None
+
+
+class Request(ServiceAuthenticationMixin, SanicRequest):
     """
     Wrapper allowing to enhance a standard `HttpRequest` instance.
 
@@ -50,8 +103,8 @@ class Request(SanicRequest):
         'body', 'parsed_json', 'parsed_args', 'parsed_form', 'parsed_files',
         '_ip', '_parsed_url', 'uri_template', 'stream', '_remote_addr',
         'authenticators', '_data', '_files', '_full_data', '_content_type',
-        '_stream', '_authenticator', '_user', '_auth', '_is_service', '_service_hosts',
-        '_request_time', '_span'
+        '_stream', '_authenticator', '_service_authenticator', '_user', '_auth', '_service_hosts',
+        '_request_time', '_span', '_service', '_service_auth',
     )
 
     def __init__(self, url_bytes, headers, version, method, transport,
@@ -61,13 +114,12 @@ class Request(SanicRequest):
         # self._request = request
         self._request_time = int(time.time() * 1000000)
 
-        self._data = Empty
-        self._files = Empty
-        self._full_data = Empty
-        self._content_type = Empty
-        self._stream = Empty
-        self._is_service = Empty
-        self._service_hosts = Empty
+        self._data = empty
+        self._files = empty
+        self._full_data = empty
+        self._content_type = empty
+        self._stream = empty
+        self._service_hosts = empty
 
         self.authenticators = authenticators or ()
 
@@ -96,26 +148,6 @@ class Request(SanicRequest):
         if not _hasattr(self, '_full_data'):
             self._load_data_and_files()
         return self._full_data
-
-    @property
-    def is_service(self):
-
-        if not _hasattr(self, "_is_service"):
-            if "mmt-token" not in self.headers:
-                self._is_service = False
-            elif not _hasattr(self, '_service_hosts'):
-                self._service_hosts = {c.get('externalserviceport'): s for s, c in settings.SERVICES.items()}
-                try:
-                    _port = int(self.headers.get('host').split(':')[-1])
-                except ValueError:
-                    _port = 80
-                m = hashlib.sha256()
-                m.update('mmt-server-{0}'.format(self._service_hosts.get(_port, '')).encode())
-                m.update(settings.WEB_SECRET_KEY.encode())
-                self._is_service = m.hexdigest() == self.headers.get('mmt-token')
-            else:
-                self._is_service = False
-        return self._is_service
 
     @property
     async def user(self):

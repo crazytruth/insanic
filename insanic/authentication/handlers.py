@@ -60,6 +60,15 @@ def jwt_encode_handler(payload):
     ).decode('utf-8')
 
 
+def jwt_service_decode_handler(token):
+    return jwt.decode(
+        token,
+        settings.SERVICE_TOKEN_KEY,
+        settings.JWT_SERVICE_AUTH['JWT_VERIFY'],
+        audience=settings.SERVICE_NAME,
+        algorithms=[settings.JWT_SERVICE_AUTH['JWT_ALGORITHM']]
+    )
+
 def jwt_service_payload_handler(service):
     payload = {
         "source": settings.SERVICE_NAME,

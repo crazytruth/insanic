@@ -66,7 +66,7 @@ class Service:
         self._service_name = service_type
         self._session = None
         self._breaker = None
-        self._service_auth_token = jwt_service_encode_handler(jwt_service_payload_handler(self))
+        self._service_auth_token = jwt_service_encode_handler(jwt_service_payload_handler(self)).decode()
 
     @property
     def service_name(self):

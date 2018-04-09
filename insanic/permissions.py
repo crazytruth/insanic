@@ -90,3 +90,14 @@ class IsAnonymousUser(BasePermission):
     async def has_permission(self, request, view):
         user = await request.user
         return isinstance(user, _AnonymousUser)
+
+
+class IsServiceOnly(BasePermission):
+    """
+    Permission to check this api can only be access by another service
+    """
+
+    async def has_permission(self, request, view):
+        service = await request.service
+
+        return service.is_authenticated
