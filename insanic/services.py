@@ -10,25 +10,10 @@ from yarl import URL
 from insanic import exceptions, status
 from insanic.authentication.handlers import jwt_service_encode_handler, jwt_service_payload_handler
 from insanic.conf import settings
-from insanic.connections import get_connection
 from insanic.errors import GlobalErrorCodes
 from insanic.functional import cached_property_with_ttl
-from insanic.log import logger
 from insanic.scopes import is_docker
-
-IS_INFUSED = False
-try:
-    from infuse import AioCircuitBreaker, CircuitAioRedisStorage, STATE_CLOSED, \
-        CircuitBreakerError
-
-    IS_INFUSED = True
-except (ImportError, ModuleNotFoundError) as e:
-    if settings.get('MMT_ENV') == "production":
-        raise e
-    else:
-        CircuitBreakerError = Exception
-        IS_INFUSED = False
-        logger.warn("Running without [infuse]. For production infuse is required!")
+from insanic.utils import try_json_decode
 
 
 class ServiceRegistry(dict):
@@ -42,7 +27,7 @@ class ServiceRegistry(dict):
         return ServiceRegistry.__instance
 
     def __setitem__(self, key, value):
-        raise RuntimeError("Unable to set new service. Append {0} SERVICE_CONNECTIONS "
+        raise RuntimeError("Unable to set new service. Append {0} to SERVICE_CONNECTIONS "
                            "to allow connections to {0}.".format(key))
 
     def __getitem__(self, key):
@@ -65,7 +50,6 @@ class Service:
         self._registry = ServiceRegistry()
         self._service_name = service_type
         self._session = None
-        self._breaker = None
         self._service_auth_token = jwt_service_encode_handler(jwt_service_payload_handler(self)).decode()
 
     @property
@@ -102,23 +86,6 @@ class Service:
         return URL(f"{self.schema}://{self.host}:{self.port}{url_partial_path}")
 
     @property
-    async def breaker(self):
-        if self._breaker is None:
-            # conn = await aioredis.create_redis((settings.REDIS_HOST, settings.REDIS_PORT),
-            #                                    encoding='utf-8', db=settings.REDIS_DB)
-            conn = await get_connection('infuse')
-
-            self._registry.conn = conn
-
-            circuit_breaker_storage = await CircuitAioRedisStorage.initialize(STATE_CLOSED, conn, self._service_name)
-            # await circuit_breaker_storage.init_storage(STATE_CLOSED)
-            self._breaker = await AioCircuitBreaker.initialize(fail_max=settings.INFUSE_MAX_FAILURE,
-                                                               reset_timeout=settings.INFUSE_RESET_TIMEOUT,
-                                                               state_storage=circuit_breaker_storage,
-                                                               listeners=[])
-        return self._breaker
-
-    @property
     def session(self):
         if self._session is None:
             self._session = aiohttp.ClientSession(loop=get_event_loop(),
@@ -126,28 +93,26 @@ class Service:
         return self._session
 
     def _construct_url(self, endpoint, query_params={}):
-
         url = self.url.with_path(endpoint)
         if len(query_params):
             url = url.with_query(**query_params)
         return url
-        # return urljoin(self._base_url, endpoint)
 
     async def http_dispatch(self, method, endpoint, req_ctx={}, *, query_params={}, payload={}, headers={},
-                            return_obj=True, propagate_error=False, skip_breaker=False, include_status_code=False):
+                            propagate_error=False, skip_breaker=False, include_status_code=False):
 
         if method.upper() not in HTTP_METHODS:
             raise ValueError("{0} is not a valid method.".format(method))
 
         response, status_code = await self._dispatch(method, endpoint, req_ctx,
                                                      query_params=query_params, payload=payload,
-                                                     headers=headers, return_obj=return_obj,
+                                                     headers=headers,
                                                      propagate_error=propagate_error,
                                                      skip_breaker=skip_breaker,
                                                      include_status_code=include_status_code)
 
         response_text = await response.text()
-        response_final = self._try_json_decode(response_text)
+        response_final = try_json_decode(response_text)
 
         if include_status_code:
             return response_final, status_code
@@ -169,14 +134,7 @@ class Service:
 
         return headers
 
-    def _try_json_decode(self, data):
-        try:
-            data = json.loads(data)
-        except ValueError:
-            pass
-        return data
-
-    async def _dispatch(self, method, endpoint, req_ctx, *, query_params={}, payload={}, headers={}, return_obj=True,
+    async def _dispatch(self, method, endpoint, req_ctx, *, query_params={}, payload={}, headers={},
                         propagate_error=False, skip_breaker=False, include_status_code=False):
 
         request_method = getattr(self.session, method.lower(), None)
@@ -189,28 +147,20 @@ class Service:
 
         outbound_request = aiohttp.ClientRequest(method, url, headers=headers, data=payload)
 
-        # opentracing.tracer.before_service_request(outbound_request, req_ctx, service_name=self._service_name)
-
         try:
-            if IS_INFUSED and not skip_breaker:
-                breaker = await self.breaker
-                # resp = await request_method(str(outbound_request.url), headers=outbound_request.headers, data=payload)
-
-                resp = await breaker.call(request_method, str(outbound_request.url),
-                                          headers=outbound_request.headers, data=payload)
-            else:
-                resp = await request_method(str(outbound_request.url), headers=outbound_request.headers, data=payload)
+            resp = await request_method(str(outbound_request.url), headers=outbound_request.headers, data=payload,
+                                        skip_breaker=skip_breaker)
 
             response = await resp.text()
             if propagate_error:
                 resp.raise_for_status()
 
             response_status = resp.status
-            response = self._try_json_decode(response)
+            response = try_json_decode(response)
 
         except aiohttp.client_exceptions.ClientResponseError as e:
-            response = self._try_json_decode(response)
-            status_code = e.code
+            response = try_json_decode(response)
+            status_code = e.status
             error_code = GlobalErrorCodes.invalid_usage if status_code == status.HTTP_400_BAD_REQUEST \
                 else GlobalErrorCodes.unknown_error
             exc = exceptions.APIException(detail=response.get('description', response),
@@ -267,12 +217,6 @@ class Service:
             raise exc
         except aiohttp.client_exceptions.ClientPayloadError as e:
             raise
-        except CircuitBreakerError as e:
-
-            exc = exceptions.ServiceUnavailable503Error(detail="{0}: {1}".format(e.args[0], self._service_name),
-                                                        error_code=GlobalErrorCodes.service_unavailable,
-                                                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
-            raise exc
         finally:
             pass
 

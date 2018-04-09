@@ -3,7 +3,7 @@ from sanic_useragent import SanicUserAgent
 
 from insanic.handlers import ErrorHandler
 from insanic.monitor import blueprint_monitor
-from insanic.log import get_logging_config
+from insanic.log import get_logging_config, error_logger
 from insanic.protocol import InsanicHttpProtocol
 
 from insanic.tracing import InsanicTracer
@@ -55,11 +55,16 @@ class Insanic(Sanic):
     def run(self, *args, **kwargs):
         SanicUserAgent.init_app(self)
         InsanicTracer.init_app(self)
-        super().run(*args, **kwargs)
 
-    def _helper(self, **kwargs):
-        """Helper function used by `run` and `create_server`."""
-        server_settings = super()._helper(**kwargs)
-        server_settings['protocol'] = InsanicHttpProtocol
-        server_settings['request_timeout'] = 60
-        return server_settings
+        try:
+            from infuse import Infuse
+            Infuse.init_app(self)
+        except (ImportError, ModuleNotFoundError):
+            if self.config.get("MMT_ENV") == "production":
+                error_logger.critical("[Infuse] is required for production deployment.")
+                raise
+
+        if "protocol" not in kwargs:
+            kwargs.update({"protocol": InsanicHttpProtocol})
+
+        super().run(*args, **kwargs)
