@@ -39,7 +39,7 @@ class BaseMockService:
         return (method.upper(), endpoint)
 
     async def mock_dispatch(self, method, endpoint, req_ctx={}, *, query_params={}, payload={}, headers={},
-                            return_obj=True, propagate_error=False, include_status_code=False, **kwargs):
+                            propagate_error=False, include_status_code=False, **kwargs):
         key = self._key_for_request(method, endpoint)
 
         if method == "GET" and endpoint == "/api/v1/user/self":
