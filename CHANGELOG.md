@@ -5,6 +5,8 @@ Changelog for insanic
 -------------------
 
 - Inject service tokens on inter service requests
+- add IsServiceOnly permission
+- authorization header overwrite when request headers declared during endpoint tests
 
 
 0.1.9 (2018-03-29)

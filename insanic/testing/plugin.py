@@ -330,7 +330,7 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
             force_exit = e
             import warnings
 
-            warnings.warn(e.args[0])
+            warnings.warn(str(e.args[0]))
 
             import traceback
             traceback.print_exc()
