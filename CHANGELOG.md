@@ -4,6 +4,7 @@ Changelog for insanic
 0.1.10 (unreleased)
 -------------------
 
+- BREAKING: remove MMT_ENV in *.config
 - Inject service tokens on service requests
 - add IsServiceOnly permission
 - authorization header overwrite when request headers declared during endpoint tests
