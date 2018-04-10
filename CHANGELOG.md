@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.1.11 (unreleased)
+0.1.11 (2018-04-10)
 -------------------
 
 - FIX: user level is not set properly in pytest-insanic
