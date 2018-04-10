@@ -15,6 +15,7 @@ from pytest_asyncio.plugin import unused_tcp_port
 from zipfile import ZipFile
 
 from insanic.authentication import handlers
+from insanic.choices import UserLevels
 from insanic.connections import _connections
 from insanic.conf import settings
 from insanic.loading import get_service
@@ -91,12 +92,12 @@ def test_user_token_factory():
 
 @pytest.fixture(scope='session')
 def test_user(test_user_token_factory):
-    return test_user_token_factory(email="staff@mmt.com", level=20)
+    return test_user_token_factory(email="staff@mmt.com", level=UserLevels.ACTIVE)
 
 
 @pytest.fixture(scope='session')
 def test_staff_user(test_user_token_factory):
-    return test_user_token_factory(email="staff@mmt.com", level=30)
+    return test_user_token_factory(email="staff@mmt.com", level=UserLevels.STAFF)
 
 
 @pytest.fixture(scope="session")
