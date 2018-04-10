@@ -10,6 +10,7 @@ from setuptools.command.test import test as TestCommand
 
 from insanic.choices import UserLevels
 from insanic.errors import GlobalErrorCodes
+from insanic.functional import empty
 
 DEFAULT_USER_LEVEL = UserLevels.ACTIVE
 
@@ -89,7 +90,7 @@ def test_api_endpoint(insanic_application, test_user_token_factory, endpoint, me
 
     request_headers.update({"accept": "application/json"})
 
-    if "Authorization" in [h for h in request_headers.keys()] and request_headers.get("Authorization") == "":
+    if "Authorization" in request_headers.keys() and request_headers.get("Authorization") == empty:
         request_headers.update({"Authorization": test_user_token_factory(email="test@mmt.com", level=user_level)})
 
     if request_headers.get('content-type', "application/json") == "application/json":
@@ -150,19 +151,21 @@ TestParams = namedtuple('TestParams', ['method', 'endpoint', 'request_headers', 
                                        'expected_response_status', 'expected_response_body', 'user_level'])
 
 
-def test_parameter_generator(method, endpoint, *, request_headers, request_body, expected_status_code,
-                             expected_response, check_authorization=True, check_permissions=True,
+def test_parameter_generator(method, endpoint, *, request_headers, request_body, expected_response_status,
+                             expected_response_body, check_authorization=True, check_permissions=True,
                              user_level=DEFAULT_USER_LEVEL, **kwargs):
 
     if check_permissions:
         if "permissions_endpoint" not in kwargs:
             raise RuntimeError("'permissions_endpoint' must be passed for permissions check parameters.")
 
-    request_headers.update({"Authorization": ""})
+    # auth_token = request_headers.pop("Authorization", empty)
+    if "Authorization" not in request_headers:
+        request_headers.update({"Authorization": empty})
 
     test_parameters_template = TestParams(method=method, endpoint=endpoint, request_headers=request_headers,
-                                          request_body=request_body, expected_response_status=expected_status_code,
-                                          expected_response_body=expected_response, user_level=user_level)
+                                          request_body=request_body, expected_response_status=expected_response_status,
+                                          expected_response_body=expected_response_body, user_level=user_level)
     if check_authorization:
         _req_headers = request_headers.copy()
         if "Authorization" in _req_headers:

@@ -5,6 +5,9 @@ Changelog for insanic
 -------------------
 
 - FIX: user level is not set properly in pytest-insanic
+- REFACTOR: keyword parameters for test_parameter_generator changes to match test_api_endpoint
+    - BREAKING: expected_status_code -> expected_response_status
+    - BREAKING: expected_response -> expected_response_body
 
 
 0.1.10 (2018-04-09)
