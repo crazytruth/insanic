@@ -1,8 +1,6 @@
 import consul
-import importlib
 import logging
 import os
-import sys
 import ujson as json
 import urllib.parse
 import urllib.request
@@ -229,7 +227,7 @@ class VaultConfig(BaseConfig):
     # consul related properties
     @property
     def CONSUL_HOST(self):
-        return "consul.mmt.local"
+        return "consul.msa.local"
 
     @property
     def CONSUL_PORT(self):
@@ -242,7 +240,7 @@ class VaultConfig(BaseConfig):
 
     @property
     def VAULT_HOST(self):
-        return "vault.mmt.local"
+        return "vault.msa.local"
 
     @property
     def VAULT_PORT(self):
@@ -270,7 +268,7 @@ class VaultConfig(BaseConfig):
     @cached_property_with_ttl(ttl=5)
     def SWARM_MANAGER_HOST(self):
         # return random.choice(self.SWARM_MANAGER_HOSTS)
-        return "manager.mmt.local"
+        return "manager.msa.local"
 
     @property
     def SWARM_MANAGER_PORT(self):

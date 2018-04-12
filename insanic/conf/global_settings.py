@@ -119,9 +119,4 @@ THROTTLES = {
     },
 }
 
-# CONSUL_HOST = "consul.mmt.local"
-# CONSUL_PORT = "8500"
-# VAULT_SCHEME = "http"
-# VAULT_HOST = "vault.mmt.local"
-# VAULT_PORT = 8200
 # VAULT_APPROLE_BIND_SECRET = "pull" # value can be pull or push
