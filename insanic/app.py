@@ -1,6 +1,7 @@
 from sanic import Sanic
 from sanic_useragent import SanicUserAgent
 
+from insanic.functional import empty
 from insanic.handlers import ErrorHandler
 from insanic.monitor import blueprint_monitor
 from insanic.log import get_logging_config, error_logger
@@ -14,6 +15,7 @@ MIDDLEWARE_TYPES = ('request', 'response')
 
 class Insanic(Sanic):
     database = None
+    _public_routes = empty
 
     def __init__(self, name, router=None, error_handler=None, app_config=()):
 
@@ -50,9 +52,12 @@ class Insanic(Sanic):
                 if module_name.startswith(m):
                     self.register_middleware(getattr(middleware, module_name), attach_to=m)
 
-        self.blueprint(blueprint_monitor)
+        self.blueprint(blueprint_monitor, url_prefix=f"/{name}")
 
-    def run(self, *args, **kwargs):
+    def run(self, host=None, port=None, debug=False, ssl=None,
+            sock=None, workers=1, protocol=None,
+            backlog=100, stop_event=None, register_sys_signals=True,
+            access_log=True):
         SanicUserAgent.init_app(self)
         InsanicTracer.init_app(self)
 
@@ -64,7 +69,30 @@ class Insanic(Sanic):
                 error_logger.critical("[Infuse] is required for production deployment.")
                 raise
 
-        if "protocol" not in kwargs:
-            kwargs.update({"protocol": InsanicHttpProtocol})
+        if protocol is None:
+            protocol = InsanicHttpProtocol
 
-        super().run(*args, **kwargs)
+        self._port = port
+
+        super().run(host, port, debug, ssl, sock, workers, protocol,
+                    backlog, stop_event, register_sys_signals,
+                    access_log)
+
+    def public_routes(self):
+        if self._public_routes is empty:
+            _public_routes = {}
+
+            for url, route in self.router.routes_all.items():
+                for method in route.methods:
+                    if hasattr(route.handler, 'view_class'):
+                        _handler = getattr(route.handler.view_class, method.lower())
+                    else:
+                        _handler = route.handler
+
+                    if hasattr(_handler, "scope") and _handler.scope == "public":
+                        # if method is decorated with public_facing, add to kong routes
+                        if route.uri not in _public_routes:
+                            _public_routes[url] = []
+                        _public_routes[url].append(method.upper())
+            self._public_routes = _public_routes
+        return self._public_routes
