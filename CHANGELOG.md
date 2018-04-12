@@ -9,6 +9,7 @@ Changelog for insanic
 - FEATURE: get my ip util function
 - FEATURE: health check apis now have service name prefix eg /health -> /user/health
 - CHORE: domain changes
+- CHORE: health check endpoint reconfiguration
 
 
 0.1.11 (2018-04-10)

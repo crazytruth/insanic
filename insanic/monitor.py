@@ -5,7 +5,7 @@ from insanic import __version__
 from insanic.conf import settings
 from insanic.status import HTTP_200_OK
 
-blueprint_monitor = Blueprint('monitor')
+blueprint_monitor = Blueprint('monitor', strict_slashes=True)
 
 
 # A service has an health check API endpoint (e.g. HTTP /health) that returns the health of the service.
@@ -14,7 +14,7 @@ blueprint_monitor = Blueprint('monitor')
 # the status of the connections to the infrastructure services used by the service instance
 # the status of the host, e.g. disk space
 # application specific logic
-@blueprint_monitor.route('health')
+@blueprint_monitor.route('/health/')
 def health_check(request):
     return json({
         "service": settings.SERVICE_NAME,
