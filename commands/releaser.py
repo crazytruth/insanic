@@ -1,8 +1,12 @@
+import os
 import requests
 import json
 
 slack_parameters = None
 
+SLACK_CHANNEL = os.environ['INSANIC_SLACK_CHANNEL']
+SLACK_USERNAME = os.environ.get('SLACK_USERNAME', 'Insanic')
+SLACK_WEBHOOK = os.environ['INSANIC_SLACK_WEBHOOK']
 
 def _beautify_changelog_for_slack(changelog):
     lines = changelog.split('\n')[3:-4]
@@ -11,8 +15,8 @@ def _beautify_changelog_for_slack(changelog):
 
 def _prepare_slack(new_version, changelog):
     params = {}
-    params['channel'] = '#dev-project-msa'
-    params['username'] = "Insanic"
+    params['channel'] = SLACK_CHANNEL
+    params['username'] = SLACK_USERNAME
     params['text'] = f'Gotta go insanely fast! New version [{new_version}] has been released. ' \
                      f'`pip install -U insanic` to update.'
     params['icon_emoji'] = ":sanic:"
@@ -25,7 +29,7 @@ def _prepare_slack(new_version, changelog):
 
 def _send_slack():
     global slack_parameters
-    slack_webhook_url = 'https://hooks.slack.com/services/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'
+    slack_webhook_url = SLACK_WEBHOOK
 
     requests.post(slack_webhook_url, data=json.dumps(slack_parameters))
 
