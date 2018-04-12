@@ -1,3 +1,4 @@
+import socket
 import ujson as json
 
 
@@ -15,3 +16,7 @@ def try_json_decode(data):
     except ValueError:
         pass
     return data
+
+
+def get_my_ip():
+    return socket.gethostbyname(socket.gethostname())
