@@ -4,7 +4,11 @@ Changelog for insanic
 0.1.12 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- FEATURE: flag your public facing endpoints and methods with the public_facing decorator!
+- FEATURE: API registration with kong
+- FEATURE: get my ip util function
+- FEATURE: health check apis now have service name prefix eg /health -> /user/health
+- CHORE: domain changes
 
 
 0.1.11 (2018-04-10)
