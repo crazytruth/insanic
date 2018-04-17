@@ -1,8 +1,8 @@
 Changelog for insanic
 =====================
 
-0.1.12 (unreleased)
--------------------
+0.2.0 (2018-04-17)
+------------------
 
 - FEATURE: flag your public facing endpoints and methods with the public_facing decorator!
 - FEATURE: API registration with kong
