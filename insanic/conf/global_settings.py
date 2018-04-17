@@ -119,4 +119,9 @@ THROTTLES = {
     },
 }
 
+GATEWAY_REGISTRATION_ENABLED = True
+
+KONG_HOST = "kong"
+KONG_PORT = 18000
+
 # VAULT_APPROLE_BIND_SECRET = "pull" # value can be pull or push

@@ -91,8 +91,8 @@ class Insanic(Sanic):
 
                     if hasattr(_handler, "scope") and _handler.scope == "public":
                         # if method is decorated with public_facing, add to kong routes
-                        if route.uri not in _public_routes:
-                            _public_routes[url] = []
-                        _public_routes[url].append(method.upper())
+                        if route.pattern.pattern not in _public_routes:
+                            _public_routes[route.pattern.pattern] = []
+                        _public_routes[route.pattern.pattern].append(method.upper())
             self._public_routes = _public_routes
         return self._public_routes

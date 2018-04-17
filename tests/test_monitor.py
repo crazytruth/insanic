@@ -6,7 +6,7 @@ def test_view_invalid_method():
 
     app = Insanic(app_name)
 
-    request, response = app.test_client.get('/health')
+    request, response = app.test_client.get(f'/{app_name}/health/')
 
     assert response.status == status.HTTP_200_OK
     assert response.json is not None
