@@ -38,7 +38,7 @@ class Insanic(Sanic):
                          request_class=Request)
 
         self.config = settings
-        settings.SERVICE_NAME = name
+        settings.SERVICE_NAME = name.split('.', 1)[0]
 
         from insanic import listeners
         for module_name in dir(listeners):

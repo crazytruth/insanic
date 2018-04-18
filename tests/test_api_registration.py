@@ -253,13 +253,13 @@ class TestKongGateway:
             kong_base_url = self.gateway.kong_base_url
             resp = requests.get(kong_base_url.with_path('/services'))
             body = jsonloads(resp.text)
-            service_ids = [r['id'] for r in body.get('data', []) if "test" == r['name'].split('.')[1]]
-            assert len(service_ids) == 0
+            service_ids = []
+            for r in body.get('data', []):
+                app, env, mid = r['name'].split('.')
+                if env == "test" and app == "insanic":
+                    service_ids.append(r['id'])
 
-            resp = requests.get(kong_base_url.with_path('/routes'))
-            body = jsonloads(resp.text)
-            route_ids = [r['id'] for r in body.get('data', []) if "test" == r['name'].split('.')[1]]
-            assert len(route_ids) == 0
+            assert len(service_ids) == 0
 
     async def test_http_session_manager(self, insanic_application):
         assert self.gateway.session is None

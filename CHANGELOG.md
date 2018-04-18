@@ -5,7 +5,8 @@ Changelog for insanic
 ------------------
 
 - FIX: bug with public_facing where view methods have positional arguments
-
+- FIX: logic bug with testing gateway deregistration
+- FIX: bug with service name settings
 
 0.2.0 (2018-04-17)
 ------------------
