@@ -4,7 +4,7 @@ Changelog for insanic
 0.2.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: bug with public_facing where view methods have positional arguments
 
 
 0.2.0 (2018-04-17)

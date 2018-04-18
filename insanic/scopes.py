@@ -10,7 +10,7 @@ class public_facing:
         self.__module__ = f.__module__
 
     def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
+        return self.func(self, *args, **kwargs)
 
 
 def _is_docker():
