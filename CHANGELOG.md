@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.2.2 (unreleased)
+0.2.2 (2018-04-18)
 ------------------
 
 - Change route registration to register one by one
