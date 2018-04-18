@@ -137,39 +137,83 @@ class KongGateway(BaseGateway):
 
             logger.debug(f"[KONG][SERVICES] Registered service {self.kong_service_name} as {self.service_id}")
 
+    # @http_session_manager
+    # async def register_routes(self, app, *, session):
+    #     if self.service_id is not None:
+    #         route_requests = []
+    #         route_data_list = []
+    #         for url, methods in app.public_routes().items():
+    #             route_data = {
+    #                 "protocols": ["http", "https"],
+    #                 "methods": methods,
+    #                 "hosts": settings.ALLOWED_HOSTS,
+    #                 "paths": [normalize_url_for_kong(url)],
+    #                 "service": {"id": self.service_id},
+    #                 "strip_path": False,
+    #                 "regex_priority": 10
+    #             }
+    #             route_requests.append(session.post(self.kong_base_url.with_path('/routes/'), json=route_data))
+    #             route_data_list.append(route_data)
+    #
+    #         if route_requests:
+    #             route_responses = await asyncio.gather(*route_requests)
+    #             for i in range(len(route_responses)):
+    #                 r = route_responses[i]
+    #                 route_response = await r.json()
+    #                 try:
+    #                     r.raise_for_status()
+    #                 except aiohttp.ClientResponseError:  # pragma: no cover
+    #                     logger.critical(f"[KONG][ROUTES] FAILED registering route {route_data_list[i]['paths']} "
+    #                                     f"on {self.kong_service_name}: {route_response}")
+    #                     raise
+    #
+    #                 self.routes.update({route_response['id']: route_response})
+    #                 logger.debug(f"[KONG][ROUTES] Registered route {route_response['paths']} as "
+    #                              f"{route_response['id']} on {self.kong_service_name}")
+    #         else:
+    #             logger.debug(f"[KONG][ROUTES] No Public routes found.")
+    #             await self.deregister_service(session=session)
+    #     else:
+    #         raise RuntimeError("[KONG][ROUTES] Need to register service before registering routes!")
+
     @http_session_manager
     async def register_routes(self, app, *, session):
+        '''
+        register routes one by one
+        :param app:
+        :param session:
+        :return:
+        '''
+
         if self.service_id is not None:
-            route_requests = []
             route_data_list = []
-            for url, methods in app.public_routes().items():
-                route_data = {
-                    "protocols": ["http", "https"],
-                    "methods": methods,
-                    "hosts": settings.ALLOWED_HOSTS,
-                    "paths": [normalize_url_for_kong(url)],
-                    "service": {"id": self.service_id},
-                    "strip_path": False,
-                    "regex_priority": 10
-                }
-                route_requests.append(session.post(self.kong_base_url.with_path('/routes/'), json=route_data))
-                route_data_list.append(route_data)
+            public_routes = app.public_routes()
 
-            if route_requests:
-                route_responses = await asyncio.gather(*route_requests)
-                for i in range(len(route_responses)):
-                    r = route_responses[i]
-                    route_response = await r.json()
-                    try:
-                        r.raise_for_status()
-                    except aiohttp.ClientResponseError:  # pragma: no cover
-                        logger.critical(f"[KONG][ROUTES] FAILED registering route {route_data_list[i]['paths']} "
-                                        f"on {self.kong_service_name}: {route_response}")
-                        raise
+            if len(public_routes) > 0:
+                for url, methods in public_routes.items():
+                    route_data = {
+                        "protocols": ["http", "https"],
+                        "methods": methods,
+                        "hosts": settings.ALLOWED_HOSTS,
+                        "paths": [normalize_url_for_kong(url)],
+                        "service": {"id": self.service_id},
+                        "strip_path": False,
+                        "regex_priority": 10
+                    }
 
-                    self.routes.update({route_response['id']: route_response})
-                    logger.debug(f"[KONG][ROUTES] Registered route {route_response['paths']} as "
-                                 f"{route_response['id']} on {self.kong_service_name}")
+                    async with session.post(self.kong_base_url.with_path('/routes/'), json=route_data) as resp:
+                        route_response = await resp.json()
+
+                        try:
+                            resp.raise_for_status()
+                        except aiohttp.ClientResponseError:
+                            logger.critical(f"[KONG][ROUTES] FAILED registering route {route_data_list[i]['paths']} "
+                                            f"on {self.kong_service_name}: {route_response}")
+                            raise
+                        else:
+                            self.routes.update({route_response['id']: route_response})
+                            logger.debug(f"[KONG][ROUTES] Registered route {route_response['paths']} as "
+                                         f"{route_response['id']} on {self.kong_service_name}")
             else:
                 logger.debug(f"[KONG][ROUTES] No Public routes found.")
                 await self.deregister_service(session=session)
