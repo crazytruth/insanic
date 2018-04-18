@@ -19,7 +19,7 @@ from insanic.choices import UserLevels
 from insanic.connections import _connections
 from insanic.conf import settings
 from insanic.loading import get_service
-from insanic.models import User
+from insanic.models import User, RequestService
 from insanic.services import Service
 from insanic.testing.helpers import MockService
 from insanic.tracing.core import xray_recorder
@@ -89,10 +89,20 @@ def test_user_token_factory():
 
     return factory
 
+@pytest.fixture(scope="session")
+def test_service_token_factory():
+    def factory(*, source):
+        # source, aud, source_ip, destination_version, is_authenticated):
+        service = RequestService(source=source, aud=settings.SERVICE_NAME, source_ip='127.0.0.1', destination_version="0.0.1", is_authenticated=True)
+        payload = handlers.jwt_service_payload_handler(service)
+        return " ".join([settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_service_encode_handler(payload)])
+
+    return factory
+
 
 @pytest.fixture(scope='session')
 def test_user(test_user_token_factory):
-    return test_user_token_factory(email="staff@mmt.com", level=UserLevels.ACTIVE)
+    return test_user_token_factory(email="user@mmt.com", level=UserLevels.ACTIVE)
 
 
 @pytest.fixture(scope='session')
