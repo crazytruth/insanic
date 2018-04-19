@@ -53,7 +53,7 @@ class TestKongGateway:
     @pytest.fixture(autouse=True)
     def kong_gateway(self, monkeypatch):
         monkeypatch.setattr(settings, "GATEWAY_REGISTRATION_ENABLED", True)
-        monkeypatch.setattr(settings, "KONG_HOST", 'kong.msa.local')
+        monkeypatch.setattr(settings, "KONG_HOST", 'kong.msa.swarm')
         monkeypatch.setattr(settings, "KONG_PORT", 18001)
         from insanic.registration import KongGateway
         self.gateway = KongGateway()

@@ -227,7 +227,7 @@ class VaultConfig(BaseConfig):
     # consul related properties
     @property
     def CONSUL_HOST(self):
-        return "consul.msa.local"
+        return "consul.msa.swarm"
 
     @property
     def CONSUL_PORT(self):
@@ -240,7 +240,7 @@ class VaultConfig(BaseConfig):
 
     @property
     def VAULT_HOST(self):
-        return "vault.msa.local"
+        return "vault.msa.swarm"
 
     @property
     def VAULT_PORT(self):
@@ -268,7 +268,7 @@ class VaultConfig(BaseConfig):
     @cached_property_with_ttl(ttl=5)
     def SWARM_MANAGER_HOST(self):
         # return random.choice(self.SWARM_MANAGER_HOSTS)
-        return "manager.msa.local"
+        return "manager.msa.swarm"
 
     @property
     def SWARM_MANAGER_PORT(self):
