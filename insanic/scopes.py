@@ -1,17 +1,12 @@
 import os
 
 
-class public_facing:
-    def __init__(self, f):
-        self.func = f
-        self.scope = "public"
-        self.__name__ = f.__name__
-        self.__doc__ = f.__doc__
-        self.__module__ = f.__module__
+def public_facing(f):
+    def public_f(*args, **kwargs):
+        return f(*args, **kwargs)
 
-    def __call__(self, *args, **kwargs):
-        return self.func(self, *args, **kwargs)
-
+    setattr(public_f, "scope", "public")
+    return public_f
 
 def _is_docker():
     try:
