@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.2.4 (unreleased)
+0.2.4 (2018-04-19)
 ------------------
 
 - FIX: public facing decorator wasn't passing arguments correctly
