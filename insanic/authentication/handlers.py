@@ -80,4 +80,4 @@ def jwt_service_payload_handler(service):
 
 
 def jwt_service_encode_handler(payload):
-    return jwt.encode(payload, settings.SERVICE_TOKEN_KEY, settings.JWT_SERVICE_AUTH['JWT_ALGORITHM'])
+    return jwt.encode(payload, settings.SERVICE_TOKEN_KEY, settings.JWT_SERVICE_AUTH['JWT_ALGORITHM']).decode('utf-8')

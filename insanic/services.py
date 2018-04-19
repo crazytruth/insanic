@@ -50,7 +50,7 @@ class Service:
         self._registry = ServiceRegistry()
         self._service_name = service_type
         self._session = None
-        self._service_auth_token = jwt_service_encode_handler(jwt_service_payload_handler(self)).decode()
+        self._service_auth_token = jwt_service_encode_handler(jwt_service_payload_handler(self))
 
     @property
     def service_name(self):
