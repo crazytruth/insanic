@@ -4,7 +4,8 @@ Changelog for insanic
 0.2.5 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: mock service values with iterables as values in body
+- CHORE: dns changes
 
 
 0.2.4 (2018-04-19)

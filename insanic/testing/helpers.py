@@ -39,7 +39,13 @@ class BaseMockService:
     def _key_for_request(self, method, endpoint, body):
         body_list = []
         for k in sorted(body.keys()):
-            body_list.extend([k, body[k]])
+
+            if isinstance(body, (list, dict)):
+                v = json.dumps(body[k], sort_keys=True)
+            else:
+                v = body[k]
+
+            body_list.extend([k, v])
         return (method.upper(), endpoint, ":".join(body_list))
 
     async def mock_dispatch(self, method, endpoint, req_ctx={}, *, query_params={}, payload={}, headers={},
