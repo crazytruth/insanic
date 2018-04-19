@@ -5,6 +5,7 @@ Changelog for insanic
 ------------------
 
 - FIX: mock service values with iterables as values in body
+- FIX: test service token factory to set aud to self
 - CHORE: dns changes
 
 

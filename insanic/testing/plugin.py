@@ -92,7 +92,7 @@ def test_user_token_factory():
 @pytest.fixture(scope="session")
 def test_service_token_factory():
     class MockService:
-        service_name = "test_service"
+        service_name = settings.SERVICE_NAME
 
     def factory():
         # source, aud, source_ip, destination_version, is_authenticated):
