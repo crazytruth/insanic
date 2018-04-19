@@ -198,7 +198,7 @@ class KongGateway(BaseGateway):
                         "paths": [normalize_url_for_kong(url)],
                         "service": {"id": self.service_id},
                         "strip_path": False,
-                        "regex_priority": 10
+                        "regex_priority": settings.KONG_ROUTE_REGEX_PRIORITY.get(settings.MMT_ENV, 10)
                     }
 
                     async with session.post(self.kong_base_url.with_path('/routes/'), json=route_data) as resp:

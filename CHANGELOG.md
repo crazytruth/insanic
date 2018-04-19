@@ -4,6 +4,7 @@ Changelog for insanic
 0.2.5 (unreleased)
 ------------------
 
+- FEATURE: regex priority for local and development swarms
 - FIX: mock service values with iterables as values in body
 - FIX: test service token factory to set aud to self
 - CHORE: dns changes
