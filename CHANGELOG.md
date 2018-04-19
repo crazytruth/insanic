@@ -4,7 +4,10 @@ Changelog for insanic
 0.2.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FEATURE: service token factory for service only requests
+- FEATURE: allow registration mockservice with same endpoints but different payloads
+- FEATURE: 'is_service_only' flag for `test_parameter_generator` to inject service tokens on request
+- FIX: change get_ip to get proper ip address
 
 
 0.2.2 (2018-04-18)

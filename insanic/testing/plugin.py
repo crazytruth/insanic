@@ -91,12 +91,14 @@ def test_user_token_factory():
 
 @pytest.fixture(scope="session")
 def test_service_token_factory():
-    def factory(*, source):
+    class MockService:
+        service_name = "test_service"
+
+    def factory():
         # source, aud, source_ip, destination_version, is_authenticated):
-        service = RequestService(source=source, aud=settings.SERVICE_NAME, source_ip='127.0.0.1', destination_version="0.0.1", is_authenticated=True)
+        service = MockService()
         payload = handlers.jwt_service_payload_handler(service)
         return " ".join([settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_service_encode_handler(payload)])
-
     return factory
 
 
