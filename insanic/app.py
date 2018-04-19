@@ -34,11 +34,12 @@ class Insanic(Sanic):
                 pass
 
         from insanic.request import Request
+        name = name.split('.', 1)[0]
         super().__init__(name, router, error_handler, strict_slashes=True, log_config=get_logging_config(),
                          request_class=Request)
 
         self.config = settings
-        settings.SERVICE_NAME = name.split('.', 1)[0]
+        settings.SERVICE_NAME = name
 
         from insanic import listeners
         for module_name in dir(listeners):
@@ -52,7 +53,7 @@ class Insanic(Sanic):
                 if module_name.startswith(m):
                     self.register_middleware(getattr(middleware, module_name), attach_to=m)
 
-        self.blueprint(blueprint_monitor, url_prefix=f"/{name}")
+        self.blueprint(blueprint_monitor, url_prefix=f"/{settings.SERVICE_NAME}")
 
     def run(self, host=None, port=None, debug=False, ssl=None,
             sock=None, workers=1, protocol=None,
