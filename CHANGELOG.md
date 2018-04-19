@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.2.3 (unreleased)
+0.2.3 (2018-04-19)
 ------------------
 
 - FEATURE: service token factory for service only requests
