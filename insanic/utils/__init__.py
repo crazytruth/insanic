@@ -19,4 +19,12 @@ def try_json_decode(data):
 
 
 def get_my_ip():
-    return socket.gethostbyname(socket.gethostname())
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('192.255.255.255', 1))
+        ip = s.getsockname()[0]
+    except:
+        ip = socket.gethostbyname(socket.gethostname())
+    finally:
+        s.close()
+    return ip
