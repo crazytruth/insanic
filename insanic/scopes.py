@@ -1,7 +1,10 @@
 import os
 
+from functools import wraps
+
 
 def public_facing(f):
+    @wraps(f)
     def public_f(*args, **kwargs):
         return f(*args, **kwargs)
 
