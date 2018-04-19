@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.2.5 (unreleased)
+0.2.5 (2018-04-19)
 ------------------
 
 - FEATURE: regex priority for local and development swarms
