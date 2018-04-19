@@ -36,12 +36,15 @@ class BaseMockService:
 
     service_responses = {}
 
-    def _key_for_request(self, method, endpoint):
-        return (method.upper(), endpoint)
+    def _key_for_request(self, method, endpoint, body):
+        body_list = []
+        for k in sorted(body.keys()):
+            body_list.extend([k, body[k]])
+        return (method.upper(), endpoint, ":".join(body_list))
 
     async def mock_dispatch(self, method, endpoint, req_ctx={}, *, query_params={}, payload={}, headers={},
                             propagate_error=False, include_status_code=False, **kwargs):
-        key = self._key_for_request(method, endpoint)
+        key = self._key_for_request(method, endpoint, payload)
 
         if method == "GET" and endpoint == "/api/v1/user/self":
             return kwargs.get('test_user',
@@ -57,8 +60,8 @@ class BaseMockService:
         raise RuntimeError(
             "Unknown service request: {0} {1}. Need to register mock dispatch.".format(method.upper(), endpoint))
 
-    def register_mock_dispatch(self, method, endpoint, response, response_status_code=200):
-        key = self._key_for_request(method, endpoint)
+    def register_mock_dispatch(self, method, endpoint, response, response_status_code=200, request_body={}):
+        key = self._key_for_request(method, endpoint, request_body)
 
         self.service_responses.update({key: (response, response_status_code)})
 
@@ -83,8 +86,9 @@ class DunnoValue:
             return isinstance(other, self.expected_type)
 
 
-def test_api_endpoint(insanic_application, test_user_token_factory, endpoint, method, request_headers,
-                      request_body, expected_response_status, expected_response_body, user_level):
+def test_api_endpoint(insanic_application, test_user_token_factory, test_service_token_factory, endpoint,
+                      method, request_headers, request_body, expected_response_status,
+                      expected_response_body, user_level):
 
     handler = getattr(insanic_application.test_client, method.lower())
 
@@ -92,6 +96,10 @@ def test_api_endpoint(insanic_application, test_user_token_factory, endpoint, me
 
     if "Authorization" in request_headers.keys() and request_headers.get("Authorization") == empty:
         request_headers.update({"Authorization": test_user_token_factory(email="test@mmt.com", level=user_level)})
+
+    if "MMT-Authorization" in request_headers.keys() and request_headers.get("MMT-Authorization") == empty:
+        request_headers.update({"MMT-Authorization": test_service_token_factory()})
+
 
     if request_headers.get('content-type', "application/json") == "application/json":
         handler_kwargs = {"json": request_body}
@@ -153,7 +161,7 @@ TestParams = namedtuple('TestParams', ['method', 'endpoint', 'request_headers', 
 
 def test_parameter_generator(method, endpoint, *, request_headers, request_body, expected_response_status,
                              expected_response_body, check_authorization=True, check_permissions=True,
-                             user_level=DEFAULT_USER_LEVEL, **kwargs):
+                             user_level=DEFAULT_USER_LEVEL, is_service_only=False, **kwargs):
 
     if check_permissions:
         if "permissions_endpoint" not in kwargs:
@@ -162,6 +170,9 @@ def test_parameter_generator(method, endpoint, *, request_headers, request_body,
     # auth_token = request_headers.pop("Authorization", empty)
     if "Authorization" not in request_headers:
         request_headers.update({"Authorization": empty})
+
+    if "MMT-Authorization" not in request_headers and is_service_only:
+        request_headers.update({"MMT-Authorization": empty})
 
     test_parameters_template = TestParams(method=method, endpoint=endpoint, request_headers=request_headers,
                                           request_body=request_body, expected_response_status=expected_response_status,
