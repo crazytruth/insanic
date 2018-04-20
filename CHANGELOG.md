@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.2.6 (unreleased)
+0.2.6 (2018-04-20)
 ------------------
 
 - FEATURE: soft fail when kong is not available.
