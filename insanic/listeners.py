@@ -2,7 +2,9 @@ from aiohttp.client_exceptions import ClientConnectorError
 
 from insanic.conf import settings
 from insanic.connections import _connections
+from insanic.log import logger
 from insanic.registration import gateway
+
 
 
 async def after_server_stop_close_database(app, loop, **kwargs):
@@ -17,12 +19,11 @@ async def after_server_start_connect_database(app, loop=None, **kwargs):
 async def after_server_start_register_service(app, loop, **kwargs):
 
     async with gateway as gw:
-        # await gw.register(app)
         try:
             await gw.register(app)
         except ClientConnectorError:
             if settings.MMT_ENV in settings.KONG_FAIL_SOFT_ENVIRONMENTS:
-                pass
+                logger.info("[KONG][ROUTES] Connection to kong has failed. Soft failing registration.")
             else:
                 raise
 
@@ -33,6 +34,6 @@ async def before_server_stop_deregister_service(app, loop, **kwargs):
             await gw.deregister()
         except ClientConnectorError:
             if settings.MMT_ENV in settings.KONG_FAIL_SOFT_ENVIRONMENTS:
-                pass
+                logger.info("[KONG][ROUTES] Connection to kong has failed. Couldn't deregister.")
             else:
                 raise
