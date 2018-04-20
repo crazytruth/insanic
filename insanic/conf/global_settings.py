@@ -127,5 +127,6 @@ KONG_PORT = 18000
 KONG_ROUTE_REGEX_PRIORITY = {"local": 10,
                              "development": 5}
 KONG_ROUTE_REGEX_DEFAULT = 10
+KONG_FAIL_SOFT_ENVIRONMENTS = ("local", "test",)
 
 # VAULT_APPROLE_BIND_SECRET = "pull" # value can be pull or push

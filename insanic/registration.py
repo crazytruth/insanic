@@ -38,10 +38,14 @@ def normalize_url_for_kong(url):
 class BaseGateway:
 
     def __init__(self):
-        self.enabled = settings.GATEWAY_REGISTRATION_ENABLED
+        self._enabled = settings.GATEWAY_REGISTRATION_ENABLED
         self.routes = {}
         self.service_id = None
         self.session = None
+
+    @property
+    def enabled(self):
+        return self._enabled
 
     @http_session_manager
     async def register_service(self, app, *, session):
