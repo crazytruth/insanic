@@ -144,7 +144,7 @@ def monkeypatch_service(request, monkeypatch, test_user):
     if "runservices" in request.keywords.keys():
         pass
     else:
-        monkeypatch.setattr(Service, '_dispatch', partial(MockService.mock_dispatch, test_user=test_user))
+        monkeypatch.setattr(Service, 'http_dispatch', partial(MockService.mock_dispatch, test_user=test_user))
 
 
 async def wait_for_container(service, health_endpoint):
