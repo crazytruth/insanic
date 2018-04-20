@@ -50,26 +50,37 @@ class BaseMockService:
 
     async def mock_dispatch(self, method, endpoint, req_ctx={}, *, query_params={}, payload={}, headers={},
                             propagate_error=False, include_status_code=False, **kwargs):
-        key = self._key_for_request(method, endpoint, payload)
+        keys = []
+        keys.append(self._key_for_request(method, endpoint, payload))
+        if payload != {}:
+            keys.append(self._key_for_request(method, endpoint, {}))
+
 
         if method == "GET" and endpoint == "/api/v1/user/self":
             return kwargs.get('test_user',
                               dict(id=2, email="admin@mymusictaste.com", is_active=True, is_authenticated=True,
                                    level=DEFAULT_USER_LEVEL))
 
-        if key in self.service_responses:
-            if include_status_code:
-                return copy.deepcopy(self.service_responses[key][0]), self.service_responses[key][1]
-            else:
-                return copy.deepcopy(self.service_responses[key][0])
+        for k in keys:
+            if k in self.service_responses:
+                if include_status_code:
+                    return copy.deepcopy(self.service_responses[k][0]), self.service_responses[k][1]
+                else:
+                    return copy.deepcopy(self.service_responses[k][0])
 
         raise RuntimeError(
             "Unknown service request: {0} {1}. Need to register mock dispatch.".format(method.upper(), endpoint))
 
     def register_mock_dispatch(self, method, endpoint, response, response_status_code=200, request_body={}):
         key = self._key_for_request(method, endpoint, request_body)
-
         self.service_responses.update({key: (response, response_status_code)})
+
+        if request_body != {}:
+            key = self._key_for_request(method, endpoint, {})
+            self.service_responses.update({key: (response, response_status_code)})
+
+
+
 
 
 MockService = BaseMockService()
