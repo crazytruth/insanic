@@ -1,5 +1,9 @@
 import aiohttp
 import asyncio
+import logging
+
+from aiohttp.client_exceptions import ClientConnectorError
+from multiprocessing import current_process
 from yarl import URL
 
 from insanic.conf import settings
@@ -43,9 +47,42 @@ class BaseGateway:
         self.service_id = None
         self.session = None
 
+    def logger_create_message(self, module, message):
+        namespace = self.__class__.__name__.upper().replace("GATEWAY", "")
+        return f"[{namespace}][{module.upper()}] {message}"
+
+    def logger(self, level, message, module="GENERAL", *args, **kwargs):
+        if not isinstance(level, int):
+            log_level = logging._nameToLevel.get(level.upper(), None)
+
+            if log_level is None:
+                if logger.raiseExceptions:
+                    raise TypeError(
+                        "Unable to resolve level. Must be one of {}.".format(", ".join(logging._nameToLevel.keys())))
+                else:
+                    return
+        else:
+            log_level = level
+
+        message = self.logger_create_message(module, message)
+        logger.log(log_level, message, *args, **kwargs)
+
+    def logger_service(self, level, message, *args, **kwargs):
+        self.logger(level, message, "SERVICE", *args, **kwargs)
+
+    def logger_route(self, level, message, *args, **kwargs):
+        self.logger(level, message, "ROUTE", *args, **kwargs)
+
     @property
     def enabled(self):
-        return self._enabled
+        _cp = current_process()
+
+        if _cp.name == "MainProcess":
+            return self._enabled
+        elif _cp.name.startswith("Process-"):
+            return self._enabled and _cp.name.replace("Process-", "") == "1"
+        else:
+            raise RuntimeError("Unable to resolve process name.")
 
     @http_session_manager
     async def register_service(self, app, *, session):
@@ -77,13 +114,26 @@ class BaseGateway:
 
     async def register(self, app):
         if self.enabled:
-            await self.register_service(app)
-            await self.register_routes(app)
+            try:
+                await self.register_service(app)
+                await self.register_routes(app)
+            except ClientConnectorError:
+                if settings.MMT_ENV in settings.KONG_FAIL_SOFT_ENVIRONMENTS:
+                    self.logger_route('info', "Connection to kong has failed. Soft failing registration.")
+                else:
+                    raise
+
 
     async def deregister(self):
         if self.enabled:
-            await self.deregister_routes()
-            await self.deregister_service()
+            try:
+                await self.deregister_routes()
+                await self.deregister_service()
+            except ClientConnectorError:
+                if settings.MMT_ENV in settings.KONG_FAIL_SOFT_ENVIRONMENTS:
+                    self.logger_route('info', "Connection to kong has failed. Soft failing registration.")
+                else:
+                    raise
 
     async def __aenter__(self):
         self.session = aiohttp.ClientSession()
@@ -139,7 +189,7 @@ class KongGateway(BaseGateway):
 
             self.service_id = kong_service_data['id']
 
-            logger.debug(f"[KONG][SERVICES] Registered service {self.kong_service_name} as {self.service_id}")
+            self.logger_service("debug", f"Registered service {self.kong_service_name} as {self.service_id}")
 
     # @http_session_manager
     # async def register_routes(self, app, *, session):
@@ -167,18 +217,21 @@ class KongGateway(BaseGateway):
     #                 try:
     #                     r.raise_for_status()
     #                 except aiohttp.ClientResponseError:  # pragma: no cover
-    #                     logger.critical(f"[KONG][ROUTES] FAILED registering route {route_data_list[i]['paths']} "
-    #                                     f"on {self.kong_service_name}: {route_response}")
+    #                     self.logger_route("critical",
+    #                                       f"FAILED registering route {route_data_list[i]['paths']} "
+    #                                       f"on {self.kong_service_name}: {route_response}")
     #                     raise
     #
     #                 self.routes.update({route_response['id']: route_response})
-    #                 logger.debug(f"[KONG][ROUTES] Registered route {route_response['paths']} as "
-    #                              f"{route_response['id']} on {self.kong_service_name}")
+    #                 self.logger_route("debug",
+    #                                   f"Registered route {route_response['paths']} as "
+    #                                   f"{route_response['id']} on {self.kong_service_name}")
     #         else:
-    #             logger.debug(f"[KONG][ROUTES] No Public routes found.")
+    #             self.logger_route("debug", "No Public routes found.")
     #             await self.deregister_service(session=session)
     #     else:
-    #         raise RuntimeError("[KONG][ROUTES] Need to register service before registering routes!")
+    #         raise RuntimeError(
+    #             self.logger_create_message("routes", "Need to register service before registering routes!"))
 
     @http_session_manager
     async def register_routes(self, app, *, session):
@@ -211,27 +264,31 @@ class KongGateway(BaseGateway):
                         try:
                             resp.raise_for_status()
                         except aiohttp.ClientResponseError:
-                            logger.critical(f"[KONG][ROUTES] FAILED registering route {route_data_list[i]['paths']} "
-                                            f"on {self.kong_service_name}: {route_response}")
+                            self.logger_route("critical",
+                                              f"FAILED registering route {route_data_list[i]['paths']} "
+                                              f"on {self.kong_service_name}: {route_response}")
                             raise
                         else:
                             self.routes.update({route_response['id']: route_response})
-                            logger.debug(f"[KONG][ROUTES] Registered route {route_response['paths']} as "
-                                         f"{route_response['id']} on {self.kong_service_name}")
+
+                            self.logger_route("debug",
+                                              f"Registered route {route_response['paths']} as "
+                                              f"{route_response['id']} on {self.kong_service_name}")
             else:
-                logger.debug(f"[KONG][ROUTES] No Public routes found.")
+                self.logger_route("debug", "No Public routes found.")
                 await self.deregister_service(session=session)
         else:
-            raise RuntimeError("[KONG][ROUTES] Need to register service before registering routes!")
+            raise RuntimeError(
+                self.logger_create_message("routes", "Need to register service before registering routes!"))
 
     @http_session_manager
     async def deregister_service(self, *, session):
         if self.service_id is not None:
             async with session.delete(self.kong_base_url.with_path(f"/services/{self.service_id}")):
-                logger.debug(f"[KONG][SERVICES] Deregistered service {self.service_id}")
+                self.logger_service("debug", f"Deregistered service {self.service_id}")
                 self.service_id = None
         else:
-            logger.debug(f"[KONG][SERVICES] {self.kong_service_name} has already been deregistered.")
+            self.logger_service("debug", f"{self.kong_service_name} has already been deregistered.")
 
     @http_session_manager
     async def deregister_routes(self, *, session):
@@ -258,9 +315,9 @@ class KongGateway(BaseGateway):
                     del self.routes[rid]
                 except KeyError:
                     pass
-                logger.debug(f"[KONG][ROUTES] Deregistered route {rid}.")
+                self.logger_route('debug', "Deregistered route {rid}.")
         else:
-            logger.debug(f"[KONG][ROUTES] No routes to deregister.")
+            self.logger_route('debug', "No routes to deregister.")
 
 
 gateway = KongGateway()
