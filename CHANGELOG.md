@@ -4,7 +4,9 @@ Changelog for insanic
 0.2.7 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- CHORE: Kong logging refactor
+- FIX: when more than 1 worker is run, only the main/first process handles registration
+- FEATURE: allow list assertions in api endpoint tests
 
 
 0.2.6 (2018-04-20)

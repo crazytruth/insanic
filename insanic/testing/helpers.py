@@ -103,74 +103,82 @@ class DunnoValue:
             return isinstance(other, self.expected_type)
 
 
-def test_api_endpoint(insanic_application, test_user_token_factory, test_service_token_factory, endpoint,
-                      method, request_headers, request_body, expected_response_status,
-                      expected_response_body, user_level):
+class APIEndpointHelper:
 
-    handler = getattr(insanic_application.test_client, method.lower())
+    @classmethod
+    def _test_api_endpoint(cls, insanic_application, test_user_token_factory, test_service_token_factory, endpoint,
+                           method, request_headers, request_body, expected_response_status,
+                           expected_response_body, user_level):
 
-    request_headers.update({"accept": "application/json"})
+        handler = getattr(insanic_application.test_client, method.lower())
 
-    if "Authorization" in request_headers.keys() and request_headers.get("Authorization") == empty:
-        request_headers.update({"Authorization": test_user_token_factory(email="test@mmt.com", level=user_level)})
+        request_headers.update({"accept": "application/json"})
 
-    if "MMT-Authorization" in request_headers.keys() and request_headers.get("MMT-Authorization") == empty:
-        request_headers.update({"MMT-Authorization": test_service_token_factory()})
+        if "Authorization" in request_headers.keys() and request_headers.get("Authorization") == empty:
+            request_headers.update({"Authorization": test_user_token_factory(email="test@mmt.com", level=user_level)})
 
+        if "MMT-Authorization" in request_headers.keys() and request_headers.get("MMT-Authorization") == empty:
+            request_headers.update({"MMT-Authorization": test_service_token_factory()})
 
-    if request_headers.get('content-type', "application/json") == "application/json":
-        handler_kwargs = {"json": request_body}
-    else:
-        handler_kwargs = {"data": request_body}
-
-    request_headers.pop('content-type', None)
-
-    request, response = handler(endpoint,
-                                debug=True,
-                                headers=request_headers,
-                                **handler_kwargs)
-
-    assert expected_response_status == response.status, response.text
-
-    response_body = response.text
-
-    try:
-        response_body = json.loads(response.text)
-    except ValueError:
-        pass
-
-    _test_api_endpoint_assertion(response, response_body, expected_response_body, expected_response_status)
-
-
-def _test_api_endpoint_assertion(response, response_body, expected_response_body, expected_response_status):
-    response_status_category = int(expected_response_status / 100)
-
-    if response_status_category == 2:
-        if isinstance(response_body, dict) and isinstance(expected_response_body, dict):
-            assert expected_response_body == response_body
-        elif isinstance(response_body, dict) and isinstance(expected_response_body, list):
-            assert sorted(expected_response_body) == sorted(response_body.keys())
-        elif isinstance(response_body, list) and isinstance(expected_response_body, int):
-            assert expected_response_body == len(response_body)
-        elif isinstance(expected_response_body, str):
-            assert expected_response_body == response_body
+        if request_headers.get('content-type', "application/json") == "application/json":
+            handler_kwargs = {"json": request_body}
         else:
-            raise RuntimeError("Shouldn't be in here. Check response type.")
-    elif response_status_category == 3:
-        raise RuntimeError("Shouldn't be in here. Redirects not possible.")
-    elif response_status_category == 4:
-        # if http status code is in the 4 hundreds, check error code
-        if isinstance(expected_response_body, dict):
-            assert expected_response_body == response_body, response.text
-        elif isinstance(expected_response_body, list):
-            assert sorted(expected_response_body) == sorted(response_body.keys()), response.text
-        elif isinstance(expected_response_body, Enum):
-            assert expected_response_body.value == response_body['error_code']['value'], response.text
-        elif isinstance(expected_response_body, int):
-            assert expected_response_body == response_body['error_code']['value'], response.text
-        else:
-            raise RuntimeError("Shouldn't be in here. Check response type.")
+            handler_kwargs = {"data": request_body}
 
+        request_headers.pop('content-type', None)
+
+        request, response = handler(endpoint,
+                                    debug=True,
+                                    headers=request_headers,
+                                    **handler_kwargs)
+
+        assert expected_response_status == response.status, response.text
+
+        response_body = response.text
+
+        try:
+            response_body = json.loads(response.text)
+        except ValueError:
+            pass
+
+        cls._test_api_endpoint_assertion(response, response_body, expected_response_body, expected_response_status)
+
+    @classmethod
+    def _test_api_endpoint_assertion(cls, response, response_body, expected_response_body, expected_response_status):
+        response_status_category = int(expected_response_status / 100)
+
+        if response_status_category == 2:
+            if isinstance(response_body, dict) and isinstance(expected_response_body, dict):
+                assert expected_response_body == response_body
+            elif isinstance(response_body, dict) and isinstance(expected_response_body, list):
+                assert sorted(expected_response_body) == sorted(response_body.keys())
+            elif isinstance(response_body, list) and isinstance(expected_response_body, list):
+                assert sorted(response_body) == sorted(expected_response_body)
+            elif isinstance(response_body, list) and isinstance(expected_response_body, int):
+                assert expected_response_body == len(response_body)
+            elif isinstance(expected_response_body, str):
+                assert expected_response_body == response_body
+            else:
+                raise RuntimeError("Shouldn't be in here. Check response type.")
+        elif response_status_category == 3:
+            raise RuntimeError("Shouldn't be in here. Redirects not possible.")
+        elif response_status_category == 4:
+            # if http status code is in the 4 hundreds, check error code
+            if isinstance(expected_response_body, dict):
+                assert expected_response_body == response_body, response.text
+            elif isinstance(expected_response_body, list):
+                assert sorted(expected_response_body) == sorted(response_body.keys()), response.text
+            elif isinstance(expected_response_body, Enum):
+                assert expected_response_body.value == response_body['error_code']['value'], response.text
+            elif isinstance(expected_response_body, int):
+                assert expected_response_body == response_body['error_code']['value'], response.text
+            else:
+                raise RuntimeError("Shouldn't be in here. Check response type.")
+        elif response_status_category == 5:
+            raise RuntimeError("We got a 500 level status code, something isn't right.")
+
+
+test_api_endpoint = APIEndpointHelper._test_api_endpoint
 
 TestParams = namedtuple('TestParams', ['method', 'endpoint', 'request_headers', 'request_body',
                                        'expected_response_status', 'expected_response_body', 'user_level'])

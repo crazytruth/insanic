@@ -35,6 +35,10 @@ def pytest_configure(config):
 
 
 @pytest.fixture(scope="function", autouse=True)
+def disable_kong(monkeypatch):
+    monkeypatch.setattr(settings._wrapped, "GATEWAY_REGISTRATION_ENABLED", False)
+
+@pytest.fixture(scope="function", autouse=True)
 def silence_tracer(event_loop):
     os.environ[CONTEXT_MISSING_KEY] = "LOG_ERROR"
     xray_recorder.configure(context=AsyncContext(loop=event_loop))
