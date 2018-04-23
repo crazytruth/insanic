@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.2.7 (unreleased)
+0.2.7 (2018-04-23)
 ------------------
 
 - CHORE: Kong logging refactor
