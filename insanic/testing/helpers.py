@@ -1,7 +1,7 @@
 import copy
 import os
 import sys
-import ujson as json
+import json
 import uuid
 
 from enum import Enum
