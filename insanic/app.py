@@ -1,3 +1,5 @@
+import string
+
 from sanic import Sanic
 from sanic_useragent import SanicUserAgent
 
@@ -34,12 +36,20 @@ class Insanic(Sanic):
                 pass
 
         from insanic.request import Request
-        name = name.split('.', 1)[0]
+
+        service_name = ""
+
+        for c in name:
+            if c in string.ascii_lowercase:
+                service_name += c
+            else:
+                break
         super().__init__(name, router, error_handler, strict_slashes=True, log_config=get_logging_config(),
                          request_class=Request)
 
         self.config = settings
-        settings.SERVICE_NAME = name
+        settings.SERVICE_NAME = service_name
+
 
         from insanic import listeners
         for module_name in dir(listeners):
