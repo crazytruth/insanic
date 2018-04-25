@@ -14,7 +14,7 @@ Changelog for insanic
 - FIX: when more than 1 worker is run, only the main/first process handles registration
 - FEATURE: allow list assertions in api endpoint tests
 - FIX: ujson to json in tests because of float loads precision
-
+- FEATURE: add a middleware to call a userip service to save authenticated user's IP history.
 
 0.2.6 (2018-04-20)
 ------------------
