@@ -9,7 +9,7 @@ from yarl import URL
 
 from insanic import exceptions, status
 from insanic.authentication.handlers import jwt_service_encode_handler, jwt_service_payload_handler
-from insanic.conf import settings
+from insanic.conf import settings, global_settings
 from insanic.errors import GlobalErrorCodes
 from insanic.functional import cached_property_with_ttl
 from insanic.scopes import is_docker
@@ -24,7 +24,7 @@ class ServiceRegistry(dict):
         if ServiceRegistry.__instance is None:
             ServiceRegistry.__instance = dict.__new__(cls)
             ServiceRegistry.__instance.update(**{s: None for s in settings.SERVICE_CONNECTIONS})
-            ServiceRegistry.__instance.update({'userip': None})
+            ServiceRegistry.__instance.update(global_settings.DEFAULT_SERVICE_REGISTRY)
         return ServiceRegistry.__instance
 
     def __setitem__(self, key, value):

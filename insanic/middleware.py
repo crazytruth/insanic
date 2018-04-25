@@ -1,3 +1,5 @@
+import asyncio
+
 from insanic.conf import settings
 from insanic.loading import get_service
 from insanic.log import logger
@@ -15,11 +17,8 @@ async def response_userip_middleware(request, response):
 
     if user.is_authenticated and not service.is_authenticated and service_name != 'userip':
         UseripService = get_service('userip')
-        _, status_code = await UseripService.http_dispatch(
+        asyncio.ensure_future(UseripService.http_dispatch(
             'POST', '/api/v1/ip', include_status_code=True, payload={'user_id':user.id, 'ip_addr':request.ip}
-        )
+        ))
         # If userip service is called, It attaches userip key in its header.
         response.headers["userip"] = "fired"
-
-        if status_code != 201:
-            logger.log('info', 'Saving IP history has failed.')
