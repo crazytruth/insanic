@@ -24,7 +24,7 @@ class ServiceRegistry(dict):
         if ServiceRegistry.__instance is None:
             ServiceRegistry.__instance = dict.__new__(cls)
             ServiceRegistry.__instance.update(**{s: None for s in settings.SERVICE_CONNECTIONS})
-            ServiceRegistry.__instance.update(global_settings.DEFAULT_SERVICE_REGISTRY)
+            ServiceRegistry.__instance.update(**{s: None for s in global_settings.DEFAULT_SERVICE_REGISTRY})
         return ServiceRegistry.__instance
 
     def __setitem__(self, key, value):
