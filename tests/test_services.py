@@ -15,6 +15,7 @@ class TestServiceRegistry:
     @pytest.fixture(autouse=True)
     def initialize_service_registry(self, monkeypatch):
         monkeypatch.setattr(settings, "SERVICE_CONNECTIONS", ["test1"])
+        ServiceRegistry.reset()
         self.registry = ServiceRegistry()
 
     def test_singleton(self):
