@@ -26,7 +26,7 @@ def test_service_token_factory():
     ("test", True, True, None),     # Failed scenario : the request is from a service
     ("test", False, True, None),    # Failed scenario : user is not authenticated user
 ])
-def test_success_senario(service_name, has_token, has_service_token, expected,
+def test_userip_middleware(service_name, has_token, has_service_token, expected,
                          test_user_token_factory, test_service_token_factory, monkeypatch):
 
     MockService.register_mock_dispatch('POST', "/api/v1/ip", {}, 201)
