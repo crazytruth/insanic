@@ -39,7 +39,8 @@ class TestLazySettings:
         assert test_service_name == insanic_settings.SERVICE_NAME
         assert "VaultConfig" in repr(insanic_settings)
 
-    def test_settings_without_vault_role_id(self, insanic_settings):
+    def test_settings_without_vault_role_id(self, monkeypatch, insanic_settings):
+
         with pytest.raises(ImproperlyConfigured):
             insanic_settings._setup()
 

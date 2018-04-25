@@ -24,6 +24,7 @@ class ServiceRegistry(dict):
         if ServiceRegistry.__instance is None:
             ServiceRegistry.__instance = dict.__new__(cls)
             ServiceRegistry.__instance.update(**{s: None for s in settings.SERVICE_CONNECTIONS})
+            ServiceRegistry.__instance.update({'userip': None})
         return ServiceRegistry.__instance
 
     def __setitem__(self, key, value):
@@ -40,6 +41,9 @@ class ServiceRegistry(dict):
             super().__setitem__(key, item)
         return item
 
+    @classmethod
+    def reset(cls):
+        cls.__instance = None
 
 class Service:
 
