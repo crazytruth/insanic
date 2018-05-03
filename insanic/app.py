@@ -3,6 +3,7 @@ import string
 from sanic import Sanic
 from sanic_useragent import SanicUserAgent
 
+from insanic.conf import settings
 from insanic.functional import empty
 from insanic.handlers import ErrorHandler
 from insanic.monitor import blueprint_monitor
@@ -103,7 +104,13 @@ class Insanic(Sanic):
                     if hasattr(_handler, "scope") and _handler.scope == "public":
                         # if method is decorated with public_facing, add to kong routes
                         if route.pattern.pattern not in _public_routes:
-                            _public_routes[route.pattern.pattern] = []
-                        _public_routes[route.pattern.pattern].append(method.upper())
+                            _public_routes[route.pattern.pattern] = {'public_methods': [], 'plugins': []}
+                        _public_routes[route.pattern.pattern]['public_methods'].append(method.upper())
+
+                # If route has been added to kong, enable some plugins
+                if hasattr(route.handler, 'view_class') and route.pattern.pattern in _public_routes:
+                    for ac in route.handler.view_class.authentication_classes:
+                        _public_routes[route.pattern.pattern]['plugins'].append(settings.KONG_PLUGIN.get(ac.__name__))
+
             self._public_routes = _public_routes
         return self._public_routes

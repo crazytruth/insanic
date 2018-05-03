@@ -1,3 +1,5 @@
+import random
+
 import aiohttp
 import pytest
 import requests
@@ -7,6 +9,8 @@ from ujson import loads as jsonloads
 from yarl import URL
 
 from sanic.response import json
+
+from authentication import JSONWebTokenAuthentication
 from insanic import Insanic
 from insanic.conf import settings
 from insanic.scopes import public_facing
@@ -55,6 +59,7 @@ class TestKongGateway:
         monkeypatch.setattr(settings, "GATEWAY_REGISTRATION_ENABLED", True)
         monkeypatch.setattr(settings, "KONG_HOST", 'kong.msa.swarm')
         monkeypatch.setattr(settings, "KONG_PORT", 18001)
+        monkeypatch.setattr(settings, "KONG_PLUGIN", {"JSONWebTokenAuthentication": "jwt"})
         from insanic.registration import KongGateway
         self.gateway = KongGateway()
 
@@ -78,6 +83,24 @@ class TestKongGateway:
         for r in service_ids:
             requests.delete(kong_base_url.with_path(f'/services/{r}'))
 
+    @pytest.fixture(scope="function")
+    def kong_jwt_test_fixture(self):
+        temp_consumer_id = uuid.uuid1().hex
+
+        yield temp_consumer_id
+
+        kong_base_url = self.gateway.kong_base_url
+
+        # Delete jwts
+        resp = requests.get(kong_base_url.with_path(f'/consumers/{temp_consumer_id}/jwt/'))
+        body = jsonloads(resp.text)
+        for r in body.get('data', []):
+            jwt_id = r['id']
+            requests.delete(kong_base_url.with_path(f'/consumers/{temp_consumer_id}/jwt/{jwt_id}/'))
+
+        # Delete consumer
+        requests.delete(kong_base_url.with_path(f'/consumers/{temp_consumer_id}/'))
+
     @pytest.fixture()
     def insanic_application(self, monkeypatch, insanic_application, unused_port):
         monkeypatch.setattr(insanic_application, "_port", unused_port, raising=False)
@@ -90,6 +113,7 @@ class TestKongGateway:
         assert self.gateway._service_spec is None
         assert self.gateway.machine_id is not None
         assert isinstance(self.gateway.machine_id, str)
+
 
     def test_kong_service_name(self):
 
@@ -185,6 +209,53 @@ class TestKongGateway:
             assert len(gw.routes) == 0
             await gw.deregister_service()
             assert gw.service_id is None
+
+    @pytest.mark.parametrize("routes_prefix", [r.replace("public", "prefix") for r in ROUTES])
+    @pytest.mark.parametrize("routes_suffix", [r.replace("public", "suffix") for r in ROUTES])
+    async def test_routes_with_jwt_plugin_enabled(self, monkeypatch, insanic_application, kong_jwt_test_fixture,
+                                                  routes_prefix, routes_suffix):
+        monkeypatch.setattr(settings._wrapped, "ALLOWED_HOSTS", ['test.mmt.local'], raising=False)
+
+        class MockView(InsanicView):
+            authentication_classes = [JSONWebTokenAuthentication]
+
+            @public_facing
+            def get(self, request, *args, **kwargs):
+                return json({})
+
+        route = f"{routes_prefix}{routes_suffix}".replace("//", "/")
+
+        insanic_application.add_route(MockView.as_view(), route)
+
+        async with self.gateway as gw:
+            await gw.register_service(insanic_application)
+            assert hasattr(self.gateway, "service_id")
+            assert self.gateway.service_id is not None
+            await gw.register_routes(insanic_application)
+
+            session = gw.session
+
+            # Create a Kong consumer
+            req_payload = {'username': kong_jwt_test_fixture}
+            async with session.post(
+                    f"http://{settings.KONG_HOST}:{settings.KONG_PORT}/consumers/", json=req_payload
+            ) as resp:
+                result = await resp.json()
+
+                assert "username" in result
+                assert result['username'] == req_payload['username']
+
+            consumer_id = result['id']
+
+            # Create JWT credentials for user
+            async with session.post(
+                    f"http://{settings.KONG_HOST}:{settings.KONG_PORT}/consumers/{req_payload['username']}/jwt/",
+                    json={}
+            ) as resp:
+                result = await resp.json()
+
+                assert result['consumer_id'] == consumer_id
+                assert all(key in result for key in ('created_at', 'id', 'algorithm', 'key', 'secret', 'consumer_id'))
 
     async def test_register_routes_without_register_service(self, monkeypatch, insanic_application):
 
