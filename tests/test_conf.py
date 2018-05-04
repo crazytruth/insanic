@@ -250,12 +250,11 @@ class TestVaultConfig:
         assert isinstance(self.config.consul_client, Consul)
 
     def test_default_properties(self, monkeypatch):
-        consul_properties = ("CONSUL_HOST", "CONSUL_PORT",)
         vault_properties = ("VAULT_SCHEME", "VAULT_HOST",
                             "VAULT_PORT", "VAULT_URL", "VAULT_ROLE_ID")
         swarm_properties = ("SWARM_MANAGER_SCHEME", "SWARM_MANAGER_HOST", "SWARM_MANAGER_PORT", "SWARM_MANAGER_URL")
 
-        for p in consul_properties + vault_properties + swarm_properties:
+        for p in vault_properties + swarm_properties:
             assert getattr(self.config, p) is not None
 
     @pytest.mark.parametrize("role_id,mmt_env,expected", ((None, None, False),
@@ -349,15 +348,7 @@ class TestVaultConfig:
 
         assert self.config.SERVICE_NAME == service_name
 
-    def test_swarm_manager_hosts(self, monkeypatch):
-        def mock_nodes(*args, **kwargs):
-            return ["something", [{"Address": "address1", "Meta": {"role": "manager"}},
-                                  {"Address": "address2", "Meta": {"role": "worker"}}]]
-
-        monkeypatch.setattr(Consul.Catalog, "nodes", mock_nodes)
-
-        assert len(self.config.SWARM_MANAGER_HOSTS) == 1
-
+    @pytest.mark.skip(reason="settings.SERVICE_LIST is now deprecated.")
     def test_service_list(self, monkeypatch):
 
         service_list = self.config.SERVICE_LIST

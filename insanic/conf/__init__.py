@@ -18,7 +18,6 @@ from .base import BaseConfig
 
 logger = logging.getLogger('root')
 ENVIRONMENT_VARIABLE = "VAULT_ROLE_ID"
-PROTECTED_VARIABLES = ["MMT_ENV", "SERVICE_NAME", "SERVICE_LIST"]
 
 
 class LazySettings(LazyObject):
@@ -225,13 +224,13 @@ class VaultConfig(BaseConfig):
         self._service_name = val
 
     # consul related properties
-    @property
-    def CONSUL_HOST(self):
-        return "consul.msa.swarm"
-
-    @property
-    def CONSUL_PORT(self):
-        return "8500"
+    # @property
+    # def CONSUL_HOST(self):
+    #     return "consul.msa.swarm"
+    #
+    # @property
+    # def CONSUL_PORT(self):
+    #     return "8500"
 
     # vault related properties
     @property
@@ -256,11 +255,6 @@ class VaultConfig(BaseConfig):
         return self._role_id
 
     # swarm related properties
-    @cached_property_with_ttl(ttl=60)
-    def SWARM_MANAGER_HOSTS(self):
-        nodes = self.consul_client.catalog.nodes()
-        return [n['Address'] for n in nodes[1] if n["Meta"].get('role', None) == "manager"]
-
     @property
     def SWARM_MANAGER_SCHEME(self):
         return "http"
@@ -280,7 +274,7 @@ class VaultConfig(BaseConfig):
 
     # service related properties
     @cached_property
-    def SERVICE_LIST(self):
+    def SWARM_SERVICE_LIST(self):
 
         service_template = {
             "host": "",
@@ -329,7 +323,7 @@ class VaultConfig(BaseConfig):
                 services_config[service_name]['internal_service_port'] = internal_service_port
 
                 if is_docker:
-                    services_config[service_name]['host'] = s['Spec']['Name'].rsplit('_', 1)[-1]
+                    services_config[service_name]['host'] = s['Spec']['Name'].rsplit('_', 1)[-1].split('-')
                 else:
                     services_config[service_name]['host'] = self.SWARM_MANAGER_HOST
         return services_config
