@@ -233,6 +233,25 @@ class KongGateway(BaseGateway):
     #         raise RuntimeError(
     #             self.logger_create_message("routes", "Need to register service before registering routes!"))
 
+    async def enable_plugins(self, session, route_info, route_resp, route_data):
+        # attach plugins
+        for plugin in route_info['plugins']:
+            async with session.post(self.kong_base_url.with_path(
+                    f"/routes/{route_resp['id']}/plugins/"), json={'name': plugin}) as resp:
+                await resp.json()
+                try:
+                    resp.raise_for_status()
+                except aiohttp.ClientResponseError:
+                    self.logger_route("critical",
+                                      f"FAILED "
+                                      f"enabling {plugin} plugin for route {route_data['paths']} "
+                                      f"on {self.kong_service_name}: {route_resp}")
+                    raise
+                else:
+                    self.logger_route("debug",
+                                      f"Enabled {plugin} plugin for route {route_resp['paths']}"
+                                      f" as {route_resp['id']} on {self.kong_service_name}")
+
     @http_session_manager
     async def register_routes(self, app, *, session):
         '''
@@ -243,14 +262,13 @@ class KongGateway(BaseGateway):
         '''
 
         if self.service_id is not None:
-            route_data_list = []
             public_routes = app.public_routes()
 
             if len(public_routes) > 0:
-                for url, methods in public_routes.items():
+                for url, route_info in public_routes.items():
                     route_data = {
                         "protocols": ["http", "https"],
-                        "methods": methods,
+                        "methods": route_info['public_methods'],
                         "hosts": settings.ALLOWED_HOSTS,
                         "paths": [normalize_url_for_kong(url)],
                         "service": {"id": self.service_id},
@@ -260,12 +278,12 @@ class KongGateway(BaseGateway):
 
                     async with session.post(self.kong_base_url.with_path('/routes/'), json=route_data) as resp:
                         route_response = await resp.json()
-
                         try:
                             resp.raise_for_status()
+                            await self.enable_plugins(session, route_info, route_response, route_data)
                         except aiohttp.ClientResponseError:
                             self.logger_route("critical",
-                                              f"FAILED registering route {route_data_list[i]['paths']} "
+                                              f"FAILED registering route {route_data['paths']} "
                                               f"on {self.kong_service_name}: {route_response}")
                             raise
                         else:
@@ -292,7 +310,6 @@ class KongGateway(BaseGateway):
 
     @http_session_manager
     async def deregister_routes(self, *, session):
-
         routes = []
         next_url = self.kong_base_url.with_path(f"/services/{self.service_id}/routes")
         while next_url is not None:

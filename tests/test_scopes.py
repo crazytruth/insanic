@@ -27,7 +27,7 @@ class TestPublicFacingScope:
         public_routes = insanic_application.public_routes()
 
         assert f"^{route}$" in public_routes.keys()
-        assert sorted(["GET", "DELETE"]) == sorted(public_routes[f"^{route}$"])
+        assert sorted(["GET", "DELETE"]) == sorted(public_routes[f"^{route}$"]['public_methods'])
 
     def test_positional_args_in_view(self, insanic_application):
         get_response = {"method": "get"}
