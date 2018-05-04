@@ -236,8 +236,16 @@ class KongGateway(BaseGateway):
     async def enable_plugins(self, session, route_info, route_resp, route_data):
         # attach plugins
         for plugin in route_info['plugins']:
+            # If 'jwt' plugin should be enabled, then should provide anonymous consumer id.
+            if plugin == 'jwt':
+                async with session.get(self.kong_base_url.with_path(f"/consumers/anonymous/")) as resp:
+                    resp = await resp.json()
+                    payload = {'name': 'jwt', 'config.anonymous': resp['id']}
+            else:
+                payload = {'name': plugin}
+
             async with session.post(self.kong_base_url.with_path(
-                    f"/routes/{route_resp['id']}/plugins/"), json={'name': plugin}) as resp:
+                    f"/routes/{route_resp['id']}/plugins/"), json=payload) as resp:
                 await resp.json()
                 try:
                     resp.raise_for_status()
