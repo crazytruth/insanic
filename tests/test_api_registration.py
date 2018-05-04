@@ -1,5 +1,3 @@
-import random
-
 import aiohttp
 import pytest
 import requests
@@ -10,9 +8,11 @@ from yarl import URL
 
 from sanic.response import json
 
-from authentication import JSONWebTokenAuthentication
+
 from insanic import Insanic
+from insanic.authentication import JSONWebTokenAuthentication
 from insanic.conf import settings
+from insanic.permissions import AllowAny
 from insanic.scopes import public_facing
 from insanic.views import InsanicView
 
@@ -58,7 +58,7 @@ class TestKongGateway:
     def kong_gateway(self, monkeypatch):
         monkeypatch.setattr(settings, "GATEWAY_REGISTRATION_ENABLED", True)
         monkeypatch.setattr(settings, "KONG_HOST", 'kong.msa.swarm')
-        monkeypatch.setattr(settings, "KONG_PORT", 18001)
+        monkeypatch.setattr(settings, "KONG_ADMIN_PORT", 18001)
         monkeypatch.setattr(settings, "KONG_PLUGIN", {"JSONWebTokenAuthentication": "jwt"})
         from insanic.registration import KongGateway
         self.gateway = KongGateway()
@@ -237,7 +237,7 @@ class TestKongGateway:
             # Create a Kong consumer
             req_payload = {'username': kong_jwt_test_fixture}
             async with session.post(
-                    f"http://{settings.KONG_HOST}:{settings.KONG_PORT}/consumers/", json=req_payload
+                    f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}/consumers/", json=req_payload
             ) as resp:
                 result = await resp.json()
 
@@ -248,13 +248,48 @@ class TestKongGateway:
 
             # Create JWT credentials for user
             async with session.post(
-                    f"http://{settings.KONG_HOST}:{settings.KONG_PORT}/consumers/{req_payload['username']}/jwt/",
+                    f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}/consumers/{req_payload['username']}/jwt/",
                     json={}
             ) as resp:
                 result = await resp.json()
 
                 assert result['consumer_id'] == consumer_id
                 assert all(key in result for key in ('created_at', 'id', 'algorithm', 'key', 'secret', 'consumer_id'))
+
+            await gw.deregister_routes()
+            await gw.deregister_service()
+
+    async def test_routes_with_jwt_auth_and_allow_any(self, monkeypatch, insanic_application, kong_jwt_test_fixture,
+                                                      session_id):
+        monkeypatch.setattr(settings._wrapped, "ALLOWED_HOSTS", [], raising=False)
+
+        expected_response = {"test_id": session_id}
+
+        class MockView(InsanicView):
+            authentication_classes = [JSONWebTokenAuthentication]
+            permission_classes = [AllowAny]
+
+            @public_facing
+            def get(self, request, *args, **kwargs):
+                return json(expected_response, status=202)
+
+        route = f"/test/{session_id}/"
+
+        insanic_application.add_route(MockView.as_view(), route)
+
+        async with self.gateway as gw:
+            await gw.register_service(insanic_application)
+            await gw.register_routes(insanic_application)
+
+            session = gw.session
+            async with session.get(f'http://{settings.KONG_HOST}:18000{route}') as resp:
+                result = await resp.json()
+
+                assert resp.status == 401
+
+            await gw.deregister_routes()
+            await gw.deregister_service()
+
 
     async def test_register_routes_without_register_service(self, monkeypatch, insanic_application):
 

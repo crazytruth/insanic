@@ -147,7 +147,7 @@ class KongGateway(BaseGateway):
 
     def __init__(self):
         super().__init__()
-        self.kong_base_url = URL(f"http://{settings.KONG_HOST}:{settings.KONG_PORT}")
+        self.kong_base_url = URL(f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}")
 
         self.service_name = settings.SERVICE_NAME
         self.machine_id = get_machine_id()

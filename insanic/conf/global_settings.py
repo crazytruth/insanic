@@ -127,7 +127,7 @@ THROTTLES = {
 GATEWAY_REGISTRATION_ENABLED = True
 
 KONG_HOST = "kong"
-KONG_PORT = 18000
+KONG_ADMIN_PORT = 18000
 
 KONG_ROUTE_REGEX_PRIORITY = {"local": 10,
                              "development": 5}

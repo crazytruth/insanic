@@ -4,8 +4,8 @@ Changelog for insanic
 0.2.8 (unreleased)
 ------------------
 
-- FEATURE: add JWT plugin to routes that have JWTAuth assigned (@sunghyun)
-- FEATURE: ip logging middleware (@jaemyun)
+- FEATURE: add JWT plugin to routes that have JWTAuth assigned (@sunghyun-lee)
+- FEATURE: ip logging middleware (@jaemyunlee)
 - REMOVE: consul dependency
 - REMOVE: swarm manager dependency
 - DEPRECATE: SERVICE_LIST settings
@@ -17,7 +17,7 @@ Changelog for insanic
 - FIX: when more than 1 worker is run, only the main/first process handles registration
 - FEATURE: allow list assertions in api endpoint tests
 - FIX: ujson to json in tests because of float loads precision
-- FEATURE: add a middleware to call a userip service to save authenticated user's IP history.
+
 
 0.2.6 (2018-04-20)
 ------------------
