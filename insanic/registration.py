@@ -228,16 +228,54 @@ class KongGateway(BaseGateway):
     async def enable_plugins(self, session, route_info, route_resp, route_data):
         # attach plugins
         for plugin in route_info['plugins']:
+            # If 'jwt' plugin should be enabled, then should provide anonymous consumer id.
+            if plugin == 'jwt':
+                async with session.get(self.kong_base_url.with_path("/consumers/anonymous/")) as resp:
+                    # If anonymous consumer does not exist, make one.
+                    if resp.status == 404:
+                        async with session.post(self.kong_base_url.with_path("/consumers/"),
+                                                json={'username': 'anonymous'}) as create_resp:
+                            # overwrite get response
+                            resp = create_resp
+                            result = await resp.json()
+
+                            try:
+                                resp.raise_for_status()
+                            except aiohttp.ClientResponseError:
+                                self.logger_route("critical", f"FAILED creating anonymous consumer "
+                                                              f"by {self.kong_service_name}")
+                            else:
+                                self.logger_route("info",
+                                                  f"Consumer {result['id']} was created as anonymous user "
+                                                  f"by {self.kong_service_name}")
+
+                    result = await resp.json()
+                    payload = {'name': 'jwt', 'config.anonymous': result['id']}
+
+                    # Error check if there was an error on request to enable jwt plugin
+                    try:
+                        resp.raise_for_status()
+                    except aiohttp.ClientResponseError:
+                        self.logger_route("critical",
+                                          f"FAILED "
+                                          f"getting anonymous user with status_code: {resp.status} "
+                                          f"on {self.kong_service_name}")
+                        raise
+
+            else:
+                payload = {'name': plugin}
+
             async with session.post(self.kong_base_url.with_path(
-                    f"/routes/{route_resp['id']}/plugins/"), json={'name': plugin}) as resp:
+                    f"/routes/{route_resp['id']}/plugins/"), json=payload) as resp:
                 await resp.json()
+
                 try:
                     resp.raise_for_status()
                 except aiohttp.ClientResponseError:
                     self.logger_route("critical",
                                       f"FAILED "
                                       f"enabling {plugin} plugin for route {route_data['paths']} "
-                                      f"on {self.kong_service_name}: {route_resp}")
+                                      f"on {self.kong_service_name}: {route_resp['id']}")
                     raise
                 else:
                     self.logger_route("debug",
