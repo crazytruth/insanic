@@ -245,7 +245,7 @@ class KongGateway(BaseGateway):
                                                 json={'username': 'anonymous'}) as create_resp:
                             # overwrite get response
                             resp = create_resp
-                            result = await create_resp.json()
+                            result = await resp.json()
 
                             try:
                                 resp.raise_for_status()
@@ -266,13 +266,9 @@ class KongGateway(BaseGateway):
                     except aiohttp.ClientResponseError:
                         self.logger_route("critical",
                                           f"FAILED "
-                                          f"enabling jwt plugin for route {route_data['paths']} "
-                                          f"on {self.kong_service_name}: {route_resp['id']}")
+                                          f"getting anonymous user with status_code: {resp.status} "
+                                          f"on {self.kong_service_name}")
                         raise
-                    else:
-                        self.logger_route("debug",
-                                          f"Enabled jwt plugin for route {route_resp['paths']}"
-                                          f" as {route_resp['id']} on {self.kong_service_name}")
 
             else:
                 payload = {'name': plugin}
