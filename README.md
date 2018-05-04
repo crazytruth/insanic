@@ -100,6 +100,8 @@ _For full changelogs, please refer to the [CHANGELOG][changelog]._
 ## Meta
 
 [Kwang Jin Kim](https://github.com/crazytruth) - david@mymusictaste.com
+[Sunghyun Lee](https://github.com/sunghyun-lee) - sunghyunlee@mymusictaste.com
+[Jaemyun Lee](https://github.com/jaemyunlee) - jake@mymusictaste.com
 
 Distributed under the MIT license. See ``LICENSE`` for more information.
 
@@ -110,21 +112,11 @@ Distributed under the MIT license. See ``LICENSE`` for more information.
 
 - documentation
 - tests
-- upgrade sanic to 0.7.0
 
 ### FEATURES:
 
-- decorator to determine public/private facing api endpoints
-- auto route registration on api gateway/consul?
-- vault integration
 - RPC for interservice communication
 
-### REMOVE:
-
-- loading.py - tentative.. depending on usages
-- models.py
-- thumbnails/*
-- authentication.py - need to decide where to put this (auth service?)
 
 <!-- Markdown link & img dfn's -->
 [wiki]: https://github.com/MyMusicTaste/insanic/wiki

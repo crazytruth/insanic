@@ -87,7 +87,6 @@ class TestKongGateway:
 
         assert isinstance(self.gateway.kong_base_url, URL)
         assert URL(self.gateway.kong_base_url)
-        assert self.gateway._service_spec is None
         assert self.gateway.machine_id is not None
         assert isinstance(self.gateway.machine_id, str)
 
@@ -101,19 +100,19 @@ class TestKongGateway:
         assert e == self.gateway.environment.lower()
         assert mi == self.gateway.machine_id.lower()
 
-    def test_service_spec(self, monkeypatch):
-        monkeypatch.setattr(settings._wrapped, "SERVICE_LIST", {}, raising=False)
-
-        sl = self.gateway.service_spec
-
-        assert self.gateway._service_spec == sl
-
-        service_spec = {"a": "b"}
-        monkeypatch.setattr(settings._wrapped, "SERVICE_LIST", {"insanic": service_spec}, raising=False)
-        self.gateway._service_spec = None
-
-        sl = self.gateway.service_spec
-        assert self.gateway._service_spec == service_spec
+    # def test_service_spec(self, monkeypatch):
+    #     monkeypatch.setattr(settings._wrapped, "SERVICE_LIST", {}, raising=False)
+    #
+    #     sl = self.gateway.service_spec
+    #
+    #     assert self.gateway._service_spec == sl
+    #
+    #     service_spec = {"a": "b"}
+    #     monkeypatch.setattr(settings._wrapped, "SERVICE_LIST", {"insanic": service_spec}, raising=False)
+    #     self.gateway._service_spec = None
+    #
+    #     sl = self.gateway.service_spec
+    #     assert self.gateway._service_spec == service_spec
 
     async def test_register_service_idempotence(self, monkeypatch, insanic_application):
 

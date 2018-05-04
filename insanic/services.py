@@ -23,8 +23,10 @@ class ServiceRegistry(dict):
     def __new__(cls, *args, **kwargs):
         if ServiceRegistry.__instance is None:
             ServiceRegistry.__instance = dict.__new__(cls)
-            ServiceRegistry.__instance.update(**{s: None for s in settings.SERVICE_CONNECTIONS})
-            ServiceRegistry.__instance.update(**{s: None for s in settings.DEFAULT_SERVICE_REGISTRY})
+            ServiceRegistry.__instance.update(**{s: None for s in
+                                                 set(settings.SERVICE_CONNECTIONS +
+                                                     settings.REQUIRED_SERVICE_CONNECTIONS)})
+
         return ServiceRegistry.__instance
 
     def __setitem__(self, key, value):
@@ -60,12 +62,6 @@ class Service:
     def service_name(self):
         return self._service_name
 
-    def _service_spec(self, raise_exception=False):
-        spec = settings.SERVICE_LIST.get(self._service_name, {})
-        if spec == {} and raise_exception:
-            self.raise_503()
-        return spec
-
     def raise_503(self):
         raise exceptions.ServiceUnavailable503Error(detail=f"{self._service_name} is currently unavailable.",
                                                     error_code=GlobalErrorCodes.service_unavailable,
@@ -73,16 +69,19 @@ class Service:
 
     @cached_property_with_ttl(ttl=60)
     def schema(self):
-        return self._service_spec().get('schema', 'http')
+        return settings.SERVICE_GLOBAL_SCHEMA
 
     @cached_property_with_ttl(ttl=60)
     def host(self):
-        host = self._service_spec(True).get('host')
-        return host
+        return settings.SERVICE_GLOBAL_HOST_TEMPLATE.format(self._service_name)
 
     @cached_property_with_ttl(ttl=60)
     def port(self):
-        return self._service_spec(True).get('internal_service_port' if is_docker else 'external_service_port')
+        _port = settings.SERVICE_GLOBAL_PORT
+        if hasattr(settings, "SWARM_SERVICE_LIST"):
+            _port = settings.SWARM_SERVICE_LIST.get('internal_service_port' if is_docker else 'external_service_port',
+                                                    settings.SERVICE_GLOBAL_PORT)
+        return _port
 
     @property
     def url(self):
@@ -93,7 +92,8 @@ class Service:
     def session(self):
         if self._session is None:
             self._session = aiohttp.ClientSession(loop=get_event_loop(),
-                                                  connector=aiohttp.TCPConnector(limit_per_host=10))
+                                                  connector=aiohttp.TCPConnector(limit_per_host=25,
+                                                                                 ttl_dns_cache=300))
         return self._session
 
     def _construct_url(self, endpoint, query_params={}):
@@ -222,6 +222,6 @@ class Service:
         except aiohttp.client_exceptions.ClientPayloadError as e:
             raise
         finally:
-            pass
+            resp.release()
 
         return resp, response_status

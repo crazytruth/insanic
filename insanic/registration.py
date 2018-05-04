@@ -150,14 +150,7 @@ class KongGateway(BaseGateway):
         self.kong_base_url = URL(f"http://{settings.KONG_HOST}:{settings.KONG_PORT}")
 
         self.service_name = settings.SERVICE_NAME
-        self._service_spec = None
         self.machine_id = get_machine_id()
-
-    @property
-    def service_spec(self):
-        if self._service_spec is None:
-            self._service_spec = settings.SERVICE_LIST.get(self.service_name, {})
-        return self._service_spec
 
     @property
     def environment(self):
@@ -178,9 +171,8 @@ class KongGateway(BaseGateway):
                 service_data = {
                     "name": self.kong_service_name,
                     "protocol": "http",
-                    "host": self.service_spec.get("host",
-                                                  f"mmt-server-{self.service_name}") if is_docker else get_my_ip(),
-                    "port": self.service_spec.get("internal_service_port", app._port) if is_docker else app._port
+                    "host": settings.SERVICE_HOST_TEMPLATE.format(self.service_name) if is_docker else get_my_ip(),
+                    "port": app._port
                 }
 
                 async with session.post(self.kong_base_url.with_path('/services/'), json=service_data) as resp:
@@ -284,7 +276,8 @@ class KongGateway(BaseGateway):
     @http_session_manager
     async def deregister_service(self, *, session):
         if self.service_id is not None:
-            async with session.delete(self.kong_base_url.with_path(f"/services/{self.service_id}")):
+            async with session.delete(self.kong_base_url.with_path(f"/services/{self.service_id}")) as resp:
+                resp.raise_for_status()
                 self.logger_service("debug", f"Deregistered service {self.service_id}")
                 self.service_id = None
         else:
@@ -301,23 +294,42 @@ class KongGateway(BaseGateway):
                 routes.extend([r['id'] for r in body.get('data', [])])
                 next_url = body.get('next', None)
 
-        delete_route_requests = [session.delete(self.kong_base_url.with_path(f'/routes/{r}'))
-                                 for r in routes]
-
         # asyncio gather
-        if delete_route_requests:
-            delete_route_responses = await asyncio.gather(*delete_route_requests)
+        # if routes:
+        #     delete_route_requests = [session.delete(self.kong_base_url.with_path(f'/routes/{r}'))
+        #                              for r in routes]
+        #
+        #     delete_route_responses = await asyncio.gather(*delete_route_requests)
+        #
+        #     for r in delete_route_responses:
+        #         rid = str(r.url).split('/')[-1]
+        #
+        #         try:
+        #             del self.routes[rid]
+        #         except KeyError:
+        #             pass
+        #         self.logger_route('debug', "Deregistered route {rid}.")
 
-            for r in delete_route_responses:
-                rid = str(r.url).split('/')[-1]
-
-                try:
-                    del self.routes[rid]
-                except KeyError:
-                    pass
-                self.logger_route('debug', "Deregistered route {rid}.")
+        # asyncio gather seems unstable
+        if routes:
+            for r in routes:
+                async with session.delete(self.kong_base_url.with_path(f'/routes/{r}')) as resp:
+                    try:
+                        resp.raise_for_status()
+                    except aiohttp.ClientResponseError:
+                        route_response = await resp.json()
+                        self.logger_route("critical",
+                                          f"FAILED deregistering route {r} "
+                                          f"on {self.kong_service_name}: {route_response}")
+                        continue
+                    else:
+                        try:
+                            del self.routes[r]
+                        except KeyError:
+                            pass
+                        self.logger_route("debug",
+                                          f"Deregistered route {r} on {self.kong_service_name}")
         else:
             self.logger_route('debug', "No routes to deregister.")
-
 
 gateway = KongGateway()

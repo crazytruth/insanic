@@ -4,8 +4,11 @@ Changelog for insanic
 0.2.8 (unreleased)
 ------------------
 
-- Nothing changed yet.
-
+- FEATURE: add JWT plugin to routes that have JWTAuth assigned (@sunghyun)
+- FEATURE: ip logging middleware (@jaemyun)
+- REMOVE: consul dependency
+- REMOVE: swarm manager dependency
+- DEPRECATE: SERVICE_LIST settings
 
 0.2.7 (2018-04-23)
 ------------------

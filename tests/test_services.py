@@ -60,6 +60,7 @@ class TestServiceClass:
     def test_service_name(self):
         assert self.service.service_name == self.service_name
 
+    @pytest.mark.skip(reason="SERVICE_LIST is now deprecated")
     def test_service_spec(self, monkeypatch):
         assert self.service._service_spec() == {}
 
