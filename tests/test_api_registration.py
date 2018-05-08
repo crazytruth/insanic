@@ -290,6 +290,55 @@ class TestKongGateway:
             await gw.deregister_routes()
             await gw.deregister_service()
 
+    @pytest.mark.parametrize("routes_prefix", [r.replace("public", "prefix") for r in ROUTES])
+    @pytest.mark.parametrize("routes_suffix", [r.replace("public", "suffix") for r in ROUTES])
+    async def test_deregister_routes_with_disabling_plugins(self, monkeypatch, insanic_application,
+                                                            routes_prefix, routes_suffix):
+        monkeypatch.setattr(settings._wrapped, "ALLOWED_HOSTS", ['test.msa.local'], raising=False)
+
+        class MockView(InsanicView):
+            authentication_classes = [JSONWebTokenAuthentication]
+            permission_classes = []
+
+            @public_facing
+            def get(self, request, *args, **kwargs):
+                return json({})
+
+        route = f"{routes_prefix}{routes_suffix}".replace("//", "/")
+
+        insanic_application.add_route(MockView.as_view(), route)
+
+        async with self.gateway as gw:
+            await gw.register_service(insanic_application)
+            await gw.register_routes(insanic_application)
+
+            session = gw.session
+
+            # Get routes id - Only one route should be available.
+            route_id = list(gw.routes.keys())[0]
+
+            async with session.get(
+                    f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}/plugins?route_id={route_id}"
+            ) as resp:
+                result = await resp.json()
+
+                # Test if plugins were successfully enabled for this route
+                assert resp.status == 200
+                assert 'data' in result
+                assert any(d['name'] == 'jwt' for d in result['data'])
+
+            await gw.deregister_routes()
+            await gw.deregister_service()
+
+            async with session.get(
+                    f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}/plugins?route_id={route_id}"
+            ) as resp:
+                result = await resp.json()
+
+                # Test if plugins were successfully disabled for this route
+                assert resp.status == 200
+                assert 'total' in result and result['total'] == 0
+                assert 'data' in result and not result['data']
 
     async def test_register_routes_without_register_service(self, monkeypatch, insanic_application):
 
