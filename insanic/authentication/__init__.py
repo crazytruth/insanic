@@ -126,6 +126,7 @@ class ServiceJWTAuthentication(BaseJSONWebTokenAuthentication):
         service = RequestService(is_authenticated=True, **payload)
         return service
 
+
 class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
     """
     Clients should authenticate by passing the token key in the "Authorization"

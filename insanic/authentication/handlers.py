@@ -24,7 +24,7 @@ def jwt_decode_handler(token):
     )
 
 
-def jwt_payload_handler(user):
+def jwt_payload_handler(user, key):
     username = user.email
     user_id = user.id
 
@@ -32,6 +32,7 @@ def jwt_payload_handler(user):
         'user_id': user_id,
         'email': username,
         'level': user.level,
+        'iss': key,
         'exp': datetime.utcnow() + settings.JWT_AUTH['JWT_EXPIRATION_DELTA'],
     }
 
@@ -43,8 +44,8 @@ def jwt_payload_handler(user):
     if settings.JWT_AUTH['JWT_AUDIENCE'] is not None:
         payload['aud'] = settings.JWT_AUTH['JWT_AUDIENCE']
 
-    if settings.JWT_AUTH['JWT_ISSUER'] is not None:
-        payload['iss'] = settings.JWT_AUTH['JWT_ISSUER']
+    # if settings.JWT_AUTH['JWT_ISSUER'] is not None:
+    #     payload['iss'] = settings.JWT_AUTH['JWT_ISSUER']
 
     if settings.JWT_AUTH.get('JWT_ROLE') is not None:
         payload['rol'] = settings.JWT_AUTH['JWT_ROLE']
@@ -52,10 +53,10 @@ def jwt_payload_handler(user):
     return payload
 
 
-def jwt_encode_handler(payload):
+def jwt_encode_handler(payload, secret):
     return jwt.encode(
         payload,
-        settings.JWT_AUTH['JWT_PRIVATE_KEY'] or settings.SECRET_KEY,
+        secret,
         settings.JWT_AUTH['JWT_ALGORITHM']
     ).decode('utf-8')
 

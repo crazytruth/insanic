@@ -356,7 +356,9 @@ class KongGateway(BaseGateway):
                                                   f"by {self.kong_service_name}")
 
                     result = await resp.json()
-                    payload = {'name': 'jwt', 'config.anonymous': result['id']}
+                    payload = {'name': 'jwt',
+                               'config.anonymous': result['id'],
+                               'config.claims_to_verify': 'exp'}
 
                     # Error check if there was an error on request to enable jwt plugin
                     try:
