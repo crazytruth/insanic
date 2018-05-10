@@ -24,7 +24,7 @@ from insanic.services import Service
 from insanic.testing.helpers import MockService
 from insanic.tracing.core import xray_recorder
 from insanic.tracing.context import AsyncContext
-from registration import gateway
+from insanic.registration import gateway
 
 pytest.register_assert_rewrite('insanic.testing.helpers')
 
