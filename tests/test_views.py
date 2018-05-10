@@ -1,4 +1,5 @@
 import pytest
+from insanic.conf import settings
 
 from sanic.exceptions import _sanic_exceptions
 from sanic.response import json
@@ -6,6 +7,14 @@ from insanic import Insanic, authentication, permissions, status
 from insanic.choices import UserLevels
 from insanic.errors import GlobalErrorCodes
 from insanic.views import InsanicView
+
+
+@pytest.fixture(autouse=True)
+def kong_gateway(monkeypatch):
+    monkeypatch.setattr(settings, "GATEWAY_REGISTRATION_ENABLED", True)
+    monkeypatch.setattr(settings, "KONG_HOST", 'kong.msa.swarm')
+    monkeypatch.setattr(settings, "KONG_ADMIN_PORT", 18001)
+    monkeypatch.setattr(settings, "KONG_PLUGIN", {"JSONWebTokenAuthentication": "jwt"})
 
 
 def test_view_allowed_methods():
@@ -103,33 +112,37 @@ def test_view_permission(test_user_token_factory):
     assert response.status == status.HTTP_401_UNAUTHORIZED
     assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.authentication_credentials_missing
 
+    user, token = test_user_token_factory(email="test@mmt.com", level=UserLevels.BANNED, return_with_user=True)
     request, response = app.test_client.get('/', headers={
-        "Authorization": test_user_token_factory(email="test@mmt.com", level=UserLevels.BANNED)})
+        "Authorization": token, 'x-consumer-username': user.id})
 
     assert response.status == status.HTTP_401_UNAUTHORIZED
     assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.inactive_user
 
+    user, token = test_user_token_factory(email="test@mmt.com", level=UserLevels.DEACTIVATED, return_with_user=True)
     request, response = app.test_client.get('/', headers={
-        "Authorization": test_user_token_factory(email="test@mmt.com", level=UserLevels.DEACTIVATED)})
+        "Authorization": token, 'x-consumer-username': user.id})
 
     assert response.status == status.HTTP_401_UNAUTHORIZED
     assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.inactive_user
 
+    user, token = test_user_token_factory(email="test@mmt.com", level=UserLevels.ACTIVE, return_with_user=True)
     request, response = app.test_client.get('/', headers={
-        "Authorization": test_user_token_factory(email="test@mmt.com", level=UserLevels.ACTIVE)})
+        "Authorization": token, 'x-consumer-username': user.id})
 
     assert response.status == status.HTTP_200_OK
     assert response.json == response_body
 
+    user, token = test_user_token_factory(email="test@mmt.com", level=UserLevels.STAFF, return_with_user=True)
     request, response = app.test_client.get('/', headers={
-        "Authorization": test_user_token_factory(email="test@mmt.com", level=UserLevels.STAFF)})
+        "Authorization": token, 'x-consumer-username': user.id})
 
     assert response.status == status.HTTP_200_OK
     assert response.json == response_body
 
 
 @pytest.mark.parametrize('user_level', range(UserLevels.ACTIVE, UserLevels.STAFF, 10))
-def test_permission_denied(test_user_token_factory, user_level):
+def test_permission_denied(test_user_token_factory, user_level, monkeypatch):
     app = Insanic('test')
     response_body = {"insanic": "Gotta go insanely fast!"}
 
@@ -142,8 +155,10 @@ def test_permission_denied(test_user_token_factory, user_level):
 
     app.add_route(DummyView.as_view(), '/')
 
+    user, token = test_user_token_factory(email="test@mmt.com", level=user_level, return_with_user=True)
+
     request, response = app.test_client.get('/', headers={
-        "Authorization": test_user_token_factory(email="test@mmt.com", level=user_level)})
+        "Authorization": token, 'x-consumer-username': user.id})
 
     assert response.status == status.HTTP_403_FORBIDDEN
     assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.permission_denied
@@ -163,8 +178,10 @@ def test_is_admin(test_user_token_factory, user_level):
 
     app.add_route(DummyView.as_view(), '/')
 
+    user, token = test_user_token_factory(email="test@mmt.com", level=user_level, return_with_user=True)
+
     request, response = app.test_client.get('/', headers={
-        "Authorization": test_user_token_factory(email="test@mmt.com", level=user_level)})
+        "Authorization": token, 'x-consumer-username': user.id})
 
     assert response.status == status.HTTP_200_OK
     assert response.json == response_body

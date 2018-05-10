@@ -44,8 +44,10 @@ class BaseSpecificPermissionTestClass:
 
         headers = {}
         if user_level is not None:
-            token = test_user_token_factory(email="test", level=user_level)
-            headers = {"Authorization": token}
+            user_id = uuid.uuid4()
+            user, token = test_user_token_factory(id=user_id, email="test", level=user_level, return_with_user=True)
+            headers = {"Authorization": token,
+                       "x-consumer-username": user.id}
 
         request, response = insanic_application.test_client.get('/', headers=headers)
         assert response.status == expected
@@ -203,11 +205,12 @@ class TestIsOwnerOrAdminUser(BaseSpecificPermissionTestClass):
 
         headers = {}
         if user_level is not None:
-            user_id = uuid.uuid4().hex
-            token = test_user_token_factory(id=user_id, email="test", level=user_level)
-            headers = {"Authorization": token}
+            user, token = test_user_token_factory(email="test", level=user_level, return_with_user=True)
+            user_id = user.id
+            headers = {"Authorization": token,
+                       "X-Consumer-Username": user.id}
         else:
-            #     create some random id
+            # create some random id
             user_id = uuid.uuid4().hex
 
         request, response = insanic_application.test_client.get(f'/{user_id}', headers=headers)
@@ -240,8 +243,9 @@ class TestIsOwnerOrAdminUser(BaseSpecificPermissionTestClass):
         headers = {}
         user_id = uuid.uuid4().hex
         if user_level is not None:
-            token = test_user_token_factory(email="test", level=user_level)
-            headers = {"Authorization": token}
+            user, token = test_user_token_factory(email="test", level=user_level, return_with_user=True)
+            headers = {"Authorization": token,
+                       "x-consumer-username": user.id}
 
         request, response = insanic_application.test_client.get(f'/{user_id}', headers=headers)
         assert response.status == expected

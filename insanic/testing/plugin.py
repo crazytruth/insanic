@@ -24,6 +24,7 @@ from insanic.services import Service
 from insanic.testing.helpers import MockService
 from insanic.tracing.core import xray_recorder
 from insanic.tracing.context import AsyncContext
+from registration import gateway
 
 pytest.register_assert_rewrite('insanic.testing.helpers')
 
@@ -86,12 +87,44 @@ def session_unused_tcp_port_factory():
 
 @pytest.fixture(scope="session")
 def test_user_token_factory():
-    def factory(id=uuid.uuid4(), *, email, level):
-        user = User(id=id.hex, email=email, level=level)
-        payload = handlers.jwt_payload_handler(user)
-        return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_encode_handler(payload)])
+    created_test_user_ids = set()
 
-    return factory
+    def factory(id=uuid.uuid4(), *, email, level, return_with_user=False):
+        user = User(id=id.hex, email=email, level=level)
+        created_test_user_ids.add(user.id)
+        # Create test consumer
+        requests.post(gateway.kong_base_url.with_path(f'/consumers/'), json={'username': user.id})
+
+        # Generate JWT information
+        response = requests.post(gateway.kong_base_url.with_path(f'/consumers/{user.id}/jwt/'))
+        response.raise_for_status()
+
+        token_data = response.json()
+
+        payload = handlers.jwt_payload_handler(user, token_data['key'])
+        token = handlers.jwt_encode_handler(payload, token_data['secret'], token_data['algorithm'])
+
+        if return_with_user:
+            return user, " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], token])
+
+        return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], token])
+
+    yield factory
+
+    for user_id in created_test_user_ids:
+        # Delete JWTs
+        response = requests.get(gateway.kong_base_url.with_path(f'/consumers/{user_id}/jwt/'))
+        response.raise_for_status()
+
+        jwt_ids = (response.json())['data']
+        for jwt in jwt_ids:
+            response = requests.delete(gateway.kong_base_url.with_path(f"/consumers/{user_id}/jwt/{jwt['id']}/"))
+            response.raise_for_status()
+
+        # Delete test consumer
+        response = requests.delete(gateway.kong_base_url.with_path(f"/consumers/{user_id}/"))
+        response.raise_for_status()
+
 
 @pytest.fixture(scope="session")
 def test_service_token_factory():

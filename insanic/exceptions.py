@@ -1,6 +1,6 @@
 import math
-from .errors import GlobalErrorCodes
-from . import status
+from insanic.errors import GlobalErrorCodes
+from insanic import status
 
 
 class ImproperlyConfigured(Exception):

@@ -1,7 +1,10 @@
 import pytest
 import uuid
 
+import requests
+from asynctest import patch
 from sanic.response import json
+from yarl import URL
 
 from insanic import status, Insanic
 from insanic.authentication import BaseAuthentication, JSONWebTokenAuthentication, \
@@ -13,14 +16,107 @@ from insanic.models import User
 from insanic.views import InsanicView
 
 
-@pytest.fixture(scope="session")
-def user_token_factory():
-    def factory(id=uuid.uuid4(), *, email, level):
-        user = User(**{"id": id.hex, 'email': email, 'level': level})
-        payload = handlers.jwt_payload_handler(user)
-        return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_encode_handler(payload)])
+#
+# @pytest.fixture(scope="session")
+# def user_token_factory():
+#     def factory(id=uuid.uuid4(), *, email, level):
+#         user = User(**{"id": id.hex, 'email': email, 'level': level})
+#         payload = handlers.jwt_payload_handler(user)
+#         return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_encode_handler(payload)])
+#
+#     return factory
 
-    return factory
+@pytest.fixture
+def kong_gateway(monkeypatch):
+    monkeypatch.setattr(settings, "GATEWAY_REGISTRATION_ENABLED", True)
+    monkeypatch.setattr(settings, "KONG_HOST", 'kong.msa.swarm')
+    monkeypatch.setattr(settings, "KONG_ADMIN_PORT", 18001)
+    from insanic.registration import KongGateway
+
+    return KongGateway()
+
+
+@pytest.fixture
+def user_token_factory(kong_gateway):
+    gateway = kong_gateway
+    created_test_user_ids = set()
+
+    def factory(id=uuid.uuid4(), *, email, level):
+        user = User(id=id.hex, email=email, level=level)
+        created_test_user_ids.add(user.id)
+
+        # Create test consumer
+        requests.post(gateway.kong_base_url.with_path(f'/consumers/'),
+                      json={'username': user.id})
+
+        # Generate JWT information
+        response = requests.post(
+            gateway.kong_base_url.with_path(f'/consumers/{user.id}/jwt/')
+        )
+        response.raise_for_status()
+
+        token_data = response.json()
+
+        payload = handlers.jwt_payload_handler(user, token_data['key'])
+        token = handlers.jwt_encode_handler(payload, token_data['secret'], token_data['algorithm'])
+
+        return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], token])
+
+    yield factory
+
+    for user_id in created_test_user_ids:
+        # Delete JWTs
+        response = requests.get(gateway.kong_base_url.with_path(f'/consumers/{user_id}/jwt/'))
+        response.raise_for_status()
+
+        jwt_ids = (response.json())['data']
+        for jwt in jwt_ids:
+            response = requests.delete(gateway.kong_base_url.with_path(f"/consumers/{user_id}/jwt/{jwt['id']}/"))
+            response.raise_for_status()
+
+        # Delete test consumer
+        response = requests.delete(gateway.kong_base_url.with_path(f"/consumers/{user_id}/"))
+        response.raise_for_status()
+
+
+@pytest.fixture
+def jwt_data_getter(kong_gateway):
+    gateway = kong_gateway
+
+    created_test_user_ids = set()
+
+    def factory(user):
+        created_test_user_ids.add(user.id)
+
+        # Create test consumer
+        requests.post(gateway.kong_base_url.with_path(f'/consumers/'),
+                      json={'username': user.id})
+
+        # Generate JWT information
+        response = requests.post(
+            gateway.kong_base_url.with_path(f'/consumers/{user.id}/jwt/')
+        )
+        response.raise_for_status()
+
+        token_data = response.json()
+
+        return token_data
+
+    yield factory
+
+    for user_id in created_test_user_ids:
+        # Delete JWTs
+        response = requests.get(gateway.kong_base_url.with_path(f'/consumers/{user_id}/jwt/'))
+        response.raise_for_status()
+
+        jwt_ids = (response.json())['data']
+        for jwt in jwt_ids:
+            response = requests.delete(gateway.kong_base_url.with_path(f"/consumers/{user_id}/jwt/{jwt['id']}/"))
+            response.raise_for_status()
+
+        # Delete test consumer
+        response = requests.delete(gateway.kong_base_url.with_path(f"/consumers/{user_id}/"))
+        response.raise_for_status()
 
 
 def test_base_authentication(loop):
@@ -63,96 +159,18 @@ class TestAuthentication():
         app.add_route(TokenView.as_view(), '/')
         return app
 
-    def test_jwt_token_authentication_missing(self, authentication_class):
+    def test_jwt_token_authentication_user_not_active(self, authentication_class, test_user_token_factory):
         app = self._create_app_with_authentication(authentication_class)
+        user, token = test_user_token_factory(email='test@test.test', level=UserLevels.DEACTIVATED,
+                                              return_with_user=True)
 
-        request, response = app.test_client.get('/')
-
-        assert response.status == status.HTTP_401_UNAUTHORIZED
-        assert GlobalErrorCodes(
-            response.json['error_code']['value']) == GlobalErrorCodes.authentication_credentials_missing
-
-    def test_jwt_token_authenticate_invalid_prefix(self, authentication_class, user_token_factory):
-        app = self._create_app_with_authentication(authentication_class)
-
-        prefix, token = user_token_factory(email="test@test.test", level=UserLevels.ACTIVE).split(' ')
-
-        request, response = app.test_client.get('/', headers={"Authorization": f"JWT {token}"})
-
-        assert response.status == status.HTTP_401_UNAUTHORIZED
-        assert GlobalErrorCodes(
-            response.json['error_code']['value']) == GlobalErrorCodes.authentication_credentials_missing
-
-    def test_jwt_token_authentication_without_type(self, authentication_class, user_token_factory):
-        app = self._create_app_with_authentication(authentication_class)
-        prefix, token = user_token_factory(email="test@test.test", level=UserLevels.ACTIVE).split(' ')
-
-        request, response = app.test_client.get('/', headers={"Authorization": f"MMT"})
-
-        assert response.status == status.HTTP_401_UNAUTHORIZED
-        assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.invalid_authorization_header
-        assert "No credentials provided." in response.json['description']
-
-    def test_jwt_token_authentication_token_spaces(self, authentication_class, user_token_factory):
-        app = self._create_app_with_authentication(authentication_class)
-        prefix, token = user_token_factory(email="test@test.test", level=UserLevels.ACTIVE).split(' ')
-
-        request, response = app.test_client.get('/', headers={"Authorization": f"MMT {token} Breakit"})
-
-        assert response.status == status.HTTP_401_UNAUTHORIZED
-        assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.invalid_authorization_header
-        assert "Credentials string should not contain spaces." in response.json['description']
-
-    def test_jwt_token_authentication_expired_token(self, authentication_class, monkeypatch):
-        app = self._create_app_with_authentication(authentication_class)
-        from datetime import timedelta
-        monkeypatch.setitem(settings.JWT_AUTH, 'JWT_EXPIRATION_DELTA', timedelta(seconds=-10))
-
-        user = User(**{"id": uuid.uuid4().hex, 'email': 'test@test.test', 'level': UserLevels.ACTIVE})
-        payload = handlers.jwt_payload_handler(user)
-        token = handlers.jwt_encode_handler(payload)
-
-        request, response = app.test_client.get('/', headers={"Authorization": f"MMT {token}"})
-
-        assert response.status == status.HTTP_401_UNAUTHORIZED
-        assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.signature_expired
-        assert "Signature has expired." in response.json['description']
-
-    def test_jwt_token_authentication_error_decode_signature(self, authentication_class, monkeypatch):
-        app = self._create_app_with_authentication(authentication_class)
-        user = User(**{"id": uuid.uuid4().hex, 'email': 'test@test.test', 'level': UserLevels.ACTIVE})
-        payload = handlers.jwt_payload_handler(user)
-        token = handlers.jwt_encode_handler(payload)
-
-        monkeypatch.setitem(settings.JWT_AUTH, 'JWT_PUBLIC_KEY', uuid.uuid4().hex)
-
-        request, response = app.test_client.get('/', headers={"Authorization": f"MMT {token}"})
-
-        assert response.status == status.HTTP_401_UNAUTHORIZED
-        assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.signature_not_decodable
-        assert "Error decoding signature." in response.json['description']
-
-    def test_jwt_token_authentication_invalid_token(self, authentication_class, monkeypatch):
-        app = self._create_app_with_authentication(authentication_class)
-        user = User(**{"id": uuid.uuid4().hex, 'email': 'test@test.test', 'level': UserLevels.ACTIVE})
-        payload = handlers.jwt_payload_handler(user)
-        token = handlers.jwt_encode_handler(payload)
-
-        monkeypatch.setitem(settings.JWT_AUTH, 'JWT_AUDIENCE', '.test.com')
-
-        request, response = app.test_client.get('/', headers={"Authorization": f"MMT {token}"})
-
-        assert response.status == status.HTTP_401_UNAUTHORIZED
-        assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.invalid_token
-        assert "Incorrect authentication credentials." in response.json['description']
-
-    def test_jwt_token_authentication_user_not_active(self, authentication_class):
-        app = self._create_app_with_authentication(authentication_class)
-        user = User(**{"id": uuid.uuid4().hex, 'email': 'test@test.test', 'level': UserLevels.DEACTIVATED})
-        payload = handlers.jwt_payload_handler(user)
-        token = handlers.jwt_encode_handler(payload)
-
-        request, response = app.test_client.get('/', headers={"Authorization": f"MMT {token}"})
+        request, response = app.test_client.get(
+            '/',
+            headers={
+                "Authorization": token,
+                "x-consumer-username": user.id,
+            }
+        )
 
         assert response.status == status.HTTP_401_UNAUTHORIZED
         assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.inactive_user
@@ -160,9 +178,16 @@ class TestAuthentication():
 
     def test_jwt_token_authentication_success(self, authentication_class, user_token_factory):
         app = self._create_app_with_authentication(authentication_class)
+        user_id = uuid.uuid4()
 
-        token = user_token_factory(email="test@test.test", level=UserLevels.ACTIVE)
+        token = user_token_factory(id=user_id, email="test@test.test", level=UserLevels.ACTIVE)
 
-        request, response = app.test_client.get('/', headers={"Authorization": token})
+        request, response = app.test_client.get(
+            '/',
+            headers={
+                "Authorization": token,
+                "x-consumer-username": user_id.hex,
+            }
+        )
 
         assert response.status == status.HTTP_200_OK

@@ -64,7 +64,7 @@ JWT_AUTH = {
     'JWT_PUBLIC_KEY': None,
     'JWT_PRIVATE_KEY': None,
     'JWT_ALGORITHM': 'HS256',
-    'JWT_VERIFY': True,
+    'JWT_VERIFY': False,
     'JWT_VERIFY_EXPIRATION': True,
     'JWT_LEEWAY': 0,
     'JWT_EXPIRATION_DELTA': datetime.timedelta(days=7),
@@ -75,7 +75,7 @@ JWT_AUTH = {
     'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=7),
     'JWT_ROLE': 'user',
 
-    'JWT_AUTH_HEADER_PREFIX': 'MMT',
+    'JWT_AUTH_HEADER_PREFIX': 'Bearer',
 }
 
 JWT_SERVICE_AUTH = {
