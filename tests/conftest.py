@@ -22,6 +22,11 @@ def session_id():
     return uuid.uuid4().hex
 
 
+@pytest.fixture(scope="function")
+def function_session_id():
+    return uuid.uuid4().hex
+
+
 @pytest.fixture
 def insanic_application():
     return Insanic("test")

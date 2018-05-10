@@ -136,8 +136,13 @@ class TestKongGateway:
     #     sl = self.gateway.service_spec
     #     assert self.gateway._service_spec == service_spec
 
-    def test_routes_with_jwt_auth_and_allow_any(self, monkeypatch, insanic_application, test_user_token_factory):
+    def test_routes_with_jwt_auth_and_allow_any(self, monkeypatch, insanic_application, test_user_token_factory,
+                                                function_session_id):
+        from insanic.registration import gateway
+        from yarl import URL
         monkeypatch.setattr(settings._wrapped, "ALLOWED_HOSTS", [], raising=False)
+        monkeypatch.setattr(gateway, "_enabled", True)
+        monkeypatch.setattr(gateway, "kong_base_url", URL(f"http://{settings.KONG_HOST}:18001"))
 
         class MockView(InsanicView):
             authentication_classes = [JSONWebTokenAuthentication]
@@ -148,19 +153,20 @@ class TestKongGateway:
                 return json({'anonymous_header': request.headers.get('x-anonymous-consumer') == 'true',
                              'user_type': (await request.user).__class__.__name__}, status=202)
 
-        route = "/test/"
+        route = f"/test/{function_session_id}/"
 
         insanic_application.add_route(MockView.as_view(), route)
 
         # Test without token
-        request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}')
+        client = insanic_application.test_client
+        request, response = client.get(f'http://{settings.KONG_HOST}:18000{route}')
 
         assert response.status == 202
         assert response.json == {'anonymous_header': True, 'user_type': '_AnonymousUser'}
 
         # Test with token
         token = test_user_token_factory(email='test@tester.cc', level=UserLevels.ACTIVE)
-        request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
+        request, response = client.get(f'http://{settings.KONG_HOST}:18000{route}',
                                                                 headers={'Authorization': f"{token}"})
 
         assert response.status == 202
@@ -173,8 +179,13 @@ class TestKongGateway:
 
         assert response.status == 401
 
-    def test_routes_with_jwt_auth_and_is_authenticated(self, monkeypatch, insanic_application, test_user_token_factory):
+    def test_routes_with_jwt_auth_and_is_authenticated(self, monkeypatch, insanic_application, test_user_token_factory,
+                                                       function_session_id):
+        from insanic.registration import gateway
+        from yarl import URL
         monkeypatch.setattr(settings._wrapped, "ALLOWED_HOSTS", [], raising=False)
+        monkeypatch.setattr(gateway, "_enabled", True)
+        monkeypatch.setattr(gateway, "kong_base_url", URL(f"http://{settings.KONG_HOST}:18001"))
 
         class MockView(InsanicView):
             authentication_classes = [JSONWebTokenAuthentication]
@@ -184,7 +195,7 @@ class TestKongGateway:
             async def get(self, request, *args, **kwargs):
                 return json({'test': 'success'}, status=202)
 
-        route = "/test/"
+        route = f"/test/{function_session_id}/"
 
         insanic_application.add_route(MockView.as_view(), route)
 
