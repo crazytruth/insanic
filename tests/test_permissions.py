@@ -44,7 +44,7 @@ class BaseSpecificPermissionTestClass:
 
         headers = {}
         if user_level is not None:
-            user_id = uuid.uuid4()
+            user_id = uuid.uuid4().hex
             user, token = test_user_token_factory(id=user_id, email="test", level=user_level, return_with_user=True)
             headers = {"Authorization": token,
                        "x-consumer-username": user.id}

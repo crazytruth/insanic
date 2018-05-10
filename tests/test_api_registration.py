@@ -6,15 +6,16 @@ from ujson import loads as jsonloads
 
 from yarl import URL
 
+from sanic import testing
 from sanic.response import json
 
-from choices import UserLevels
-from insanic import Insanic
 from insanic.authentication import JSONWebTokenAuthentication
+from insanic.choices import UserLevels
 from insanic.conf import settings
 from insanic.permissions import AllowAny, IsAuthenticated
 from insanic.scopes import public_facing
 from insanic.views import InsanicView
+from insanic.registration import gateway
 
 from .conftest_constants import ROUTES
 
@@ -138,11 +139,10 @@ class TestKongGateway:
 
     def test_routes_with_jwt_auth_and_allow_any(self, monkeypatch, insanic_application, test_user_token_factory,
                                                 function_session_id):
-        from insanic.registration import gateway
-        from yarl import URL
         monkeypatch.setattr(settings._wrapped, "ALLOWED_HOSTS", [], raising=False)
         monkeypatch.setattr(gateway, "_enabled", True)
         monkeypatch.setattr(gateway, "kong_base_url", URL(f"http://{settings.KONG_HOST}:18001"))
+        monkeypatch.setattr(testing, "HOST", "0.0.0.0")
 
         class MockView(InsanicView):
             authentication_classes = [JSONWebTokenAuthentication]
@@ -181,11 +181,11 @@ class TestKongGateway:
 
     def test_routes_with_jwt_auth_and_is_authenticated(self, monkeypatch, insanic_application, test_user_token_factory,
                                                        function_session_id):
-        from insanic.registration import gateway
-        from yarl import URL
+
         monkeypatch.setattr(settings._wrapped, "ALLOWED_HOSTS", [], raising=False)
         monkeypatch.setattr(gateway, "_enabled", True)
         monkeypatch.setattr(gateway, "kong_base_url", URL(f"http://{settings.KONG_HOST}:18001"))
+        monkeypatch.setattr(testing, "HOST", "0.0.0.0")
 
         class MockView(InsanicView):
             authentication_classes = [JSONWebTokenAuthentication]

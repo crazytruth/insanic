@@ -2,10 +2,9 @@ import pytest
 import uuid
 
 import requests
-from yarl import URL
 
-from authentication import handlers
 from insanic import Insanic
+from insanic.authentication import handlers
 from insanic.conf import settings
 from insanic.models import User
 
@@ -46,8 +45,11 @@ def set_redis_connection_info(redisdb, monkeypatch):
 def test_user_token_factory():
     created_test_user_ids = set()
 
-    def factory(id=uuid.uuid4(), *, email, level, return_with_user=False):
-        user = User(id=id.hex, email=email, level=level)
+    def factory(id=None, *, email, level, return_with_user=False):
+        if not id:
+            id = uuid.uuid4().hex
+
+        user = User(id=id, email=email, level=level)
         created_test_user_ids.add(user.id)
         # Create test consumer
         requests.post(f"http://kong.msa.swarm:18001/consumers/", json={'username': user.id})

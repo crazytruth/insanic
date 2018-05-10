@@ -110,7 +110,7 @@ def test_view_permission(test_user_token_factory):
     request, response = app.test_client.get('/', headers={"Authorization": "Bearer lalfjafafa"})
 
     assert response.status == status.HTTP_401_UNAUTHORIZED
-    assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.authentication_credentials_missing
+    assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.signature_not_decodable
 
     user, token = test_user_token_factory(email="test@mmt.com", level=UserLevels.BANNED, return_with_user=True)
     request, response = app.test_client.get('/', headers={

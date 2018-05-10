@@ -5,10 +5,12 @@ Changelog for insanic
 ------------------
 
 - FEATURE: add JWT plugin to routes that have JWTAuth assigned (@sunghyun-lee)
+- FEATURE: jwt token authentication (@sunghyun-lee)
 - FEATURE: ip logging middleware (@jaemyunlee)
 - REMOVE: consul dependency
 - REMOVE: swarm manager dependency
 - DEPRECATE: SERVICE_LIST settings
+- FIX: inter service skip breaker problem
 
 0.2.7 (2018-04-23)
 ------------------
