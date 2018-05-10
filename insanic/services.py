@@ -152,8 +152,7 @@ class Service:
         outbound_request = aiohttp.ClientRequest(method, url, headers=headers, data=payload)
 
         try:
-            resp = await request_method(str(outbound_request.url), headers=outbound_request.headers, data=payload,
-                                        skip_breaker=skip_breaker)
+            resp = await request_method(str(outbound_request.url), headers=outbound_request.headers, data=payload)
 
             response = await resp.text()
             if propagate_error:
