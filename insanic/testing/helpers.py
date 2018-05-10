@@ -105,10 +105,12 @@ def test_api_endpoint(insanic_application, test_user_token_factory, test_service
                       expected_response_body, user_level):
     handler = getattr(insanic_application.test_client, method.lower())
 
-    request_headers.update({"accept": "application/json"})
+    request_headers.update({"accept": "application/json", 'x-anonymous-consumer': 'true'})
 
     if "Authorization" in request_headers.keys() and request_headers.get("Authorization") == empty:
-        request_headers.update({"Authorization": test_user_token_factory(email="test@mmt.com", level=user_level)})
+        user, token = test_user_token_factory(email="test@mmt.com", level=user_level, return_with_user=True)
+        del request_headers['x-anonymous-consumer']
+        request_headers.update({"Authorization": token, 'x-consumer-username': user.id})
 
     if "MMT-Authorization" in request_headers.keys() and request_headers.get("MMT-Authorization") == empty:
         request_headers.update({"MMT-Authorization": test_service_token_factory()})

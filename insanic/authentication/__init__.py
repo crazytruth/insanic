@@ -57,6 +57,18 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
         """
         raise NotImplementedError(".get_jwt_value() must be overridden.")  # pragma: no cover
 
+    def get_consumer_header(self, request, header='x-consumer-username'):
+        """
+        Gets request's consumer's id which Kong attached.
+        """
+
+        user_id = request.headers.get(header, 'anonymous')
+
+        if user_id == 'anonymous' and request.headers.get('x-anonymous-consumer', None) == 'true':
+            return None
+
+        return user_id
+
     async def authenticate_credentials(self, request, payload):
         """
         Returns an active user that matches the payload's user id and email.
@@ -69,14 +81,12 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
         supplied using JWT-based authentication.  Otherwise returns `None`.
         """
         jwt_value = self.get_jwt_value(request)
-        if jwt_value is None:
+
+        if jwt_value is None or not self.get_consumer_header(request):
             return None
 
         try:
             payload = self.decode_jwt(jwt_value)
-        except jwt.ExpiredSignature:
-            msg = 'Signature has expired.'
-            raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.signature_expired)
         except jwt.DecodeError:
             msg = 'Error decoding signature.'
             raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.signature_not_decodable)
@@ -125,6 +135,7 @@ class ServiceJWTAuthentication(BaseJSONWebTokenAuthentication):
 
         service = RequestService(is_authenticated=True, **payload)
         return service
+
 
 class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
     """

@@ -12,19 +12,12 @@ def jwt_decode_handler(token):
         'verify_exp': settings.JWT_AUTH['JWT_VERIFY_EXPIRATION'],
     }
 
-    return jwt.decode(
-        token,
-        settings.JWT_AUTH['JWT_PUBLIC_KEY'] or settings.SECRET_KEY,
-        settings.JWT_AUTH['JWT_VERIFY'],
-        options=options,
-        leeway=settings.JWT_AUTH['JWT_LEEWAY'],
-        audience=settings.JWT_AUTH['JWT_AUDIENCE'],
-        issuer=settings.JWT_AUTH['JWT_ISSUER'],
-        algorithms=[settings.JWT_AUTH['JWT_ALGORITHM']]
-    )
+    decoded = jwt.decode(token, verify=False, options=options)
+
+    return decoded
 
 
-def jwt_payload_handler(user):
+def jwt_payload_handler(user, key):
     username = user.email
     user_id = user.id
 
@@ -32,6 +25,7 @@ def jwt_payload_handler(user):
         'user_id': user_id,
         'email': username,
         'level': user.level,
+        'iss': key,
         'exp': datetime.utcnow() + settings.JWT_AUTH['JWT_EXPIRATION_DELTA'],
     }
 
@@ -43,20 +37,17 @@ def jwt_payload_handler(user):
     if settings.JWT_AUTH['JWT_AUDIENCE'] is not None:
         payload['aud'] = settings.JWT_AUTH['JWT_AUDIENCE']
 
-    if settings.JWT_AUTH['JWT_ISSUER'] is not None:
-        payload['iss'] = settings.JWT_AUTH['JWT_ISSUER']
-
     if settings.JWT_AUTH.get('JWT_ROLE') is not None:
         payload['rol'] = settings.JWT_AUTH['JWT_ROLE']
 
     return payload
 
 
-def jwt_encode_handler(payload):
+def jwt_encode_handler(payload, secret, algorithm):
     return jwt.encode(
         payload,
-        settings.JWT_AUTH['JWT_PRIVATE_KEY'] or settings.SECRET_KEY,
-        settings.JWT_AUTH['JWT_ALGORITHM']
+        secret,
+        algorithm
     ).decode('utf-8')
 
 
@@ -68,6 +59,7 @@ def jwt_service_decode_handler(token):
         audience=settings.SERVICE_NAME,
         algorithms=[settings.JWT_SERVICE_AUTH['JWT_ALGORITHM']]
     )
+
 
 def jwt_service_payload_handler(service):
     payload = {

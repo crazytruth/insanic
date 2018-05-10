@@ -82,13 +82,14 @@ class TestThrottling:
         PerUserThrottles
         """
         insanic_application.add_route(MockView.as_view(), '/')
-        token1 = test_user_token_factory(email="test1@mmt.com", level=UserLevels.ACTIVE)
-        token2 = test_user_token_factory(email="test2@mmt.com", level=UserLevels.ACTIVE)
+        user1, token1 = test_user_token_factory(email="test1@mmt.com", level=UserLevels.ACTIVE, return_with_user=True)
+        user2, token2 = test_user_token_factory(email="test2@mmt.com", level=UserLevels.ACTIVE, return_with_user=True)
 
         for dummy in range(3):
-            insanic_application.test_client.get('/', headers={"Authorization": token1})
+            insanic_application.test_client.get('/', headers={"Authorization": token1, "x-consumer-username": user1.id})
 
-        request, response = insanic_application.test_client.get('/', headers={"Authorization": token2})
+        request, response = insanic_application.test_client.get('/', headers={"Authorization": token2,
+                                                                              "x-consumer-username": user2.id})
         assert response.status == status.HTTP_200_OK
 
     def ensure_response_header_contains_proper_throttle_field(self, insanic_application, monkeypatch, view,

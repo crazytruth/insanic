@@ -31,7 +31,8 @@ test_requires = [
     "pytest-sugar",
     "pytest-xdist",
     "chardet",
-    "pytest-flake8"
+    "pytest-flake8",
+    "asynctest"
     # "beautifulsoup4"
     # "docker",
     # "aiobotocore",
