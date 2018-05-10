@@ -62,10 +62,10 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
         Gets request's consumer's id which Kong attached.
         """
 
-        user_id = request.headers.get(header)
-        if not user_id:
-            if not request.headers.get('x-anonymous-consumer'):
-                user_id = None
+        user_id = request.headers.get(header, 'anonymous')
+
+        if user_id == 'anonymous' and request.headers.get('x-anonymous-consumer', None) == 'true':
+            return None
 
         return user_id
 
@@ -174,7 +174,7 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
     async def authenticate_credentials(self, request, payload):
         user_id = payload.get('id', payload.get('user_id'))
 
-        user = User(id=user_id, is_authenticated=(user_id != 'anonymous'), **payload)
+        user = User(id=user_id, is_authenticated=True, **payload)
 
         if not user.is_active:
             msg = 'User account is disabled.'
