@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.2.8 (unreleased)
+0.3.0 (2018-05-10)
 ------------------
 
 - FEATURE: add JWT plugin to routes that have JWTAuth assigned (@sunghyun-lee)
