@@ -73,14 +73,18 @@ class Service:
 
     @cached_property_with_ttl(ttl=60)
     def host(self):
-        return settings.SERVICE_GLOBAL_HOST_TEMPLATE.format(self._service_name)
+        _host = settings.SERVICE_GLOBAL_HOST_TEMPLATE.format(self._service_name)
+        if hasattr(settings, "SWARM_SERVICE_LIST"):
+            _host = settings.SWARM_SERVICE_LIST.get(self.service_name, {}).get('host', _host)
+        return _host
 
     @cached_property_with_ttl(ttl=60)
     def port(self):
         _port = settings.SERVICE_GLOBAL_PORT
         if hasattr(settings, "SWARM_SERVICE_LIST"):
-            _port = settings.SWARM_SERVICE_LIST.get('internal_service_port' if is_docker else 'external_service_port',
-                                                    settings.SERVICE_GLOBAL_PORT)
+            _port = settings.SWARM_SERVICE_LIST.get(self.service_name, {}).get(
+                'internal_service_port' if is_docker else 'external_service_port',
+                settings.SERVICE_GLOBAL_PORT)
         return _port
 
     @property
