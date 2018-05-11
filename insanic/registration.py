@@ -171,7 +171,8 @@ class KongGateway(BaseGateway):
                 service_data = {
                     "name": self.kong_service_name,
                     "protocol": "http",
-                    "host": settings.SERVICE_HOST_TEMPLATE.format(self.service_name) if is_docker else get_my_ip(),
+                    "host": settings.SERVICE_GLOBAL_HOST_TEMPLATE.format(
+                        self.service_name) if is_docker else get_my_ip(),
                     "port": app._port
                 }
 

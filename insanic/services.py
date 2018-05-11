@@ -73,7 +73,7 @@ class Service:
 
     @cached_property_with_ttl(ttl=60)
     def host(self):
-        _host = settings.SERVICE_GLOBAL_HOST_TEMPLATE.format(self._service_name)
+        _host = settings.SERVICE_GLOBAL_HOST_TEMPLATE.format(self.service_name)
         if hasattr(settings, "SWARM_SERVICE_LIST"):
             _host = settings.SWARM_SERVICE_LIST.get(self.service_name, {}).get('host', _host)
         return _host

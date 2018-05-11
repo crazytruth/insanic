@@ -323,7 +323,7 @@ class VaultConfig(BaseConfig):
                 services_config[service_name]['internal_service_port'] = internal_service_port
 
                 if is_docker:
-                    services_config[service_name]['host'] = s['Spec']['Name'].rsplit('_', 1)[-1].split('-')
+                    services_config[service_name]['host'] = s['Spec']['Name'].rsplit('_', 1)[-1]
                 else:
                     services_config[service_name]['host'] = self.SWARM_MANAGER_HOST
         return services_config

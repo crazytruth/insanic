@@ -4,7 +4,7 @@ Changelog for insanic
 0.3.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIXED: interservice host configuration
 
 
 0.3.1 (2018-05-11)
