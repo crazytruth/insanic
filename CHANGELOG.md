@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.3.1 (unreleased)
+0.3.1 (2018-05-11)
 ------------------
 
 - FIXED: interservice host resolution when not running in container.
