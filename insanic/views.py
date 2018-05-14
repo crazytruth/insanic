@@ -137,8 +137,8 @@ class InsanicView(HTTPMethodView):
         self.args = args
         self.kwargs = kwargs
         self.request = request
-        self.request.authenticators = self.get_authenticators()
         self.request.service_authenticators = self.get_service_authenticators()
+        self.request.authenticators = self.get_authenticators()
         self.headers = self.default_response_headers  # deprecate?
 
         await self.convert_keywords()
