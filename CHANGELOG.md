@@ -4,7 +4,8 @@ Changelog for insanic
 0.3.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: int casting in datetime converting helper function
+- FIX: userip service authentication bug
 
 
 0.3.2 (2018-05-11)
