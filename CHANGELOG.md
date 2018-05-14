@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.3.3 (unreleased)
+0.3.3 (2018-05-14)
 ------------------
 
 - FIX: int casting in datetime converting helper function
