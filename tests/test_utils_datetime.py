@@ -39,7 +39,7 @@ def test_utc_to_datetime_custom():
     assert dt == test_datetime
 
     ms_dt = insanic_datetime.utc_to_datetime(test_timestamp, 'ms')
-    test_ms_datetime = datetime(1970, 1, 11, 22, 58, 4, tzinfo=timezone.utc)
+    test_ms_datetime = datetime(1970, 1, 11, 22, 58, 4, 800000, tzinfo=timezone.utc)
 
     assert ms_dt == test_ms_datetime
 
@@ -72,6 +72,6 @@ def test_utc_to_iso_custom():
     assert string_datetime == test_datetime.isoformat(timespec='milliseconds')
 
     ms_dt = insanic_datetime.utc_to_iso(test_timestamp, 'ms')
-    test_ms_datetime = datetime(1970, 1, 11, 22, 58, 4, tzinfo=timezone.utc)
+    test_ms_datetime = datetime(1970, 1, 11, 22, 58, 4, 800000, tzinfo=timezone.utc)
 
     assert ms_dt == test_ms_datetime.isoformat(timespec='milliseconds')
