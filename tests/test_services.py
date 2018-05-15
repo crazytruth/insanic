@@ -140,3 +140,11 @@ class TestServiceClass:
         assert headers['MMT-Authorization'].startswith("MSA")
         assert headers['MMT-Authorization'].endswith(self.service._service_auth_token)
         assert len(headers['MMT-Authorization'].split(' ')) == 2
+
+
+class TestAioHttpCompatibility:
+
+    def test_client_response_error(self):
+        error = aiohttp.client_exceptions.ClientResponseError("a", "b")
+
+        assert hasattr(error, "code")
