@@ -31,10 +31,11 @@ def _extract_changelog(data):
             except ValueError:
                 pass
 
-    return data['history_lines'][start_line + 3, end_line - 2]
+    return "\n".join(data['history_lines'][start_line + 2:end_line]).strip()
 
 
 def _prepare_slack(new_version, data):
+    changelog = _extract_changelog(data)
 
     params = {}
     params['channel'] = SLACK_CHANNEL
