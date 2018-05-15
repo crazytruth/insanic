@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.3.4 (unreleased)
+0.3.4 (2018-05-15)
 ------------------
 
 - FEAT: refactor so test_user_token_factory can be imported for use
