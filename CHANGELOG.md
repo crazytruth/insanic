@@ -8,7 +8,7 @@ Changelog for insanic
     - from insanic.testing.plugin import user_token_factory
 - FEAT: mock userip sending on tests
 - FIX: when authentication headers passed in test_api_endpoint and anonymous user set to true
-
+- FIX: when mocking dispatch for get requests with separate query_params
 
 
 0.3.3 (2018-05-14)

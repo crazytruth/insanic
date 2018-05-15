@@ -55,7 +55,11 @@ class BaseMockService:
     async def mock_dispatch(self, method, endpoint, req_ctx={}, *, query_params={}, payload={}, headers={},
                             propagate_error=False, include_status_code=False, **kwargs):
         keys = []
+
         keys.append(self._key_for_request(method, endpoint, payload))
+        if method == "GET" and query_params != {}:
+            keys.append(self._key_for_request(method, endpoint, query_params))
+
         if payload != {}:
             keys.append(self._key_for_request(method, endpoint, {}))
 
