@@ -60,7 +60,7 @@ class ServiceAuthenticationMixin:
         in turn.
         Returns a three-tuple of (authenticator, user, authtoken).
         """
-        for authenticator in self.service_authenticators:
+        for authenticator in getattr(self, 'service_authenticators', []):
             try:
                 service_auth_tuple = await authenticator.authenticate(self)
             except exceptions.APIException:
