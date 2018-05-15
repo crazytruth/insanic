@@ -13,6 +13,7 @@ Changelog for insanic
 - FIX: make service exception handling compatible with aiohttp 3.0.1
 - FIX: service auth error when not needed
 
+
 0.3.3 (2018-05-14)
 ------------------
 
