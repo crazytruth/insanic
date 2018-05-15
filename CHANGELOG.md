@@ -10,6 +10,7 @@ Changelog for insanic
 - FEAT: allow query_params arguments in register_mock_dispatch
 - FIX: when authentication headers passed in test_api_endpoint and anonymous user set to true
 - FIX: when mocking dispatch for get requests with separate query_params
+- FIX: make service exception handling compatible with aiohttp 3.0.1
 
 
 0.3.3 (2018-05-14)

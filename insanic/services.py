@@ -167,7 +167,11 @@ class Service:
 
         except aiohttp.client_exceptions.ClientResponseError as e:
             response = try_json_decode(response)
-            status_code = e.status
+            try:
+                status_code = e.code
+            except AttributeError:
+                status_code = getattr(e, 'status', 0)
+
             error_code = GlobalErrorCodes.invalid_usage if status_code == status.HTTP_400_BAD_REQUEST \
                 else GlobalErrorCodes.unknown_error
             exc = exceptions.APIException(detail=response.get('description', response),
