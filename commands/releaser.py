@@ -9,7 +9,7 @@ SLACK_USERNAME = os.environ.get('SLACK_USERNAME', 'Insanic')
 SLACK_WEBHOOK = os.environ['INSANIC_SLACK_WEBHOOK']
 
 def _beautify_changelog_for_slack(changelog):
-    lines = changelog.split('\n')[3:-4]
+    lines = changelog.split('\n')
     return "*CHANGES*\n```" + "\n".join(lines) + "```"
 
 
