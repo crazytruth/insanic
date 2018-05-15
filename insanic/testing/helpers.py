@@ -79,13 +79,26 @@ class BaseMockService:
         raise RuntimeError(
             "Unknown service request: {0} {1}. Need to register mock dispatch.".format(method.upper(), endpoint))
 
-    def register_mock_dispatch(self, method, endpoint, response, response_status_code=200, request_body={}):
-        key = self._key_for_request(method, endpoint, request_body)
-        self.service_responses.update({key: (response, response_status_code)})
+    def register_mock_dispatch(self, method, endpoint, response, response_status_code=200, request_body=None,
+                               query_params=None):
 
-        if request_body != {}:
-            key = self._key_for_request(method, endpoint, {})
+        if method.upper() == "GET":
+            if query_params is None:
+                query_params = {}
+
+            key = self._key_for_request(method, endpoint, query_params)
             self.service_responses.update({key: (response, response_status_code)})
+        else:
+
+            if request_body is None:
+                request_body = {}
+
+            key = self._key_for_request(method, endpoint, request_body)
+            self.service_responses.update({key: (response, response_status_code)})
+
+            if request_body != {}:
+                key = self._key_for_request(method, endpoint, {})
+                self.service_responses.update({key: (response, response_status_code)})
 
 
 MockService = BaseMockService()

@@ -7,6 +7,7 @@ Changelog for insanic
 - FEAT: refactor so test_user_token_factory can be imported for use
     - from insanic.testing.plugin import user_token_factory
 - FEAT: mock userip sending on tests
+- FEAT: allow query_params arguments in register_mock_dispatch
 - FIX: when authentication headers passed in test_api_endpoint and anonymous user set to true
 - FIX: when mocking dispatch for get requests with separate query_params
 
