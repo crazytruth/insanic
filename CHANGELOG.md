@@ -4,7 +4,11 @@ Changelog for insanic
 0.3.4 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FEAT: refactor so test_user_token_factory can be imported for use
+    - from insanic.testing.plugin import user_token_factory
+- FEAT: mock userip sending on tests
+- FIX: when authentication headers passed in test_api_endpoint and anonymous user set to true
+
 
 
 0.3.3 (2018-05-14)

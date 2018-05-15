@@ -36,6 +36,10 @@ class BaseMockService:
 
     service_responses = {}
 
+    def __init__(self):
+        self.register_mock_dispatch("POST", "/api/v1/ip", {}, )
+
+
     def _key_for_request(self, method, endpoint, body):
         body_list = []
         for k in sorted(body.keys()):
@@ -83,6 +87,7 @@ class BaseMockService:
 MockService = BaseMockService()
 
 
+
 class DunnoValue:
     def __init__(self, expected_type):
         self.expected_type = expected_type
@@ -105,12 +110,14 @@ def test_api_endpoint(insanic_application, test_user_token_factory, test_service
                       expected_response_body, user_level):
     handler = getattr(insanic_application.test_client, method.lower())
 
-    request_headers.update({"accept": "application/json", 'x-anonymous-consumer': 'true'})
+    request_headers.update({"accept": "application/json"})
 
     if "Authorization" in request_headers.keys() and request_headers.get("Authorization") == empty:
         user, token = test_user_token_factory(email="test@mmt.com", level=user_level, return_with_user=True)
-        del request_headers['x-anonymous-consumer']
         request_headers.update({"Authorization": token, 'x-consumer-username': user.id})
+    elif "Authorization" not in request_headers.keys():
+        request_headers.update({'x-anonymous-consumer': 'true'})
+
 
     if "MMT-Authorization" in request_headers.keys() and request_headers.get("MMT-Authorization") == empty:
         request_headers.update({"MMT-Authorization": test_service_token_factory()})
