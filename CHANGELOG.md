@@ -11,7 +11,7 @@ Changelog for insanic
 - FIX: when authentication headers passed in test_api_endpoint and anonymous user set to true
 - FIX: when mocking dispatch for get requests with separate query_params
 - FIX: make service exception handling compatible with aiohttp 3.0.1
-
+- FIX: service auth error when not needed
 
 0.3.3 (2018-05-14)
 ------------------
