@@ -13,7 +13,29 @@ def _beautify_changelog_for_slack(changelog):
     return "*CHANGES*\n```" + "\n".join(lines) + "```"
 
 
-def _prepare_slack(new_version, changelog):
+def _extract_changelog(data):
+    start_line = None
+    end_line = None
+
+    for h in data['headings']:
+        if h['version'] == data['new_version']:
+            start_line = h['line']
+        else:
+            try:
+                major, minor, patch = h['version'].split('.')
+                year, month, day = h['date'].split('-')
+
+                if major.isnumeric() and minor.isnumeric() and patch.isnumeric() and year.isnumeric() and month.isnumeric() and day.isnumeric():
+                    end_line = h['line']
+                    break
+            except ValueError:
+                pass
+
+    return data['history_lines'][start_line + 3, end_line - 2]
+
+
+def _prepare_slack(new_version, data):
+
     params = {}
     params['channel'] = SLACK_CHANNEL
     params['username'] = SLACK_USERNAME
@@ -39,4 +61,4 @@ def release_after(data):
 
 
 def prerelease_middle(data):
-    _prepare_slack(data['new_version'], data['history_last_release'])
+    _prepare_slack(data['new_version'], data)
