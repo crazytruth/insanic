@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import uuid
+import aiohttp
 
 from enum import Enum
 from collections import namedtuple
@@ -71,10 +72,16 @@ class BaseMockService:
 
         for k in keys:
             if k in self.service_responses:
+                resp = self.service_responses[k][0]
+                status_code = self.service_responses[k][1]
+
+                if propagate_error and 400 <= status_code:
+                    raise aiohttp.client_exceptions.ClientResponseError('', '', status=status_code)
+
                 if include_status_code:
-                    return copy.deepcopy(self.service_responses[k][0]), self.service_responses[k][1]
+                    return copy.deepcopy(resp), status_code
                 else:
-                    return copy.deepcopy(self.service_responses[k][0])
+                    return copy.deepcopy(resp)
 
         raise RuntimeError(
             "Unknown service request: {0} {1}. Need to register mock dispatch.".format(method.upper(), endpoint))
