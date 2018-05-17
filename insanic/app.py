@@ -84,7 +84,7 @@ class Insanic(Sanic):
         if protocol is None:
             protocol = InsanicHttpProtocol
 
-        self._port = port
+        self._port = int(port)
 
         super().run(host, port, debug, ssl, sock, workers, protocol,
                     backlog, stop_event, register_sys_signals,

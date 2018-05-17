@@ -173,7 +173,7 @@ class KongGateway(BaseGateway):
                     "protocol": "http",
                     "host": settings.SERVICE_GLOBAL_HOST_TEMPLATE.format(
                         self.service_name) if is_docker else get_my_ip(),
-                    "port": app._port
+                    "port": int(app._port)
                 }
 
                 async with session.post(self.kong_base_url.with_path('/services/'), json=service_data) as resp:

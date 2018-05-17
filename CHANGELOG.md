@@ -4,7 +4,7 @@ Changelog for insanic
 0.3.6 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: cast port to int
 
 
 0.3.5 (2018-05-17)
