@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.3.5 (unreleased)
+0.3.5 (2018-05-17)
 ------------------
 
 - CHORE: Better Logging for create service on kong 
