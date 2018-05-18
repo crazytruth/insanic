@@ -4,7 +4,7 @@ Changelog for insanic
 0.3.7 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- CHANGE: allow vault url from environment variables
 
 
 0.3.6 (2018-05-17)
