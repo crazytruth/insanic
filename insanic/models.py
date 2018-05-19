@@ -39,6 +39,12 @@ class User:
 
         return ",".join([user_type, self.id, self.email])
 
+    def __iter__(self):
+        yield ("id", self.id)
+        yield ("email", self.email)
+        yield ("level", self.level)
+        yield ("is_authenticated", self._is_authenticated)
+
 
 class _AnonymousUser(User):
 
@@ -48,7 +54,7 @@ class _AnonymousUser(User):
 
 class RequestService:
     __slots__ = ['request_service', 'destination_service', 'source_ip',
-                 'destination_version', 'is_authenticated']
+                 'destination_version', 'is_authenticated', ]
 
     def __init__(self, *, source, aud, source_ip, destination_version, is_authenticated):
         self.request_service = source
@@ -56,6 +62,7 @@ class RequestService:
         self.source_ip = source_ip
         self.destination_version = destination_version
         self.is_authenticated = is_authenticated
+
 
     @property
     def is_valid(self):
@@ -70,8 +77,8 @@ class RequestService:
         return ",".join([service_type, self.destination_service, self.source_ip, self.destination_service])
 
 
-AnonymousRequestService = RequestService(source="", aud="", source_ip="", destination_version="",
-                                         is_authenticated=False)
-
 # need only 1 instance so.. just instantiate and use
 AnonymousUser = _AnonymousUser()
+
+AnonymousRequestService = RequestService(source="", aud="", source_ip="", destination_version="",
+                                         is_authenticated=False)

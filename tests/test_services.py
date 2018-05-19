@@ -1,14 +1,20 @@
 import aiohttp
+import aiotask_context
+import jwt
 import uvloop
 import pytest
 import random
+import uuid
 
 from yarl import URL
 
+from sanic.response import json
+from insanic.authentication import handlers
 from insanic.conf import settings
 from insanic.exceptions import ServiceUnavailable503Error
+from insanic.models import User, UserLevels, AnonymousRequestService
 from insanic.services import ServiceRegistry, Service
-
+from insanic.views import InsanicView
 
 class TestServiceRegistry:
 
@@ -50,11 +56,11 @@ class TestServiceClass:
         monkeypatch.setattr(settings, "SERVICE_LIST", {}, raising=False)
         self.service = Service(self.service_name)
 
-    def test_init(self):
+    async def test_init(self):
         assert self.service._registry is ServiceRegistry()
         assert self.service._session is None
 
-        auth_token = self.service._service_auth_token
+        auth_token = self.service.service_auth_token
         assert isinstance(auth_token, str)
 
     def test_service_name(self):
@@ -125,11 +131,14 @@ class TestServiceClass:
         assert response == mock_response
         assert status_code == mock_status_code
 
+
     @pytest.mark.parametrize("extra_headers", ({}, {"content-length": 4}))
-    def test_prepare_headers(self, extra_headers):
+    async def test_prepare_headers(self, extra_headers, loop):
+        aiotask_context.set(settings.TASK_CONTEXT_REQUEST_USER, {"some": "user"})
+
         headers = self.service._prepare_headers(extra_headers)
 
-        required_headers = ["Accept", "Content-Type", "Date", "MMT-Authorization"]
+        required_headers = ["Accept", "Content-Type", "Date", "Authorization"]
 
         for h in required_headers:
             assert h in headers.keys()
@@ -137,9 +146,9 @@ class TestServiceClass:
         for h in self.service.remove_headers:
             assert h not in headers.keys()
 
-        assert headers['MMT-Authorization'].startswith("MSA")
-        assert headers['MMT-Authorization'].endswith(self.service._service_auth_token)
-        assert len(headers['MMT-Authorization'].split(' ')) == 2
+        assert headers['Authorization'].startswith("MSA")
+        assert headers['Authorization'].endswith(self.service.service_auth_token)
+        assert len(headers['Authorization'].split(' ')) == 2
 
 
 class TestAioHttpCompatibility:
@@ -148,3 +157,268 @@ class TestAioHttpCompatibility:
         error = aiohttp.client_exceptions.ClientResponseError("a", "b")
 
         assert hasattr(error, "code")
+
+
+class TestRequestTaskContext:
+
+    @pytest.fixture()
+    def test_user(self):
+        test_user_id = 'a6454e643f7f4e8889b7085c466548d4'
+        return User(id=uuid.UUID(test_user_id).hex, email="test@decode.jwt", level=UserLevels.STAFF,
+                    is_authenticated=True)
+
+    def test_task_context_service_after_authentication(self, insanic_application, test_user,
+                                                       test_service_token_factory):
+        import aiotask_context
+
+        token = test_service_token_factory(test_user)
+
+        class TokenView(InsanicView):
+
+            async def get(self, request, *args, **kwargs):
+                user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER)
+                assert user is not None
+                assert user == dict(test_user)
+                request_user = await request.user
+                assert user == dict(request_user)
+
+                service = await request.service
+                assert service.request_service == "test"
+
+                return json({"hi": "hello"})
+
+        insanic_application.add_route(TokenView.as_view(), '/')
+        request, response = insanic_application.test_client.get('/', headers={"Authorization": token})
+
+        assert response.status == 200
+
+    def test_task_context_user_after_authentication(self, insanic_application, test_user, test_user_token_factory):
+        import aiotask_context
+
+        token = test_user_token_factory(id=test_user.id, email=test_user.email, level=test_user.level)
+
+        class TokenView(InsanicView):
+
+            async def get(self, request, *args, **kwargs):
+                user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER)
+                assert user is not None
+                assert user == dict(test_user)
+                request_user = await request.user
+                assert user == dict(request_user)
+
+                service = await request.service
+                assert str(service).startswith("AnonymousService")
+
+                return json({"hi": "hello"})
+
+        insanic_application.add_route(TokenView.as_view(), '/')
+        request, response = insanic_application.test_client.get('/', headers={"Authorization": token})
+
+        assert response.status == 200
+
+    async def test_task_context_service_multiple_after_authentication(self, insanic_application,
+                                                                      test_client,
+                                                                      test_service_token_factory):
+        import aiotask_context
+        import asyncio
+
+        class TokenView(InsanicView):
+
+            async def get(self, request, *args, **kwargs):
+                user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER)
+                assert user is not None
+
+                request_user = await request.user
+                assert user == dict(request_user)
+
+                payload = handlers.jwt_decode_handler(request.auth)
+                assert "user" in payload
+                assert user == dict(request_user) == payload['user']
+
+                return json({"user": user})
+
+        insanic_application.add_route(TokenView.as_view(), '/')
+
+        client = await test_client(insanic_application)
+        #
+        # insanic_application.run(host='127.0.0.1', port=unused_port)
+        requests = []
+        for i in range(10):
+            user = User(id=i, email=f"test{i}@decode.jwt", level=UserLevels.STAFF,
+                        is_authenticated=True)
+
+            token = test_service_token_factory(user)
+            requests.append(client.get('/', headers={"Authorization": token}))
+
+        responses = await asyncio.gather(*requests)
+
+        for i in range(10):
+            r = responses[i]
+            assert r.status == 200
+
+            resp = await r.json()
+            assert resp['user']['id'] == i
+
+    async def test_task_context_user_multiple_after_authentication(self, insanic_application, monkeypatch,
+                                                                   test_client,
+                                                                   test_user_token_factory):
+        import aiotask_context
+        import asyncio
+        # monkeypatch.setattr(settings, "SWARM_SERVICE_LIST", {"userip": {"host": "manager.msa.swarm", "port": 8016}}, False)
+
+        class TokenView(InsanicView):
+
+            async def get(self, request, *args, **kwargs):
+                context_user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER)
+                request_user = await request.user
+                payload = handlers.jwt_decode_handler(request.auth)
+
+                assert context_user is not None
+
+                user_id = payload.pop('user_id')
+                assert context_user == dict(request_user) == dict(User(id=user_id, is_authenticated=True, **payload))
+
+                service = await request.service
+
+                assert service is not None
+                assert service == AnonymousRequestService
+
+                return json({"user": dict(request_user)})
+
+        insanic_application.add_route(TokenView.as_view(), '/')
+
+        client = await test_client(insanic_application)
+        #
+        # insanic_application.run(host='127.0.0.1', port=unused_port)
+        users = []
+        requests = []
+        for i in range(10):
+            user, token = test_user_token_factory(email=f"test{i}@decode.jwt",
+                                                  level=UserLevels.STAFF, return_with_user=True)
+            requests.append(client.get('/', headers={"Authorization": token}))
+            users.append(user)
+
+        responses = await asyncio.gather(*requests)
+
+        for i in range(10):
+            r = responses[i]
+            resp = await r.json()
+            assert r.status == 200, resp
+
+            assert resp['user']['id'] == users[i].id
+
+    async def test_task_context_user_http_dispatch_injection(self, insanic_application,
+                                                             test_client,
+                                                             test_user_token_factory):
+        import aiotask_context
+        import asyncio
+        from insanic.loading import get_service
+
+        UserIPService = get_service('userip')
+
+        class TokenView(InsanicView):
+
+            async def get(self, request, *args, **kwargs):
+                context_user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER)
+                request_user = await request.user
+                payload = handlers.jwt_decode_handler(request.auth)
+
+                token = UserIPService.service_auth_token
+                assert token is not None
+
+                service_payload = jwt.decode(
+                    token,
+                    settings.SERVICE_TOKEN_KEY,
+                    verify=False,
+                    algorithms=[settings.JWT_SERVICE_AUTH['JWT_ALGORITHM']]
+                )
+
+                assert service_payload['user'] == dict(request_user) == context_user
+
+                inject_headers = UserIPService._prepare_headers({})
+
+                assert "Authorization" in inject_headers
+                assert token == inject_headers['Authorization'].split()[-1]
+
+                return json({"user": dict(request_user)})
+
+        insanic_application.add_route(TokenView.as_view(), '/')
+
+        client = await test_client(insanic_application)
+        #
+        # insanic_application.run(host='127.0.0.1', port=unused_port)
+        users = []
+        requests = []
+        for i in range(10):
+            user, token = test_user_token_factory(email=f"test{i}@decode.jwt",
+                                                  level=UserLevels.STAFF, return_with_user=True)
+            requests.append(client.get('/', headers={"Authorization": token}))
+            users.append(user)
+
+        responses = await asyncio.gather(*requests)
+
+        for i in range(10):
+            r = responses[i]
+            resp = await r.json()
+            assert r.status == 200, resp
+
+            assert resp['user']['id'] == users[i].id
+
+    async def test_task_context_service_http_dispatch_injection(self, insanic_application,
+                                                                test_client,
+                                                                test_service_token_factory):
+        import aiotask_context
+        import asyncio
+        from insanic.loading import get_service
+
+        UserIPService = get_service('userip')
+
+        class TokenView(InsanicView):
+
+            async def get(self, request, *args, **kwargs):
+                context_user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER)
+                request_user = await request.user
+                payload = handlers.jwt_decode_handler(request.auth)
+
+                token = UserIPService.service_auth_token
+                assert token is not None
+
+                service_payload = jwt.decode(
+                    token,
+                    settings.SERVICE_TOKEN_KEY,
+                    verify=False,
+                    algorithms=[settings.JWT_SERVICE_AUTH['JWT_ALGORITHM']]
+                )
+
+                assert service_payload['user'] == dict(request_user) == context_user
+
+                inject_headers = UserIPService._prepare_headers({})
+
+                assert "Authorization" in inject_headers
+                assert token == inject_headers['Authorization'].split()[-1]
+
+                return json({"user": dict(request_user)})
+
+        insanic_application.add_route(TokenView.as_view(), '/')
+
+        client = await test_client(insanic_application)
+
+        users = []
+        requests = []
+
+        for i in range(10):
+            user = User(id=i, email=f"test{i}@decode.jwt", level=UserLevels.STAFF,
+                        is_authenticated=True)
+
+            token = test_service_token_factory(user)
+            requests.append(client.get('/', headers={"Authorization": token}))
+            users.append(user)
+
+        responses = await asyncio.gather(*requests)
+
+        for i in range(10):
+            r = responses[i]
+            resp = await r.json()
+            assert r.status == 200, resp
+
+            assert resp['user']['id'] == users[i].id

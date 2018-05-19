@@ -14,7 +14,6 @@ class InsanicView(HTTPMethodView):
     permission_classes = [permissions.IsAuthenticated]
     throttle_classes = []
     authentication_classes = [authentication.JSONWebTokenAuthentication, ]
-    service_authentication_classes = [authentication.ServiceJWTAuthentication, ]
 
     def _allowed_methods(self):
         return [m.upper() for m in self.http_method_names if hasattr(self, m)]
@@ -43,16 +42,6 @@ class InsanicView(HTTPMethodView):
         """
         await request.user
 
-    async def perform_service_authentication(self, request):
-        """
-        Perform authentication on the incoming request.
-
-        Note that if you override this and simply 'pass', then authentication
-        will instead be performed lazily, the first time either
-        `request.user` or `request.auth` is accessed.
-        """
-        await request.service
-
     async def check_permissions(self, request):
         """
         Check if the request should be permitted.
@@ -61,17 +50,6 @@ class InsanicView(HTTPMethodView):
         for permission in self.get_permissions():
             if not await permission.has_permission(request, self):
                 self.permission_denied(request)
-
-    # async def check_object_permissions(self, request, obj):
-    #     """
-    #     Check if the request should be permitted for a given object.
-    #     Raises an appropriate exception if the request is not permitted.
-    #     """
-    #     for permission in self.get_permissions():
-    #         if not await permission.has_object_permission(request, self, obj):
-    #             self.permission_denied(
-    #                 request, message=getattr(permission, 'message', None)
-    #             )
 
     def permission_denied(self, request, message=None):
         """
@@ -117,13 +95,7 @@ class InsanicView(HTTPMethodView):
         """
         Instantiates and returns the list of authenticators that this view can use.
         """
-        return [auth() for auth in self.authentication_classes]
-
-    def get_service_authenticators(self):
-        """
-        Instantiates and returns the list of authenticators that this view can use.
-        """
-        return [auth() for auth in self.service_authentication_classes]
+        return [authentication.ServiceJWTAuthentication()] + [auth() for auth in self.authentication_classes]
 
     async def convert_keywords(self):
         pass
@@ -137,13 +109,11 @@ class InsanicView(HTTPMethodView):
         self.args = args
         self.kwargs = kwargs
         self.request = request
-        self.request.service_authenticators = self.get_service_authenticators()
         self.request.authenticators = self.get_authenticators()
         self.headers = self.default_response_headers  # deprecate?
 
         await self.convert_keywords()
         await self.perform_authentication(self.request)
-        await self.perform_service_authentication(self.request)
 
         await self.check_permissions(self.request)
         await self.check_throttles(self.request)

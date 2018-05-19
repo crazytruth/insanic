@@ -1,4 +1,5 @@
 import aiohttp
+import aiotask_context
 import datetime
 import ujson as json
 
@@ -52,11 +53,14 @@ class Service:
     remove_headers = ["content-length", 'user-agent', 'host', 'postman-token']
 
     def __init__(self, service_type):
-
         self._registry = ServiceRegistry()
         self._service_name = service_type
         self._session = None
-        self._service_auth_token = jwt_service_encode_handler(jwt_service_payload_handler(self))
+
+    @property
+    def service_auth_token(self):
+        user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER)
+        return jwt_service_encode_handler(jwt_service_payload_handler(self, user))
 
     @property
     def service_name(self):
@@ -94,7 +98,7 @@ class Service:
 
     @property
     def session(self):
-        if self._session is None:
+        if self._session is None or self._session.loop.is_closed() is True:
             self._session = aiohttp.ClientSession(loop=get_event_loop(),
                                                   connector=aiohttp.TCPConnector(limit_per_host=25,
                                                                                  ttl_dns_cache=300))
@@ -138,7 +142,7 @@ class Service:
                        .replace(tzinfo=datetime.timezone.utc).strftime("%a, %d %b %y %T %z")})
 
         headers.update(
-            {"MMT-Authorization": f"{settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX']} {self._service_auth_token}"})
+            {"Authorization": f"{settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX']} {self.service_auth_token}"})
 
         return headers
 
@@ -156,14 +160,16 @@ class Service:
         outbound_request = aiohttp.ClientRequest(method, url, headers=headers, data=payload)
 
         try:
-            resp = await request_method(str(outbound_request.url), headers=outbound_request.headers, data=payload)
+            async with request_method(str(outbound_request.url), headers=outbound_request.headers,
+                                      data=payload) as resp:
+                # resp = await request_method(str(outbound_request.url), headers=outbound_request.headers, data=payload)
 
-            response = await resp.text()
-            if propagate_error:
-                resp.raise_for_status()
+                response = await resp.json()
+                if propagate_error:
+                    resp.raise_for_status()
 
-            response_status = resp.status
-            response = try_json_decode(response)
+                response_status = resp.status
+                response = try_json_decode(response)
 
         except aiohttp.client_exceptions.ClientResponseError as e:
             response = try_json_decode(response)
@@ -228,7 +234,5 @@ class Service:
             raise exc
         except aiohttp.client_exceptions.ClientPayloadError as e:
             raise
-        finally:
-            resp.release()
 
         return resp, response_status

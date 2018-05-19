@@ -14,8 +14,9 @@ class GlobalErrorCodes(Enum):
     invalid_token = 999104
     invalid_signature = 999105
 
-    # user related
+    # user/service related
     inactive_user = 999201
+    invalid_service_token = 999250
 
     # database related
     redis_unable_to_process = 999301

@@ -2,13 +2,12 @@ import pytest
 import uuid
 
 import requests
-from asynctest import patch
+
 from sanic.response import json
-from yarl import URL
 
 from insanic import status, Insanic
 from insanic.authentication import BaseAuthentication, JSONWebTokenAuthentication, \
-    HardJSONWebTokenAuthentication, handlers
+    HardJSONWebTokenAuthentication, handlers, ServiceJWTAuthentication
 from insanic.choices import UserLevels
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
@@ -191,3 +190,37 @@ class TestAuthentication():
         )
 
         assert response.status == status.HTTP_200_OK
+
+
+class TestServiceJWTAuthentication:
+
+    @pytest.fixture()
+    def auth(self):
+        return ServiceJWTAuthentication()
+
+    def test_service_auth(self, auth):
+        assert auth.auth_header_prefix == settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'].lower()
+
+    def test_decode_jwt(self, auth, test_service_token_factory):
+        test_user_id = 'a6454e643f7f4e8889b7085c466548d4'
+        test_user = User(id=uuid.UUID(test_user_id).hex, email="test@decode.jwt", level=UserLevels.STAFF,
+                         is_authenticated=True)
+
+        token = test_service_token_factory(test_user)
+        assert token is not None
+        assert token.split()[0].lower() == settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'].lower()
+
+        payload = handlers.jwt_service_decode_handler(token.split()[1])
+        assert "user" in payload
+        assert payload['user'] == dict(test_user)
+
+    async def test_authenticate_credentials(self, auth, test_service_token_factory):
+        test_user_id = 'a6454e643f7f4e8889b7085c466548d4'
+        test_user = User(id=uuid.UUID(test_user_id).hex, email="test@decode.jwt", level=UserLevels.STAFF,
+                         is_authenticated=True)
+        token = test_service_token_factory(test_user)
+        payload = handlers.jwt_service_decode_handler(token.split()[1])
+
+        user, service = await auth.authenticate_credentials(object(), payload)
+
+        assert dict(user) == dict(test_user)

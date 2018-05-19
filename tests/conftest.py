@@ -1,3 +1,4 @@
+import aiotask_context
 import pytest
 import uuid
 
@@ -5,6 +6,7 @@ import requests
 
 from insanic import Insanic
 from insanic.authentication import handlers
+from insanic.choices import UserLevels
 from insanic.conf import settings
 from insanic.models import User
 
@@ -29,6 +31,12 @@ def function_session_id():
 @pytest.fixture
 def insanic_application():
     return Insanic("test")
+
+
+@pytest.fixture(autouse=True)
+def loop(loop):
+    loop.set_task_factory(aiotask_context.copying_task_factory)
+    return loop
 
 
 @pytest.fixture(autouse=True)
@@ -83,3 +91,20 @@ def test_user_token_factory():
         # Delete test consumer
         response = requests.delete(f"http://kong.msa.swarm:18001/consumers/{user_id}/")
         response.raise_for_status()
+
+
+@pytest.fixture(scope="function")
+def test_service_token_factory(test_user_token_factory):
+    class MockService:
+        service_name = 'test'
+
+    def factory(user=None):
+        if user is None:
+            user = User(id=uuid.uuid4().hex, email='service@token.factory', level=UserLevels.ACTIVE)
+        # source, aud, source_ip, destination_version, is_authenticated):
+        service = MockService()
+        payload = handlers.jwt_service_payload_handler(service, dict(user))
+        return " ".join(
+            [settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_service_encode_handler(payload)])
+
+    return factory

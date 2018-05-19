@@ -71,7 +71,8 @@ setup(
         'PyJWT',
         'aws-xray-sdk',
         "python-consul",
-        "hvac"
+        "hvac",
+        "aiotask_context"
     ],
     # test_suite='nose.collector',
     tests_require=test_requires,

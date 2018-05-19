@@ -4,7 +4,9 @@ Changelog for insanic
 0.3.5 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- UPDATE: insanic service authentication with task contexts 
+- UPDATE: service tokens are created with user from task contexts
+- FEAT: just context added to task when authentication if performed
 
 
 0.3.4 (2018-05-15)

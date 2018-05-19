@@ -24,69 +24,7 @@ def _hasattr(obj, name):
     return not getattr(obj, name) is empty
 
 
-class ServiceAuthenticationMixin:
-
-    @property
-    async def service(self):
-        if not hasattr(self, '_service'):
-            await self._service_authenticate()
-        return self._service
-
-    @service.setter
-    def service(self, value):
-        self._service = value
-
-    @property
-    def service_auth(self):
-        """
-        Returns any non-user authentication information associated with the
-        request, such as an authentication token.
-        """
-        if not hasattr(self, '_service_auth'):
-            self._service_authenticate()
-        return self._service_auth
-
-    @service_auth.setter
-    def service_auth(self, value):
-        """
-        Sets any non-user authentication information associated with the
-        request, such as an authentication token.
-        """
-        self._service_auth = value
-
-    async def _service_authenticate(self):
-        """
-        Attempt to authenticate the request using each authentication instance
-        in turn.
-        Returns a three-tuple of (authenticator, user, authtoken).
-        """
-        for authenticator in getattr(self, 'service_authenticators', []):
-            try:
-                service_auth_tuple = await authenticator.authenticate(self)
-            except exceptions.APIException:
-                self._not_service_authenticated()
-                raise
-
-            if service_auth_tuple is not None:
-                self._service_authenticator = authenticator
-                self.service, self.service_auth = service_auth_tuple
-                return
-
-        self._not_service_authenticated()
-
-    def _not_service_authenticated(self):
-        """
-        Set authenticator, user & authtoken representing an unauthenticated request.
-
-        Defaults are None, AnonymousUser & None.
-        """
-        from insanic.models import AnonymousRequestService
-        self._service_authenticator = None
-        self.service = AnonymousRequestService
-        self.service_auth = None
-
-
-class Request(ServiceAuthenticationMixin, SanicRequest):
+class Request(SanicRequest):
     """
     Wrapper allowing to enhance a standard `HttpRequest` instance.
 
@@ -170,6 +108,17 @@ class Request(ServiceAuthenticationMixin, SanicRequest):
         instance, ensuring that it is available to any middleware in the stack.
         """
         self._user = value
+
+    @property
+    async def service(self):
+        if not hasattr(self, '_service'):
+            await self._authenticate()
+        return self._service
+
+    @service.setter
+    def service(self, value):
+        self._service = value
+
 
     @property
     def auth(self):
@@ -271,7 +220,8 @@ class Request(ServiceAuthenticationMixin, SanicRequest):
             if user_auth_tuple is not None:
                 self._authenticator = authenticator
                 # self.user_auth = user_auth_tuple
-                self.user, self.auth = user_auth_tuple
+                self.user, self.service, self.auth = user_auth_tuple
+
                 return
 
         self._not_authenticated()
@@ -282,9 +232,10 @@ class Request(ServiceAuthenticationMixin, SanicRequest):
 
         Defaults are None, AnonymousUser & None.
         """
-        from insanic.models import AnonymousUser
+        from insanic.models import AnonymousUser, AnonymousRequestService
         self._authenticator = None
         self.user = AnonymousUser
+        self.service = AnonymousRequestService
         self.auth = None
 
 

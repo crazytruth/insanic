@@ -8,17 +8,7 @@ from sanic.response import json
 import pytest
 
 
-@pytest.fixture(scope="function")
-def test_service_token_factory():
-    class MockService:
-        service_name = 'test'
 
-    def factory():
-        # source, aud, source_ip, destination_version, is_authenticated):
-        service = MockService()
-        payload = handlers.jwt_service_payload_handler(service)
-        return " ".join([settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_service_encode_handler(payload)])
-    return factory
 
 @pytest.mark.parametrize("service_name, has_token, has_service_token, expected",[
     ("test", True, False, 'fired'), # Successful scenario
@@ -40,7 +30,7 @@ def test_userip_middleware(service_name, has_token, has_service_token, expected,
 
     if has_service_token:
         service_token = test_service_token_factory()
-        headers.update({"MMT-Authorization": service_token})
+        headers.update({"Authorization": service_token})
 
     class TestView(InsanicView):
         permission_classes = []
