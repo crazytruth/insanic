@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.3.8 (unreleased)
+0.3.8 (2018-05-19)
 ------------------
 
 - UPDATE: insanic service authentication with task contexts 
