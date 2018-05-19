@@ -1,12 +1,30 @@
 Changelog for insanic
 =====================
 
-0.3.5 (unreleased)
+0.3.8 (unreleased)
 ------------------
 
 - UPDATE: insanic service authentication with task contexts 
 - UPDATE: service tokens are created with user from task contexts
 - FEAT: just context added to task when authentication if performed
+
+
+0.3.7 (2018-05-18)
+------------------
+
+- CHANGE: allow vault url from environment variables
+
+
+0.3.6 (2018-05-17)
+------------------
+
+- FIX: cast port to int
+
+
+0.3.5 (2018-05-17)
+------------------
+
+- CHORE: Better Logging for create service on kong 
 
 
 0.3.4 (2018-05-15)

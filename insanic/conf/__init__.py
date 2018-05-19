@@ -235,15 +235,16 @@ class VaultConfig(BaseConfig):
     # vault related properties
     @property
     def VAULT_SCHEME(self):
-        return "http"
+        return os.environ.get("VAULT_SCHEME", "http")
 
     @property
     def VAULT_HOST(self):
-        return "vault.msa.swarm"
+        return os.environ.get("VAULT_HOST", "vault.msa.swarm")
 
     @property
     def VAULT_PORT(self):
-        return 8200
+        return os.environ.get("VAULT_PORT", 8200)
+        # return 8200
 
     @property
     def VAULT_URL(self):

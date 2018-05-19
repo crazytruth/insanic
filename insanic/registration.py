@@ -173,12 +173,18 @@ class KongGateway(BaseGateway):
                     "protocol": "http",
                     "host": settings.SERVICE_GLOBAL_HOST_TEMPLATE.format(
                         self.service_name) if is_docker else get_my_ip(),
-                    "port": app._port
+                    "port": int(app._port)
                 }
 
                 async with session.post(self.kong_base_url.with_path('/services/'), json=service_data) as resp:
-                    resp.raise_for_status()
                     kong_service_data = await resp.json()
+                    try:
+                        resp.raise_for_status()
+                    except aiohttp.client_exceptions.ClientResponseError:
+                        self.logger_service("critical",
+                                            f"FAILED: registered service {self.kong_service_name}: {kong_service_data}")
+                        raise
+
 
             self.service_id = kong_service_data['id']
 
