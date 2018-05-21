@@ -4,7 +4,7 @@ Changelog for insanic
 0.3.10 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- FIX: better normalized mock dispatch
 
 
 0.3.9 (2018-05-21)
