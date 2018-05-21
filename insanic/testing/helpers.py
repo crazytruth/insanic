@@ -6,8 +6,9 @@ import uuid
 import aiohttp
 
 from enum import Enum
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 from setuptools.command.test import test as TestCommand
+from yarl import URL
 
 from insanic.choices import UserLevels
 from insanic.errors import GlobalErrorCodes
@@ -55,20 +56,17 @@ class BaseMockService:
 
     async def mock_dispatch(self, method, endpoint, req_ctx={}, *, query_params={}, payload={}, headers={},
                             propagate_error=False, include_status_code=False, **kwargs):
-        keys = []
 
-        keys.append(self._key_for_request(method, endpoint, payload))
-        if method == "GET" and query_params != {}:
-            keys.append(self._key_for_request(method, endpoint, query_params))
-
-        if payload != {}:
-            keys.append(self._key_for_request(method, endpoint, {}))
-
-
-        if method == "GET" and endpoint == "/api/v1/user/self":
-            return kwargs.get('test_user',
-                              dict(id=2, email="admin@mymusictaste.com", is_active=True, is_authenticated=True,
-                                   level=DEFAULT_USER_LEVEL))
+        request = self._normalize_request(method, endpoint, query_params, payload)
+        keys = self._keys_for_request(request)
+        #
+        # if method == "GET" and query_params != {}:
+        #     keys.append(self._key_for_request(method, endpoint, query_params))
+        #
+        # if payload != {}:
+        #     keys.append(self._key_for_request(method, endpoint, {}))
+        #
+        # keys.append(self._key_for_request(method, endpoint, payload))
 
         for k in keys:
             if k in self.service_responses:
@@ -86,29 +84,54 @@ class BaseMockService:
         raise RuntimeError(
             "Unknown service request: {0} {1}. Need to register mock dispatch.".format(method.upper(), endpoint))
 
+    def _keys_for_request(self, request):
+
+        body = json.loads(request.body._value)
+
+        sorted_body = OrderedDict(sorted(body.items()))
+        yield self._key_for_request(request.method, request.url.path_qs, sorted_body)
+        yield self._key_for_request(request.method, request.url.path, sorted_body)
+        yield self._key_for_request(request.method, request.url.path_qs, {})
+        yield self._key_for_request(request.method, request.url.path, {})
+
+    def _normalize_request(self, method, endpoint, query_params, request_body):
+        fudge_url = "http://localhost"
+        return aiohttp.ClientRequest(method=method.upper(), url=URL(fudge_url + endpoint),
+                                     params=OrderedDict(sorted((query_params or {}).items())),
+                                     data=aiohttp.payload.JsonPayload(
+                                         OrderedDict(sorted((request_body or {}).items()))))
+
     def register_mock_dispatch(self, method, endpoint, response, response_status_code=200, request_body=None,
                                query_params=None):
 
-        if method.upper() == "GET":
-            if query_params is None:
-                query_params = {}
+        request = self._normalize_request(method, endpoint, query_params, request_body)
 
-            key = self._key_for_request(method, endpoint, query_params)
-            self.service_responses.update({key: (response, response_status_code)})
-            if query_params != {}:
-                key = self._key_for_request(method, endpoint, {})
-                self.service_responses.update({key: (response, response_status_code)})
-        else:
+        for k in self._keys_for_request(request):
+            self.service_responses.update({k: (response, response_status_code)})
 
-            if request_body is None:
-                request_body = {}
-
-            key = self._key_for_request(method, endpoint, request_body)
-            self.service_responses.update({key: (response, response_status_code)})
-
-            if request_body != {}:
-                key = self._key_for_request(method, endpoint, {})
-                self.service_responses.update({key: (response, response_status_code)})
+        # key = self._key_for_request(request.method, request.url.path, OrderedDict(sorted(request.url.query)))
+        #
+        #
+        # if method.upper() == "GET":
+        #     if query_params is None:
+        #         query_params = {}
+        #
+        #     key = self._key_for_request(method, endpoint, query_params)
+        #     self.service_responses.update({key: (response, response_status_code)})
+        #     if query_params != {}:
+        #         key = self._key_for_request(method, endpoint, {})
+        #         self.service_responses.update({key: (response, response_status_code)})
+        # else:
+        #
+        #     if request_body is None:
+        #         request_body = {}
+        #
+        #     key = self._key_for_request(method, endpoint, request_body)
+        #     self.service_responses.update({key: (response, response_status_code)})
+        #
+        #     if request_body != {}:
+        #         key = self._key_for_request(method, endpoint, {})
+        #         self.service_responses.update({key: (response, response_status_code)})
 
 
 MockService = BaseMockService()
