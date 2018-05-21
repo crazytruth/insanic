@@ -1,3 +1,5 @@
+import os
+
 from sanic import Blueprint
 from sanic.response import json
 
@@ -19,5 +21,6 @@ def health_check(request):
     return json({
         "service": settings.SERVICE_NAME,
         "status": "OK",
-        "insanic_version": __version__
+        "insanic_version": __version__,
+        "env": os.environ
     }, status=HTTP_200_OK)

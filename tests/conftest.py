@@ -93,8 +93,8 @@ def test_user_token_factory():
         response.raise_for_status()
 
 
-@pytest.fixture(scope="function")
-def test_service_token_factory(test_user_token_factory):
+@pytest.fixture(scope="session")
+def test_service_token_factory():
     class MockService:
         service_name = 'test'
 

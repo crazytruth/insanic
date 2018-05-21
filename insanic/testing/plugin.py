@@ -94,7 +94,7 @@ class _UserTokenFactory:
         if id is None:
             id = uuid.uuid4()
 
-        user = User(id=id.hex, email=email, level=level)
+        user = User(id=id.hex, email=email, level=level, is_authenticated=True)
         self.created_test_user_ids.add(user.id)
         # Create test consumer
         requests.post(gateway.kong_base_url.with_path(f'/consumers/'), json={'username': user.id})
@@ -143,11 +143,16 @@ def test_service_token_factory():
     class MockService:
         service_name = settings.SERVICE_NAME
 
-    def factory():
+    def factory(user=None):
+        if user is None:
+            user = User(id=uuid.uuid4().hex, email='service@token.factory', level=UserLevels.ACTIVE,
+                        is_authenticated=True)
         # source, aud, source_ip, destination_version, is_authenticated):
         service = MockService()
-        payload = handlers.jwt_service_payload_handler(service)
-        return " ".join([settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_service_encode_handler(payload)])
+        payload = handlers.jwt_service_payload_handler(service, dict(user))
+        return " ".join(
+            [settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_service_encode_handler(payload)])
+
     return factory
 
 

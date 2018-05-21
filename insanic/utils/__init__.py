@@ -13,7 +13,7 @@ def force_str(val):
 def try_json_decode(data):
     try:
         data = json.loads(data)
-    except ValueError:
+    except (ValueError, TypeError):
         pass
     return data
 

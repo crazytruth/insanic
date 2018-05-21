@@ -4,7 +4,8 @@ Changelog for insanic
 0.3.9 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: pytest insanic tests for new jwt contract
+- FEAT: check is docker by calling ecs metadata endpoint
 
 
 0.3.8 (2018-05-19)

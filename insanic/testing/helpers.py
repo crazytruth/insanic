@@ -95,6 +95,9 @@ class BaseMockService:
 
             key = self._key_for_request(method, endpoint, query_params)
             self.service_responses.update({key: (response, response_status_code)})
+            if query_params != {}:
+                key = self._key_for_request(method, endpoint, {})
+                self.service_responses.update({key: (response, response_status_code)})
         else:
 
             if request_body is None:
@@ -136,15 +139,15 @@ def test_api_endpoint(insanic_application, test_user_token_factory, test_service
 
     request_headers.update({"accept": "application/json"})
 
-    if "Authorization" in request_headers.keys() and request_headers.get("Authorization") == empty:
+    if "Authorization" in request_headers.keys() and request_headers.get("Authorization") == _TokenType('user'):
         user, token = test_user_token_factory(email="test@mmt.com", level=user_level, return_with_user=True)
         request_headers.update({"Authorization": token, 'x-consumer-username': user.id})
+    elif "Authorization" in request_headers.keys() and request_headers.get("Authorization") == _TokenType('service'):
+        user, token = test_user_token_factory(email="test@mmt.com", level=user_level, return_with_user=True)
+
+        request_headers.update({"Authorization": test_service_token_factory(user)})
     elif "Authorization" not in request_headers.keys():
         request_headers.update({'x-anonymous-consumer': 'true'})
-
-
-    if "MMT-Authorization" in request_headers.keys() and request_headers.get("MMT-Authorization") == empty:
-        request_headers.update({"MMT-Authorization": test_service_token_factory()})
 
     if request_headers.get('content-type', "application/json") == "application/json":
         handler_kwargs = {"json": request_body}
@@ -210,6 +213,17 @@ TestParams = namedtuple('TestParams', ['method', 'endpoint', 'request_headers', 
 
 # TestParams = namedtuple("TestParams", [k for k,v in inspect.signature(test_api_endpoint).parameters.items() if v.kind == v.KEYWORD_ONLY])
 
+class _TokenType:
+    def __init__(self, type):
+        self.type = type
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.type == other.type
+        else:
+            return False
+
+
 
 def test_parameter_generator(method, endpoint, *, request_headers, request_body, expected_response_status,
                              expected_response_body, check_authorization=True, check_permissions=True,
@@ -220,11 +234,12 @@ def test_parameter_generator(method, endpoint, *, request_headers, request_body,
             raise RuntimeError("'permissions_endpoint' must be passed for permissions check parameters.")
 
     # auth_token = request_headers.pop("Authorization", empty)
-    if "Authorization" not in request_headers:
-        request_headers.update({"Authorization": empty})
 
-    if "MMT-Authorization" not in request_headers and is_service_only:
-        request_headers.update({"MMT-Authorization": empty})
+    if "Authorization" not in request_headers and is_service_only:
+        request_headers.update({"Authorization": _TokenType('service')})
+    elif "Authorization" not in request_headers:
+        request_headers.update({"Authorization": _TokenType('user')})
+
 
     test_parameters_template = TestParams(method=method, endpoint=endpoint, request_headers=request_headers,
                                           request_body=request_body, expected_response_status=expected_response_status,
