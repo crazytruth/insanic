@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.3.9 (unreleased)
+0.3.9 (2018-05-21)
 ------------------
 
 - FIX: pytest insanic tests for new jwt contract
