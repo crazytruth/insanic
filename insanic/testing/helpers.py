@@ -107,6 +107,14 @@ class BaseMockService:
         request = self._normalize_request(method, endpoint, query_params, request_body)
 
         for k in self._keys_for_request(request):
+            if k in self.service_responses:
+                if self.service_responses[k] == (response, response_status_code):
+                    pass
+                else:
+                    print(f"""Service Response already exists for {json.dumps(k)}
+                    expected response: {json.dumps((response, response_status_code))}
+                    registered response: {json.dumps(self.service_responses[k])}""")
+
             self.service_responses.update({k: (response, response_status_code)})
 
         # key = self._key_for_request(request.method, request.url.path, OrderedDict(sorted(request.url.query)))
