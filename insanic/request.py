@@ -1,3 +1,4 @@
+import aiotask_context
 import io
 import time
 
@@ -6,6 +7,7 @@ from pprint import pformat
 from sanic.request import Request as SanicRequest, RequestParameters
 
 from insanic import exceptions
+from insanic.conf import settings
 from insanic.functional import empty
 from insanic.utils import force_str
 from insanic.utils.mediatypes import parse_header, HTTP_HEADER_ENCODING
@@ -107,7 +109,9 @@ class Request(SanicRequest):
         Note that we also set the user on Django's underlying `HttpRequest`
         instance, ensuring that it is available to any middleware in the stack.
         """
+
         self._user = value
+        aiotask_context.set(settings.TASK_CONTEXT_REQUEST_USER, dict(value))
 
     @property
     async def service(self):

@@ -1,7 +1,6 @@
 """
 Provides various authentication policies.
 """
-import aiotask_context
 import jwt
 
 
@@ -10,7 +9,7 @@ from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 
 from insanic.authentication import handlers
-from insanic.models import User, RequestService, AnonymousRequestService
+from insanic.models import User, RequestService, AnonymousUser, AnonymousRequestService
 
 UNUSABLE_PASSWORD_PREFIX = '!'
 
@@ -106,8 +105,6 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
 
         user, service = await self.authenticate_credentials(request, payload)
 
-        aiotask_context.set(settings.TASK_CONTEXT_REQUEST_USER, dict(user))
-
         return user, service, jwt_value
 
 class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
@@ -155,7 +152,7 @@ class ServiceJWTAuthentication(BaseJSONWebTokenAuthentication):
         return handlers.jwt_service_decode_handler(token)
 
     async def authenticate_credentials(self, request, payload):
-        user = User(**payload.pop('user'))
+        user = User(**payload.pop('user', AnonymousUser))
 
         service = RequestService(is_authenticated=True, **payload)
 

@@ -13,6 +13,7 @@ from insanic.authentication.handlers import jwt_service_encode_handler, jwt_serv
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.functional import cached_property_with_ttl
+from insanic.models import AnonymousUser
 from insanic.scopes import is_docker
 from insanic.utils import try_json_decode
 
@@ -59,7 +60,7 @@ class Service:
 
     @property
     def service_auth_token(self):
-        user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER)
+        user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER) or dict(AnonymousUser)
         return jwt_service_encode_handler(jwt_service_payload_handler(self, user))
 
     @property

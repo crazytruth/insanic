@@ -12,7 +12,8 @@ from sanic.response import json
 from insanic.authentication import handlers
 from insanic.conf import settings
 from insanic.exceptions import ServiceUnavailable503Error
-from insanic.models import User, UserLevels, AnonymousRequestService
+from insanic.models import User, UserLevels, AnonymousRequestService, AnonymousUser
+from insanic.permissions import AllowAny
 from insanic.services import ServiceRegistry, Service
 from insanic.views import InsanicView
 
@@ -413,6 +414,120 @@ class TestRequestTaskContext:
             token = test_service_token_factory(user)
             requests.append(client.get('/', headers={"Authorization": token}))
             users.append(user)
+
+        responses = await asyncio.gather(*requests)
+
+        for i in range(10):
+            r = responses[i]
+            resp = await r.json()
+            assert r.status == 200, resp
+
+            assert resp['user']['id'] == users[i].id
+
+    async def test_task_context_service_anonymous_http_dispatch_injection(self, insanic_application,
+                                                                          test_client,
+                                                                          test_service_token_factory):
+        import aiotask_context
+        import asyncio
+        from insanic.loading import get_service
+
+        UserIPService = get_service('userip')
+
+        class TokenView(InsanicView):
+            permission_classes = [AllowAny, ]
+
+            async def get(self, request, *args, **kwargs):
+                context_user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER)
+                request_user = await request.user
+                payload = handlers.jwt_decode_handler(request.auth)
+
+                token = UserIPService.service_auth_token
+                assert token is not None
+
+                service_payload = jwt.decode(
+                    token,
+                    settings.SERVICE_TOKEN_KEY,
+                    verify=False,
+                    algorithms=[settings.JWT_SERVICE_AUTH['JWT_ALGORITHM']]
+                )
+
+                assert service_payload['user'] == dict(request_user) == context_user
+
+                inject_headers = UserIPService._prepare_headers({})
+
+                assert "Authorization" in inject_headers
+                assert token == inject_headers['Authorization'].split()[-1]
+
+                return json({"user": dict(request_user)})
+
+        insanic_application.add_route(TokenView.as_view(), '/')
+
+        client = await test_client(insanic_application)
+
+        users = []
+        requests = []
+
+        for i in range(10):
+            user = AnonymousUser
+            token = test_service_token_factory(user)
+            requests.append(client.get('/', headers={"Authorization": token}))
+            users.append(user)
+
+        responses = await asyncio.gather(*requests)
+
+        for i in range(10):
+            r = responses[i]
+            resp = await r.json()
+            assert r.status == 200, resp
+
+            assert resp['user']['id'] == users[i].id
+
+    async def test_task_context_anonymous_user_http_dispatch_injection(self, insanic_application,
+                                                                       test_client,
+                                                                       test_user_token_factory):
+        import aiotask_context
+        import asyncio
+        from insanic.loading import get_service
+
+        UserIPService = get_service('userip')
+
+        class TokenView(InsanicView):
+            permission_classes = [AllowAny, ]
+
+            async def get(self, request, *args, **kwargs):
+                context_user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER)
+                request_user = await request.user
+                assert request.auth is None
+
+                token = UserIPService.service_auth_token
+                assert token is not None
+
+                service_payload = jwt.decode(
+                    token,
+                    settings.SERVICE_TOKEN_KEY,
+                    verify=False,
+                    algorithms=[settings.JWT_SERVICE_AUTH['JWT_ALGORITHM']]
+                )
+
+                assert service_payload['user'] == dict(request_user) == context_user
+
+                inject_headers = UserIPService._prepare_headers({})
+
+                assert "Authorization" in inject_headers
+                assert token == inject_headers['Authorization'].split()[-1]
+
+                return json({"user": dict(request_user)})
+
+        insanic_application.add_route(TokenView.as_view(), '/')
+
+        client = await test_client(insanic_application)
+        #
+        # insanic_application.run(host='127.0.0.1', port=unused_port)
+        users = []
+        requests = []
+        for i in range(10):
+            requests.append(client.get('/'))
+            users.append(AnonymousUser)
 
         responses = await asyncio.gather(*requests)
 

@@ -4,7 +4,7 @@ Changelog for insanic
 0.3.11 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- FIX: service to service requests for anonymous users(e.g. no token in request)
 
 
 0.3.10 (2018-05-21)
