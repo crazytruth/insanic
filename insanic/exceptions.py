@@ -16,6 +16,7 @@ class APIException(Exception):
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     default_detail = 'An unknown error occurred'
     error_code = GlobalErrorCodes.unknown_error
+    i18n = False
 
     def __init__(self, detail=None, error_code=None, status_code=None):
         if detail is not None:
