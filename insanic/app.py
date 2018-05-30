@@ -1,6 +1,7 @@
 import string
 
 from sanic import Sanic
+from sanic.views import CompositionView
 from sanic_useragent import SanicUserAgent
 
 from insanic.conf import settings
@@ -76,10 +77,12 @@ class Insanic(Sanic):
         try:
             from infuse import Infuse
             Infuse.init_app(self)
-        except (ImportError, ModuleNotFoundError):
+        except (ImportError, ModuleNotFoundError) as e:
             if self.config.get("MMT_ENV") == "production":
-                error_logger.critical("[Infuse] is required for production deployment.")
+                error_logger.critical("[Infuse] Infuse is required for production deployment.")
                 raise
+            else:
+                error_logger.info("[Infuse] proceeding without infuse. ")
 
         if protocol is None:
             protocol = InsanicHttpProtocol
@@ -98,6 +101,9 @@ class Insanic(Sanic):
                 for method in route.methods:
                     if hasattr(route.handler, 'view_class'):
                         _handler = getattr(route.handler.view_class, method.lower())
+                    elif isinstance(route.handler, CompositionView):
+                        _handler = route.handler.handlers[method.upper()].view_class
+                        _handler = getattr(_handler, method.lower())
                     else:
                         _handler = route.handler
 
@@ -110,7 +116,9 @@ class Insanic(Sanic):
                 # If route has been added to kong, enable some plugins
                 if hasattr(route.handler, 'view_class') and route.pattern.pattern in _public_routes:
                     for ac in route.handler.view_class.authentication_classes:
-                        _public_routes[route.pattern.pattern]['plugins'].append(settings.KONG_PLUGIN.get(ac.__name__))
+                        plugin = settings.KONG_PLUGIN.get(ac.__name__)
+                        if plugin:
+                            _public_routes[route.pattern.pattern]['plugins'].append(plugin)
 
             self._public_routes = _public_routes
         return self._public_routes
