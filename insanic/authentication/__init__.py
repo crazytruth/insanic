@@ -60,10 +60,12 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
 
         if len(auth) == 1:
             msg = 'Invalid Authorization header. No credentials provided.'
-            raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.invalid_authorization_header)
+            raise exceptions.AuthenticationFailed(msg,
+                                                  error_code=GlobalErrorCodes.invalid_authorization_header)
         elif len(auth) > 2:
             msg = 'Invalid Authorization header. Credentials string should not contain spaces.'
-            raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.invalid_authorization_header)
+            raise exceptions.AuthenticationFailed(msg,
+                                                  error_code=GlobalErrorCodes.invalid_authorization_header)
 
         return auth[1]
 
@@ -99,7 +101,8 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
             payload = self.decode_jwt(jwt_value)
         except jwt.DecodeError:
             msg = 'Error decoding signature.'
-            raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.signature_not_decodable)
+            raise exceptions.AuthenticationFailed(msg,
+                                                  error_code=GlobalErrorCodes.signature_not_decodable)
         except jwt.InvalidTokenError:
             raise exceptions.AuthenticationFailed(error_code=GlobalErrorCodes.invalid_token)
 
@@ -136,7 +139,8 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
 
         if not user.is_active:
             msg = 'User account is disabled.'
-            raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.inactive_user)
+            raise exceptions.AuthenticationFailed(msg,
+                                                  error_code=GlobalErrorCodes.inactive_user)
 
         return user, AnonymousRequestService
 
@@ -158,7 +162,8 @@ class ServiceJWTAuthentication(BaseJSONWebTokenAuthentication):
 
         if not service.is_valid:
             msg = f"Invalid request to {settings.SERVICE_NAME}."
-            raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.invalid_service_token)
+            raise exceptions.AuthenticationFailed(msg,
+                                                  error_code=GlobalErrorCodes.invalid_service_token)
 
         return user, service
 
@@ -178,7 +183,7 @@ class HardJSONWebTokenAuthentication(JSONWebTokenAuthentication):
         #
         # # if user service just lookup
         # # else go ask user service
-        # if settings.SERVICE_NAME == "user":
+        # if settings.SERVICE_NAME == "user":x
         #
         #     try:
         #         dummy_request = Request(request.url.encode(), {}, "1.1", "GET", request.transport)

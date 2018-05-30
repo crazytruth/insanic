@@ -4,14 +4,17 @@ Changelog for insanic
 0.3.12 (unreleased)
 -------------------
 
+- BREAKING: refactor exceptions to be consistent with error responses
+    - detail -> description
+    - default_detail -> message
 - FEAT: i18n attribute on exceptions
-- FEAT: prefix servicename or package on error code response
+- FEAT: prefix servicename or package name on error code response
 - FEAT: add several datetime util functions
 - FEAT: add iso_to_datetime util function
 - FIX: rename units_hint to units on utc_to_datetime function
-- FIX: bug with kong plugins where non could be in the list
+- FIX: bug with kong plugins where none could be in the list
 - FIX: public facing support for composition views 
-
+- CHORE: remove req_ctx from http_dispatch. didnt do anything anyways
 
 
 0.3.11 (2018-05-23)
