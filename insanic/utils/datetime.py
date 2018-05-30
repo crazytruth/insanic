@@ -33,7 +33,7 @@ def utc_milliseconds_to_datetime(timestamp):
     return utc_to_datetime(timestamp=timestamp, units='ms')
 
 def utc_to_iso(timestamp=None, units_hint=None):
-    return utc_to_datetime(timestamp, units_hint).isoformat(timespec='microseconds')
+    return utc_to_datetime(timestamp, units_hint).isoformat(timespec='milliseconds')
 
 
 def iso_to_datetime(datetime_string):

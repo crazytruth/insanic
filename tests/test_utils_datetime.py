@@ -87,7 +87,7 @@ def test_utc_seconds_to_datetime():
     test_timestamp = 946684800
     test_datetime = datetime(2000, 1, 1, 0, 0, 0, 0, timezone.utc)
 
-    assert test_datetime == insanic_datetime.utc_milliseconds_to_datetime(test_timestamp)
+    assert test_datetime == insanic_datetime.utc_seconds_to_datetime(test_timestamp)
 
 
 @pytest.mark.parametrize('test_string', ['2000-01-01T00:00:00.000000+00:00',
