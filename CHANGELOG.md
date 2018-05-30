@@ -4,7 +4,14 @@ Changelog for insanic
 0.3.12 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- FEAT: i18n attribute on exceptions
+- FEAT: prefix servicename or package on error code response
+- FEAT: add several datetime util functions
+- FEAT: add iso_to_datetime util function
+- FIX: rename units_hint to units on utc_to_datetime function
+- FIX: bug with kong plugins where non could be in the list
+- FIX: public facing support for composition views 
+
 
 
 0.3.11 (2018-05-23)
