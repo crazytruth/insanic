@@ -8,7 +8,7 @@ from insanic.conf import settings
 from insanic.functional import empty
 from insanic.handlers import ErrorHandler
 from insanic.monitor import blueprint_monitor
-from insanic.log import get_logging_config, error_logger
+from insanic.log import get_logging_config, error_logger, logger
 from insanic.protocol import InsanicHttpProtocol
 
 from insanic.tracing import InsanicTracer
@@ -77,12 +77,13 @@ class Insanic(Sanic):
         try:
             from infuse import Infuse
             Infuse.init_app(self)
+            logger.info("[INFUSE] hooked and good to go!")
         except (ImportError, ModuleNotFoundError) as e:
             if self.config.get("MMT_ENV") == "production":
-                error_logger.critical("[Infuse] Infuse is required for production deployment.")
+                error_logger.critical("[INFUSE] Infuse is required for production deployment.")
                 raise
             else:
-                error_logger.info("[Infuse] proceeding without infuse. ")
+                error_logger.info("[INFUSE] proceeding without infuse. ")
 
         if protocol is None:
             protocol = InsanicHttpProtocol

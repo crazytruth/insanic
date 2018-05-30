@@ -72,7 +72,9 @@ setup(
         'aws-xray-sdk',
         "python-consul",
         "hvac",
-        "aiotask_context"
+        "aiotask_context",
+        "infuse",
+        "python-dateutil"
     ],
     # test_suite='nose.collector',
     tests_require=test_requires,
