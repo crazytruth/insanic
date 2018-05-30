@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.3.12 (unreleased)
+0.3.12 (2018-05-30)
 -------------------
 
 - BREAKING: refactor exceptions to be consistent with error responses
