@@ -26,10 +26,8 @@ def utc_to_datetime(timestamp=None, units=None):
 
     return datetime.fromtimestamp(timestamp, tz=timezone.utc)
 
-
 def utc_seconds_to_datetime(timestamp):
     return utc_to_datetime(timestamp=timestamp, units='s')
-
 
 def utc_milliseconds_to_datetime(timestamp):
     return utc_to_datetime(timestamp=timestamp, units='ms')
@@ -38,5 +36,5 @@ def utc_to_iso(timestamp=None, units_hint=None):
     return utc_to_datetime(timestamp, units_hint).isoformat(timespec='microseconds')
 
 
-def iso_to_utc(datetime_string):
+def iso_to_datetime(datetime_string):
     return parser.parse(datetime_string).astimezone(timezone.utc)
