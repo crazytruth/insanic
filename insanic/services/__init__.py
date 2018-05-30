@@ -15,7 +15,7 @@ from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.functional import cached_property_with_ttl
 from insanic.models import AnonymousUser
-from insanic.response import InsanicResponse
+from insanic.services.response import InsanicResponse
 from insanic.scopes import is_docker
 from insanic.utils import try_json_decode
 
@@ -51,8 +51,8 @@ class ServiceRegistry(dict):
     def reset(cls):
         cls.__instance = None
 
-class Service:
 
+class Service:
     remove_headers = ["content-length", 'user-agent', 'host', 'postman-token']
 
     def __init__(self, service_type):
