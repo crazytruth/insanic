@@ -32,7 +32,9 @@ test_requires = [
     "pytest-xdist",
     "chardet",
     "pytest-flake8",
-    "asynctest"
+    "asynctest",
+    "pact-python",
+    "requests"
     # "beautifulsoup4"
     # "docker",
     # "aiobotocore",
