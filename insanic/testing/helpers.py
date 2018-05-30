@@ -437,11 +437,10 @@ def publish_pact(pact_broker_host='http://manager.msa.swarm:82', version='0.0.1'
     consumer = settings.SERVICE_NAME
     for provider in pact.providers:
         contract_file_path = os.path.join(os.getcwd(), f'{consumer}-{provider}.json')
-        json_data = open(contract_file_path).read()
-        data = json.loads(json_data)
-        publish_url = f'{pact_broker_host}/pacts/provider/{provider}/consumer/{consumer}/version/{version}.{env}/tags/{env}'
-        tag_url = f'{pact_broker_host}/pacticipants/event/versions/{version}.{env}/tags/{env}'
+        data = json.loads(open(contract_file_path).read())
+        publish_url = f'{pact_broker_host}/pacts/provider/{provider}/consumer/{consumer}/version/{version}.{env}'
+        tag_url = f'{pact_broker_host}/pacticipants/{consumer}/versions/{version}.{env}/tags/{env}'
         r = requests.put(url=publish_url, json=data)
         r.raise_for_status()
-        r = requests.put(url=tag_url)
+        r = requests.put(url=tag_url, headers={"Content-Type":"application/json"})
         r.raise_for_status()

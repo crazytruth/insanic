@@ -5,7 +5,7 @@ import uuid
 
 from insanic.conf import settings
 from insanic.services import Service
-from insanic.testing.helpers import Pact, PactMockService, generate_pact_endpoint_test
+from insanic.testing.helpers import Pact, PactMockService, generate_pact_endpoint_test, publish_pact
 
 
 PROMOTION_UUID = uuid.uuid4().hex
@@ -25,7 +25,7 @@ def host(host):
     return host
 
 @pytest.fixture(scope="function")
-def pact(monkeypatch):
+def pact1(monkeypatch):
     monkeypatch.setattr(settings, 'SERVICE_NAME', 'event')
     monkeypatch.setattr(settings, 'SERVICE_CONNECTIONS', ['userip','artist','promotion'])
     pact = Pact()
@@ -56,8 +56,8 @@ def pact(monkeypatch):
     os.remove(event_promotion_file_path)
     os.remove(pact_log_file_path)
 
-async def test_pact_class(pact, monkeypatch):
-    assert pact.providers == ['artist', 'promotion']
+async def test_pact_class(pact1, monkeypatch):
+    assert pact1.providers == ['artist', 'promotion']
 
     PactMockService.register_mock_dispatch(
         'promotion', PROMOTION_METHOD, PROMOTION_URL, PROMOTION_RESPONSE_BODY, PROMOTION_STATUS
@@ -68,7 +68,7 @@ async def test_pact_class(pact, monkeypatch):
 
     promotion = Service('promotion')
     monkeypatch.setattr(promotion, 'host', host('127.0.0.1') )
-    monkeypatch.setattr(promotion, 'port', pact.servers['promotion']['port'])
+    monkeypatch.setattr(promotion, 'port', pact1.servers['promotion']['port'])
 
     result, status = await promotion.http_dispatch(
         method=PROMOTION_METHOD, endpoint=PROMOTION_URL, include_status_code=True
@@ -78,10 +78,53 @@ async def test_pact_class(pact, monkeypatch):
 
     artist = Service('artist')
     monkeypatch.setattr(artist, 'host', host('127.0.0.1'))
-    monkeypatch.setattr(artist, 'port', pact.servers['artist']['port'])
+    monkeypatch.setattr(artist, 'port', pact1.servers['artist']['port'])
 
     result, status = await artist.http_dispatch(
         method=ARTIST_METHOD, endpoint=ARTIST_URL, payload=ARTIST_PAYLOAD, include_status_code=True
     )
     assert result == ARTIST_RESPONSE_BODY
     assert status == ARTIST_STATUS
+
+RESPONSE_BODY = {"random": uuid.uuid4().hex}
+
+@pytest.fixture(scope="function")
+def pact2(monkeypatch):
+    monkeypatch.setattr(settings, 'SERVICE_NAME', 'test_consumer')
+    monkeypatch.setattr(settings, 'SERVICE_CONNECTIONS', ['userip', 'test_provider'])
+
+    pact = Pact()
+    pact.start_pact()
+
+    yield pact
+
+async def test_publish(pact2, monkeypatch):
+    PactMockService.register_mock_dispatch('test_provider', 'GET', '/test', RESPONSE_BODY, 200)
+
+    test_provider = Service('test_provider')
+    monkeypatch.setattr(test_provider, 'host', host('127.0.0.1'))
+    monkeypatch.setattr(test_provider, 'port', pact2.servers['test_provider']['port'])
+
+    result, status = await test_provider.http_dispatch(
+        method='GET', endpoint='/test', include_status_code=True
+    )
+    assert result == RESPONSE_BODY
+    assert status == 200
+
+    pact2.stop_pact()
+
+    publish_pact()
+
+    contract_file_path = os.path.join(os.getcwd(), 'test_consumer-test_provider.json')
+    pact_log_file_path = os.path.join(os.getcwd(), 'pact-mock-service.log')
+
+    assert os.path.exists(contract_file_path)
+    assert os.path.exists(pact_log_file_path)
+
+    os.remove(contract_file_path)
+    os.remove(pact_log_file_path)
+
+def test_generate_pact_endpoint(pact2):
+    pact2.stop_pact()
+    endpoint = generate_pact_endpoint_test()
+    assert endpoint[0][5] == RESPONSE_BODY
