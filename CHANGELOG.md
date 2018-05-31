@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.3.14 (unreleased)
+0.3.14 (2018-05-31)
 -------------------
 
 - FIX: mock dispatch now raises apiexception on propagate_error
