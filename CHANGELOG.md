@@ -4,7 +4,8 @@ Changelog for insanic
 0.3.15 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- FIX: stream reader on service http dispatch
+- FEAT: assertion test messages on api endpoint tests
 
 
 0.3.14 (2018-05-31)
