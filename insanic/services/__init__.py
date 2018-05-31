@@ -154,6 +154,7 @@ class Service:
 
         async with self.session.request(method, str(request.url), headers=request.headers,
                                         data=request.body) as resp:
+            await resp.read()
             return resp
 
     async def _dispatch(self, method, endpoint, *, query_params={}, payload={}, headers={},
