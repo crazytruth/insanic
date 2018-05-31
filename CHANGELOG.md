@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.3.13 (unreleased)
+0.3.13 (2018-05-31)
 -------------------
 
 - CRITICAL: http_dispatch bug. 
