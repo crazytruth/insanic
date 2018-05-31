@@ -12,6 +12,8 @@ from yarl import URL
 
 from insanic.choices import UserLevels
 from insanic.errors import GlobalErrorCodes
+from insanic.exceptions import APIException
+from insanic.handlers import _unpack_enum_error_message
 from insanic.functional import empty
 
 DEFAULT_USER_LEVEL = UserLevels.ACTIVE
@@ -74,7 +76,13 @@ class BaseMockService:
                 status_code = self.service_responses[k][1]
 
                 if propagate_error and 400 <= status_code:
-                    raise aiohttp.client_exceptions.ClientResponseError('', '', status=status_code)
+                    # raise aiohttp.client_exceptions.ClientResponseError('', '', status=status_code)
+                    exc = APIException(description=resp.get('description'),
+                                       error_code=_unpack_enum_error_message(
+                                           resp.get('error_code', GlobalErrorCodes.unknown_error)),
+                                       status_code=status_code)
+                    exc.message = resp.get('message') or exc.message
+                    raise exc
 
                 if include_status_code:
                     return copy.deepcopy(resp), status_code
