@@ -130,12 +130,9 @@ class Service:
                                                      propagate_error=propagate_error,
                                                      skip_breaker=skip_breaker)
 
-        response_text = await response.text()
-        response_final = try_json_decode(response_text)
-
         if include_status_code:
-            return response_final, status_code
-        return response_final
+            return response, status_code
+        return response
 
     def _prepare_headers(self, headers):
         for h in self.remove_headers:
