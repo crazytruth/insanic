@@ -73,7 +73,7 @@ setup(
         "python-consul",
         "hvac",
         "aiotask_context",
-        "infuse",
+        # "infuse",
         "python-dateutil"
     ],
     # test_suite='nose.collector',

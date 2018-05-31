@@ -114,7 +114,7 @@ class TestServiceClass:
                     import ujson as json
                     return json.dumps(mock_response)
 
-            return MockResponse(), mock_status_code
+            return mock_response, mock_status_code
 
         monkeypatch.setattr(self.service, '_dispatch', _mock_dispatch)
 
