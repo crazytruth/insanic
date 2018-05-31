@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.3.15 (unreleased)
+0.3.15 (2018-05-31)
 -------------------
 
 - FIX: stream reader on service http dispatch
