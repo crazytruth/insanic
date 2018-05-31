@@ -214,18 +214,19 @@ def test_api_endpoint(insanic_application, test_user_token_factory, test_service
 
 def test_api_endpoint_assertion(response, response_body, expected_response_body, expected_response_status):
     response_status_category = int(expected_response_status / 100)
+    assertion_message = f"\nExpected: {expected_response_body}\n\nReturned: {response_body}"
 
     if response_status_category == 2:
         if isinstance(response_body, dict) and isinstance(expected_response_body, dict):
-            assert expected_response_body == response_body
+            assert expected_response_body == response_body, assertion_message
         elif isinstance(response_body, dict) and isinstance(expected_response_body, list):
-            assert sorted(expected_response_body) == sorted(response_body.keys())
+            assert sorted(expected_response_body) == sorted(response_body.keys()), assertion_message
         elif isinstance(response_body, list) and isinstance(expected_response_body, list):
-            assert sorted(response_body) == sorted(expected_response_body)
+            assert sorted(response_body) == sorted(expected_response_body), assertion_message
         elif isinstance(response_body, list) and isinstance(expected_response_body, int):
-            assert expected_response_body == len(response_body)
+            assert expected_response_body == len(response_body), assertion_message
         elif isinstance(expected_response_body, str):
-            assert expected_response_body == response_body
+            assert expected_response_body == response_body, assertion_message
         else:
             raise RuntimeError("Shouldn't be in here. Check response type.")
     elif response_status_category == 3:
@@ -233,13 +234,13 @@ def test_api_endpoint_assertion(response, response_body, expected_response_body,
     elif response_status_category == 4:
         # if http status code is in the 4 hundreds, check error code
         if isinstance(expected_response_body, dict):
-            assert expected_response_body == response_body, response.text
+            assert expected_response_body == response_body, assertion_message
         elif isinstance(expected_response_body, list):
-            assert sorted(expected_response_body) == sorted(response_body.keys()), response.text
+            assert sorted(expected_response_body) == sorted(response_body.keys()), assertion_message
         elif isinstance(expected_response_body, Enum):
-            assert expected_response_body.value == response_body['error_code']['value'], response.text
+            assert expected_response_body.value == response_body['error_code']['value'], assertion_message
         elif isinstance(expected_response_body, int):
-            assert expected_response_body == response_body['error_code']['value'], response.text
+            assert expected_response_body == response_body['error_code']['value'], assertion_message
         else:
             raise RuntimeError("Shouldn't be in here. Check response type.")
     elif response_status_category == 5:
