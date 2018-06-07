@@ -1,5 +1,6 @@
 import asyncio
 import docker
+import json
 import pytest
 import requests
 import os
@@ -21,7 +22,7 @@ from insanic.conf import settings
 from insanic.loading import get_service
 from insanic.models import User, RequestService
 from insanic.services import Service
-from insanic.testing.helpers import MockService
+from insanic.testing.helpers import MockService, Pact, PactMockService
 from insanic.tracing.core import xray_recorder
 from insanic.tracing.context import AsyncContext
 from insanic.registration import gateway
@@ -380,3 +381,20 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
 
 def pytest_runtest_setup(item):
     pass
+
+pact = Pact()
+
+@pytest.fixture(scope='session', autouse=True)
+def pact_server():
+    pact.start_pact()
+    yield
+    pact.stop_pact()
+
+@pytest.fixture(scope='session', autouse=True)
+def pact_verify(pact_server):
+    yield
+    pact.verify()
+
+@pytest.fixture(scope='function', autouse=True)
+def mock_url(monkeypatch):
+    monkeypatch.setattr('insanic.services.Service.url', PactMockService.url)

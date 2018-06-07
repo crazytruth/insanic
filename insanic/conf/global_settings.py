@@ -140,4 +140,6 @@ KONG_PLUGIN = {"JSONWebTokenAuthentication": "jwt",}
 
 # VAULT_APPROLE_BIND_SECRET = "pull" # value can be pull or push
 
+
+PACT_BROKER_URL = 'http://pact'
 SERVICE_UNAVAILABLE_MESSAGE = "{} is currently unavailable."
