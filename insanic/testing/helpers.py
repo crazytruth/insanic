@@ -16,6 +16,8 @@ from insanic.choices import UserLevels
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.functional import empty
+from pytest_sanic.plugin import unused_port
+from sanic.testing import PORT
 from pact import Consumer, Provider
 
 DEFAULT_USER_LEVEL = UserLevels.ACTIVE
@@ -307,16 +309,12 @@ def test_parameter(method, endpoint, request_headers, request_body, expected_res
                              request_body=request_body, expected_response_status=expected_response_status,
                              expected_response_body=expected_response_body, user_level=user_level))]
 
-def unused_port():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(('127.0.0.1', 0))
-        return s.getsockname()[1]
 
 class Pact:
     _instance = None
     servers = None
     providers = None
-    used_port = [42101] # SanicTestClient class uses 42101 port
+    used_port = [PORT] # SanicTestClient class uses 42101 port
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -347,8 +345,8 @@ class Pact:
 
     def stop_pact(cls):
         if cls.servers:
-            for provider in cls.servers.keys():
-                cls.servers[provider]['pact'].stop_service()
+            for server in cls.servers.values():
+                server['pact'].stop_service()
 
     def verify(cls):
         for provider in cls.providers:
@@ -366,7 +364,7 @@ class PactMock:
         url_partial_path = "/api/v1/"
 
         port = pact.servers[self.service_name]['port']
-        return URL(f'http://127.0.1:{port}{url_partial_path}')
+        return URL(f'http://127.0.0.1:{port}{url_partial_path}')
 
     def register_mock_dispatch(self, provider, method, endpoint, response, response_status_code=200, request_body={},
                                provider_state="Empty", scenario=None):
@@ -401,7 +399,7 @@ PactMockService = PactMock()
 
 def generate_pact_endpoint_test(env='test'):
     pact = Pact()
-    pact_broker_host = 'http://manager.msa.swarm:82'
+    pact_broker_host = settings.PACT_BROKER_URL
     PACT_ENDPOINT = []
 
     for provider in pact.providers:
@@ -432,14 +430,14 @@ def generate_pact_endpoint_test(env='test'):
 
     return PACT_ENDPOINT
 
-def publish_pact(pact_broker_host='http://manager.msa.swarm:82', version='0.0.1', env='test'):
+def publish_pact(version='0.0.1', env='test'):
     pact = Pact()
     consumer = settings.SERVICE_NAME
     for provider in pact.providers:
         contract_file_path = os.path.join(os.getcwd(), f'{consumer}-{provider}.json')
         data = json.loads(open(contract_file_path).read())
-        publish_url = f'{pact_broker_host}/pacts/provider/{provider}/consumer/{consumer}/version/{version}.{env}'
-        tag_url = f'{pact_broker_host}/pacticipants/{consumer}/versions/{version}.{env}/tags/{env}'
+        publish_url = f'{settings.PACT_BROKER_URL}/pacts/provider/{provider}/consumer/{consumer}/version/{version}.{env}'
+        tag_url = f'{settings.PACT_BROKER_URL}/pacticipants/{consumer}/versions/{version}.{env}/tags/{env}'
         r = requests.put(url=publish_url, json=data)
         r.raise_for_status()
         r = requests.put(url=tag_url, headers={"Content-Type":"application/json"})
