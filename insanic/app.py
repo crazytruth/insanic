@@ -1,13 +1,14 @@
 import string
 
 from sanic import Sanic
+from sanic.views import CompositionView
 from sanic_useragent import SanicUserAgent
 
 from insanic.conf import settings
 from insanic.functional import empty
 from insanic.handlers import ErrorHandler
 from insanic.monitor import blueprint_monitor
-from insanic.log import get_logging_config, error_logger
+from insanic.log import get_logging_config, error_logger, logger
 from insanic.protocol import InsanicHttpProtocol
 
 from insanic.tracing import InsanicTracer
@@ -76,10 +77,13 @@ class Insanic(Sanic):
         try:
             from infuse import Infuse
             Infuse.init_app(self)
-        except (ImportError, ModuleNotFoundError):
+            logger.info("[INFUSE] hooked and good to go!")
+        except (ImportError, ModuleNotFoundError) as e:
             if self.config.get("MMT_ENV") == "production":
-                error_logger.critical("[Infuse] is required for production deployment.")
+                error_logger.critical("[INFUSE] Infuse is required for production deployment.")
                 raise
+            else:
+                error_logger.info("[INFUSE] proceeding without infuse. ")
 
         if protocol is None:
             protocol = InsanicHttpProtocol
@@ -98,6 +102,9 @@ class Insanic(Sanic):
                 for method in route.methods:
                     if hasattr(route.handler, 'view_class'):
                         _handler = getattr(route.handler.view_class, method.lower())
+                    elif isinstance(route.handler, CompositionView):
+                        _handler = route.handler.handlers[method.upper()].view_class
+                        _handler = getattr(_handler, method.lower())
                     else:
                         _handler = route.handler
 
@@ -110,7 +117,9 @@ class Insanic(Sanic):
                 # If route has been added to kong, enable some plugins
                 if hasattr(route.handler, 'view_class') and route.pattern.pattern in _public_routes:
                     for ac in route.handler.view_class.authentication_classes:
-                        _public_routes[route.pattern.pattern]['plugins'].append(settings.KONG_PLUGIN.get(ac.__name__))
+                        plugin = settings.KONG_PLUGIN.get(ac.__name__)
+                        if plugin:
+                            _public_routes[route.pattern.pattern]['plugins'].append(plugin)
 
             self._public_routes = _public_routes
         return self._public_routes

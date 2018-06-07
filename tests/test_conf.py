@@ -247,7 +247,8 @@ class TestVaultConfig:
         assert self.config._role_id == self.role_id
 
         assert isinstance(self.config.vault_client, Client)
-        assert isinstance(self.config.consul_client, Consul)
+        # deprecated: consul client is not longer used
+        # assert isinstance(self.config.consul_client, Consul)
 
     def test_default_properties(self, monkeypatch):
         vault_properties = ("VAULT_SCHEME", "VAULT_HOST",

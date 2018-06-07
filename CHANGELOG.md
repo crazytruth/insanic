@@ -1,10 +1,45 @@
 Changelog for insanic
 =====================
 
-0.3.12 (unreleased)
+0.3.16 (unreleased)
 -------------------
 
 - Nothing changed yet.
+
+
+0.3.15 (2018-05-31)
+-------------------
+
+- FIX: stream reader on service http dispatch
+- FEAT: assertion test messages on api endpoint tests
+
+
+0.3.14 (2018-05-31)
+-------------------
+
+- FIX: mock dispatch now raises apiexception on propagate_error
+
+
+0.3.13 (2018-05-31)
+-------------------
+
+- CRITICAL: http_dispatch bug. 
+
+
+0.3.12 (2018-05-30)
+-------------------
+
+- BREAKING: refactor exceptions to be consistent with error responses
+    - detail -> description
+    - default_detail -> message
+- FEAT: i18n attribute on exceptions
+- FEAT: prefix servicename or package name on error code response
+- FEAT: add several datetime util functions
+- FEAT: add iso_to_datetime util function
+- FIX: rename units_hint to units on utc_to_datetime function
+- FIX: bug with kong plugins where none could be in the list
+- FIX: public facing support for composition views 
+- CHORE: remove req_ctx from http_dispatch. didnt do anything anyways
 
 
 0.3.11 (2018-05-23)

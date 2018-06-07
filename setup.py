@@ -14,7 +14,7 @@ def read(fname):
     return open(os.path.join(here, fname)).read()
 
 
-version = '0.3.12.dev0'
+version = '0.3.16.dev0'
 
 
 def pytest_command():
@@ -74,7 +74,9 @@ setup(
         'aws-xray-sdk',
         "python-consul",
         "hvac",
-        "aiotask_context"
+        "aiotask_context",
+        # "infuse",
+        "python-dateutil"
     ],
     # test_suite='nose.collector',
     tests_require=test_requires,

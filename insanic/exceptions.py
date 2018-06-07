@@ -11,17 +11,22 @@ class ImproperlyConfigured(Exception):
 class APIException(Exception):
     """
     Base class for REST framework exceptions.
-    Subclasses should provide `.status_code` and `.default_detail` properties.
+    Subclasses should provide `.status_code`, `.error_code` and `.message`  properties.
+    rename
+        default_detail -> message
+        detail -> description
+
     """
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    default_detail = 'An unknown error occurred'
+    message = 'An unknown error occurred'
     error_code = GlobalErrorCodes.unknown_error
+    i18n = False
 
-    def __init__(self, detail=None, error_code=None, status_code=None):
-        if detail is not None:
-            self.detail = detail
+    def __init__(self, description=None, *, error_code=None, status_code=None):
+        if description is not None:
+            self.description = description
         else:
-            self.detail = self.default_detail
+            self.description = self.message
 
         if status_code is not None:
             self.status_code = status_code
@@ -29,10 +34,10 @@ class APIException(Exception):
         if error_code is not None:
             self.error_code = error_code
 
-        super().__init__(detail, self.status_code)
+        super().__init__(description, self.status_code)
 
     def __str__(self):
-        return self.detail
+        return self.description
 
     def __repr__(self):
         self.__str__()
@@ -40,99 +45,99 @@ class APIException(Exception):
 
 class ParseError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = 'Malformed request.'
+    message = 'Malformed request.'
 
 
 class BadRequest(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = "Bad request."
+    message = "Bad request."
 
 
 class InvalidUsage(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = 'Invalid Usage'
+    message = 'Invalid Usage'
 
 
 class ValidationError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = "Validation Error"
+    message = "Validation Error"
 
 
 class NotFound(APIException):
     status_code = status.HTTP_404_NOT_FOUND
-    default_detail = 'Not found.'
+    message = 'Not found.'
 
 
 class AuthenticationFailed(APIException):
     status_code = status.HTTP_401_UNAUTHORIZED
-    default_detail = 'Incorrect authentication credentials.'
+    message = 'Incorrect authentication credentials.'
 
 
 class ServiceAuthenticationFailed(APIException):
     status_code = status.HTTP_401_UNAUTHORIZED
-    default_detail = 'Incorrect authentication credentials from service.'
+    message = 'Incorrect authentication credentials from service.'
 
 
 class NotAuthenticated(APIException):
     status_code = status.HTTP_401_UNAUTHORIZED
-    default_detail = 'Authentication credentials were not provided.'
+    message = 'Authentication credentials were not provided.'
 
 
 class PermissionDenied(APIException):
     status_code = status.HTTP_403_FORBIDDEN
-    default_detail = 'You do not have permission to perform this action.'
+    message = 'You do not have permission to perform this action.'
 
 
 class MethodNotAllowed(APIException):
     status_code = status.HTTP_405_METHOD_NOT_ALLOWED
-    default_detail = "Method '%s' not allowed."
+    message = "Method '%s' not allowed."
     error_code = GlobalErrorCodes.method_not_allowed
 
-    def __init__(self, method, detail=None):
-        if detail is not None:
-            self.detail = detail
+    def __init__(self, method, description=None):
+        if description is not None:
+            self.description = description
         else:
-            self.detail = self.default_detail % method
+            self.description = self.message % method
 
 
 class NotAcceptable(APIException):
     status_code = status.HTTP_406_NOT_ACCEPTABLE
-    default_detail = 'Could not satisfy the request Accept header'
+    message = 'Could not satisfy the request Accept header'
 
 
 class UnsupportedMediaType(APIException):
     status_code = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
-    detail = "Unsupported media type '%s' in request."
-    default_detail = "Unsupported media type."
+    description = "Unsupported media type '%s' in request."
+    message = "Unsupported media type."
 
-    def __init__(self, media_type, detail=None):
-        if detail is not None:
-            self.detail = detail
+    def __init__(self, media_type, description=None):
+        if description is not None:
+            self.description = description
         else:
-            self.detail = self.detail % media_type
+            self.description = self.description % media_type
 
 
 class Throttled(APIException):
     status_code = status.HTTP_429_TOO_MANY_REQUESTS
-    default_detail = 'Request was throttled.'
+    message = 'Request was throttled.'
     extra_detail = ('Expected available in %(wait)d second.',
                     'Expected available in %(wait)d seconds.')
     error_code = GlobalErrorCodes.throttled
 
-    def __init__(self, wait=None, detail=None):
-        if detail is not None:
-            self.detail = detail
+    def __init__(self, wait=None, description=None):
+        if description is not None:
+            self.description = description
         else:
-            self.detail = self.default_detail
+            self.description = self.message
 
         if wait is None:
             self.wait = None
         else:
             self.wait = math.ceil(wait)
             if self.wait is 1:
-                self.detail += ' ' + (self.extra_detail[0] % {'wait': self.wait})
+                self.description += ' ' + (self.extra_detail[0] % {'wait': self.wait})
             else:
-                self.detail += ' ' + (self.extra_detail[1] % {'wait': self.wait})
+                self.description += ' ' + (self.extra_detail[1] % {'wait': self.wait})
 
 
 class FieldError(Exception):
@@ -151,21 +156,22 @@ class RawPostDataException(Exception):
 
 class ServiceUnavailable503Error(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    default_detail = "Service unavailable."
+    message = "Service unavailable."
 
 
 class UnprocessableEntity422Error(APIException):
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-    default_detail = "Unprocessable Entity"
+    message = "Unprocessable Entity"
 
 
 class SanicInvalidUsage(InvalidUsage):
-    def __init__(self, detail=None, status_code=None):
-        super().__init__(detail, status_code=status_code)
+    def __init__(self, description=None, status_code=None):
+        self.status_code = status_code
+        super().__init__(description)
         if status_code == status.HTTP_405_METHOD_NOT_ALLOWED:
             self.error_code = GlobalErrorCodes.method_not_allowed
 
 
 class SanicNotFound(APIException):
     status_code = status.HTTP_404_NOT_FOUND
-    default_detail = "Not Found"
+    message = "Not Found"

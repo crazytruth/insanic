@@ -62,7 +62,6 @@ def test_utc_to_iso_problems(ts, units):
     with pytest.raises(ValueError):
         insanic_datetime.utc_to_iso(ts, units)
 
-
 def test_utc_to_iso_custom():
     test_timestamp = 946684800
     test_datetime = datetime(2000, 1, 1, 0, 0, 0, 0, timezone.utc)
@@ -75,3 +74,28 @@ def test_utc_to_iso_custom():
     test_ms_datetime = datetime(1970, 1, 11, 22, 58, 4, 800000, tzinfo=timezone.utc)
 
     assert ms_dt == test_ms_datetime.isoformat(timespec='milliseconds')
+
+
+def test_utc_milliseconds_to_datetime():
+    test_timestamp = 946684800 * 1000
+    test_datetime = datetime(2000, 1, 1, 0, 0, 0, 0, timezone.utc)
+
+    assert test_datetime == insanic_datetime.utc_milliseconds_to_datetime(test_timestamp)
+
+
+def test_utc_seconds_to_datetime():
+    test_timestamp = 946684800
+    test_datetime = datetime(2000, 1, 1, 0, 0, 0, 0, timezone.utc)
+
+    assert test_datetime == insanic_datetime.utc_seconds_to_datetime(test_timestamp)
+
+
+@pytest.mark.parametrize('test_string', ['2000-01-01T00:00:00.000000+00:00',
+                                         '2000-01-01T00:00:00.000000+0000',
+                                         '2000-01-01T00:00:00.000000+00',
+                                         '2000-01-01T00:00:00.000+00',
+                                         '2000-01-01T00:00:00+00'])
+def test_iso_to_datetime(test_string):
+    test_datetime = datetime(2000, 1, 1, 0, 0, 0, 0, timezone.utc)
+
+    assert test_datetime == insanic_datetime.iso_to_datetime(test_string)

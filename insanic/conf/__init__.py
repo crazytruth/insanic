@@ -1,5 +1,3 @@
-import consul
-import logging
 import os
 import ujson as json
 import urllib.parse
@@ -12,11 +10,11 @@ from sanic.config import Config
 
 from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import LazyObject, empty, cached_property, cached_property_with_ttl
+from insanic.log import logger
 from insanic.scopes import is_docker
 from . import global_settings
 from .base import BaseConfig
 
-logger = logging.getLogger('root')
 ENVIRONMENT_VARIABLE = "VAULT_ROLE_ID"
 
 
@@ -124,7 +122,6 @@ class VaultConfig(BaseConfig):
 
         self._role_id = role_id
         self.vault_client = VaultClient(url=self.VAULT_URL)
-        self.consul_client = consul.Consul()
 
         super().__init__()
         self.load_from_vault()
@@ -222,15 +219,6 @@ class VaultConfig(BaseConfig):
     @SERVICE_NAME.setter
     def SERVICE_NAME(self, val):
         self._service_name = val
-
-    # consul related properties
-    # @property
-    # def CONSUL_HOST(self):
-    #     return "consul.msa.swarm"
-    #
-    # @property
-    # def CONSUL_PORT(self):
-    #     return "8500"
 
     # vault related properties
     @property

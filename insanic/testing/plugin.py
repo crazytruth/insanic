@@ -27,7 +27,8 @@ from insanic.tracing.core import xray_recorder
 from insanic.tracing.context import AsyncContext
 from insanic.registration import gateway
 
-pytest.register_assert_rewrite('insanic.testing.helpers')
+
+# pytest.register_assert_rewrite('insanic.testing.helpers')
 
 
 def pytest_configure(config):

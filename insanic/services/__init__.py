@@ -2,6 +2,7 @@ import aiohttp
 import aiotask_context
 import datetime
 import ujson as json
+import warnings
 
 from asyncio import get_event_loop
 
@@ -14,6 +15,7 @@ from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.functional import cached_property_with_ttl
 from insanic.models import AnonymousUser
+from insanic.services.response import InsanicResponse
 from insanic.scopes import is_docker
 from insanic.utils import try_json_decode
 
@@ -49,8 +51,8 @@ class ServiceRegistry(dict):
     def reset(cls):
         cls.__instance = None
 
-class Service:
 
+class Service:
     remove_headers = ["content-length", 'user-agent', 'host', 'postman-token']
 
     def __init__(self, service_type):
@@ -68,7 +70,7 @@ class Service:
         return self._service_name
 
     def raise_503(self):
-        raise exceptions.ServiceUnavailable503Error(detail=f"{self._service_name} is currently unavailable.",
+        raise exceptions.ServiceUnavailable503Error(description=f"{self._service_name} is currently unavailable.",
                                                     error_code=GlobalErrorCodes.service_unavailable,
                                                     status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
 
@@ -102,7 +104,8 @@ class Service:
         if self._session is None or self._session.loop.is_closed() is True:
             self._session = aiohttp.ClientSession(loop=get_event_loop(),
                                                   connector=aiohttp.TCPConnector(limit_per_host=25,
-                                                                                 ttl_dns_cache=300))
+                                                                                 ttl_dns_cache=300),
+                                                  response_class=InsanicResponse)
         return self._session
 
     def _construct_url(self, endpoint, query_params={}):
@@ -111,25 +114,25 @@ class Service:
             url = url.with_query(**query_params)
         return url
 
-    async def http_dispatch(self, method, endpoint, req_ctx={}, *, query_params={}, payload={}, headers={},
+    async def http_dispatch(self, method, endpoint, req_ctx=None, *, query_params={}, payload={}, headers={},
                             propagate_error=False, skip_breaker=False, include_status_code=False):
+
+        if req_ctx is not None:
+            warnings.warn("`req_ctx`, the 3rd argument is deprecated.  Please remove. "
+                          "Sending this will do absolutely nothing.")
 
         if method.upper() not in HTTP_METHODS:
             raise ValueError("{0} is not a valid method.".format(method))
 
-        response, status_code = await self._dispatch(method, endpoint, req_ctx,
+        response, status_code = await self._dispatch(method, endpoint,
                                                      query_params=query_params, payload=payload,
                                                      headers=headers,
                                                      propagate_error=propagate_error,
-                                                     skip_breaker=skip_breaker,
-                                                     include_status_code=include_status_code)
-
-        response_text = await response.text()
-        response_final = try_json_decode(response_text)
+                                                     skip_breaker=skip_breaker)
 
         if include_status_code:
-            return response_final, status_code
-        return response_final
+            return response, status_code
+        return response
 
     def _prepare_headers(self, headers):
         for h in self.remove_headers:
@@ -147,10 +150,15 @@ class Service:
 
         return headers
 
-    async def _dispatch(self, method, endpoint, req_ctx, *, query_params={}, payload={}, headers={},
-                        propagate_error=False, skip_breaker=False, include_status_code=False):
+    async def _dispatch_fetch(self, method, request, **kwargs):
 
-        request_method = getattr(self.session, method.lower(), None)
+        async with self.session.request(method, str(request.url), headers=request.headers,
+                                        data=request.body) as resp:
+            await resp.read()
+            return resp
+
+    async def _dispatch(self, method, endpoint, *, query_params={}, payload={}, headers={},
+                        propagate_error=False, skip_breaker=False):
 
         url = self._construct_url(endpoint, query_params)
         headers = self._prepare_headers(headers)
@@ -161,79 +169,75 @@ class Service:
         outbound_request = aiohttp.ClientRequest(method, url, headers=headers, data=payload)
 
         try:
-            async with request_method(str(outbound_request.url), headers=outbound_request.headers,
-                                      data=payload) as resp:
-                # resp = await request_method(str(outbound_request.url), headers=outbound_request.headers, data=payload)
+            _response_obj = await self._dispatch_fetch(method, outbound_request, skip_breaker=skip_breaker)
 
-                response = await resp.json()
-                if propagate_error:
-                    resp.raise_for_status()
+            if propagate_error:
+                _response_obj.raise_for_status()
 
-                response_status = resp.status
-                response = try_json_decode(response)
+            response_status = _response_obj.status
+            response = try_json_decode(await _response_obj.json())
 
         except aiohttp.client_exceptions.ClientResponseError as e:
-            response = try_json_decode(response)
+            response = try_json_decode(await e.message)
             try:
                 status_code = e.code
             except AttributeError:
-                status_code = getattr(e, 'status', 0)
+                status_code = getattr(e, 'status', status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             error_code = GlobalErrorCodes.invalid_usage if status_code == status.HTTP_400_BAD_REQUEST \
                 else GlobalErrorCodes.unknown_error
-            exc = exceptions.APIException(detail=response.get('description', response),
-                                          error_code=response.get('error_code',
-                                                                  error_code),
+            exc = exceptions.APIException(description=response.get('description', response),
+                                          error_code=response.get('error_code', error_code),
                                           status_code=status_code)
-            exc.default_detail = response.get('message', GlobalErrorCodes.unknown_error.name)
+            exc.message = response.get('message', GlobalErrorCodes.unknown_error.name)
             raise exc
 
         except aiohttp.client_exceptions.ClientConnectionError as e:
-
-            if isinstance(e, aiohttp.client_exceptions.ClientOSError):
+            # https://aiohttp.readthedocs.io/en/v3.0.1/client_reference.html#hierarchy-of-exceptions
+            if isinstance(e, aiohttp.client_exceptions.ClientConnectorError):
                 """subset of connection errors that are initiated by an OSError exception"""
                 if e.errno == 61:
-                    msg = "Client Connector Error[{0}]: {1}".format(self._service_name, e.strerror)
-                    exc = exceptions.ServiceUnavailable503Error(detail=msg,
+                    msg = settings.SERVICE_UNAVAILABLE_MESSAGE.format(self._service_name)
+                    exc = exceptions.ServiceUnavailable503Error(description=msg,
                                                                 error_code=GlobalErrorCodes.service_unavailable,
                                                                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
                 else:
-                    exc = exceptions.APIException(detail=e.strerror,
+                    exc = exceptions.APIException(description=e.strerror,
                                                   error_code=GlobalErrorCodes.unknown_error,
                                                   status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
             elif isinstance(e, aiohttp.client_exceptions.ServerConnectionError):
                 """ server connection related errors """
-                if settings.get('MMT_ENV', "") == "production":
-                    msg = "Service unavailable. Please try again later."
-                else:
-                    msg = "Cannot connect to {0}. Please try again later".format(self._service_name)
 
-                exc = exceptions.ServiceUnavailable503Error(detail=msg,
-                                                            error_code=GlobalErrorCodes.service_unavailable,
-                                                            status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
-            elif isinstance(e, aiohttp.client_exceptions.ServerDisconnectedError):
-                """ server disconnected """
-                exc = exceptions.ServiceUnavailable503Error(detail=e.message,
-                                                            error_code=GlobalErrorCodes.service_unavailable,
-                                                            status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
-            elif isinstance(e, aiohttp.client_exceptions.ServerTimeoutError):
-                """server operation timeout, (read timeout, etc)"""
-                exc = exceptions.APIException(detail=e.message,
-                                              error_code=GlobalErrorCodes.service_timeout,
-                                              status_code=status.HTTP_504_GATEWAY_TIMEOUT)
+                if isinstance(e, aiohttp.client_exceptions.ServerDisconnectedError):
+                    """ server disconnected """
+                    exc = exceptions.ServiceUnavailable503Error(description=e.message,
+                                                                error_code=GlobalErrorCodes.service_unavailable,
+                                                                status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+                elif isinstance(e, aiohttp.client_exceptions.ServerTimeoutError):
+                    """server operation timeout, (read timeout, etc)"""
+                    exc = exceptions.APIException(description=e.args[0],
+                                                  error_code=GlobalErrorCodes.service_timeout,
+                                                  status_code=status.HTTP_504_GATEWAY_TIMEOUT)
+                else:
+                    msg = settings.SERVICE_UNAVAILABLE_MESSAGE.format(self._service_name)
+                    exc = exceptions.ServiceUnavailable503Error(description=msg,
+                                                                error_code=GlobalErrorCodes.service_unavailable,
+                                                                status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
             elif isinstance(e, aiohttp.client_exceptions.ServerFingerprintMismatch):
                 """server fingerprint mismatch"""
                 msg = "Server Fingerprint Mismatch"
-                exc = exceptions.APIException(detail=msg,
+                exc = exceptions.APIException(description=msg,
                                               error_code=GlobalErrorCodes.server_signature_error,
                                               status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
             else:
-                exc = exceptions.APIException(detail=e.message,
+                exc = exceptions.APIException(description=e.args[0],
                                               error_code=GlobalErrorCodes.unknown_error,
                                               status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             raise exc
         except aiohttp.client_exceptions.ClientPayloadError as e:
             raise
+        except aiohttp.client_exceptions.InvalidURL as e:
+            raise
 
-        return resp, response_status
+        return response, response_status

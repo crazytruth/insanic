@@ -1,3 +1,5 @@
+from enum import Enum
+
 from sanic import exceptions as sanic_exceptions
 from sanic.response import json
 from sanic.handlers import ErrorHandler as SanicErrorHandler, format_exc, SanicException
@@ -7,13 +9,19 @@ from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.log import error_logger
 
+
+def _unpack_enum_error_message(error_code):
+    if isinstance(error_code, Enum):
+        prefix = error_code.__module__.split('.', 1)[0]
+        error_code_dict = {"name": f"{prefix}_{error_code.name}", "value": error_code.value}
+        return error_code_dict
+    return error_code
+
+
 INTERNAL_SERVER_ERROR_JSON = {
     "message": "Server Error",
     "description": "Something has blown up really bad. Somebody should be notified?",
-    "error_code": {
-        "name": "unknown_error",
-        "value": 99999
-    }
+    "error_code": _unpack_enum_error_message(GlobalErrorCodes.unknown_error)
 }
 
 
@@ -87,9 +95,10 @@ class ErrorHandler(SanicErrorHandler):
                 headers['Retry-After'] = '%d' % exception.wait
 
             response = json(
-                {"message": getattr(exception, 'default_detail', status.REVERSE_STATUS[exception.status_code]),
-                 "description": getattr(exception, 'detail', exception.args[0]),
-                 "error_code": getattr(exception, 'error_code', GlobalErrorCodes.unknown_error)},
+                {"message": getattr(exception, 'message', status.REVERSE_STATUS[exception.status_code]),
+                 "description": getattr(exception, 'description', exception.args[0]),
+                 "error_code": _unpack_enum_error_message(
+                     getattr(exception, 'error_code', GlobalErrorCodes.unknown_error))},
                 status=getattr(exception, 'status_code', status.HTTP_500_INTERNAL_SERVER_ERROR),
                 headers=getattr(exception, 'headers', headers),
             )
@@ -98,8 +107,9 @@ class ErrorHandler(SanicErrorHandler):
             response = json(
                 {
                     "message": status.REVERSE_STATUS[exception.status_code],
-                    "description": getattr(exception, 'detail', exception.args[0]),
-                    "error_code": getattr(exception, 'error_code', GlobalErrorCodes.error_unspecified)
+                    "description": getattr(exception, 'description', exception.args[0]),
+                    "error_code": _unpack_enum_error_message(
+                        getattr(exception, 'error_code', GlobalErrorCodes.error_unspecified))
                 },
                 status=getattr(exception, 'status_code', status.HTTP_500_INTERNAL_SERVER_ERROR),
                 headers=getattr(exception, 'headers', {}),

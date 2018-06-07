@@ -459,8 +459,9 @@ class TestKongGateway:
             body = jsonloads(resp.text)
             service_ids = []
             for r in body.get('data', []):
-                app, env, mid = r['name'].split('.')
-                if env == "test" and app == "insanic":
+                # app, env, mid = r['name'].split('.')
+                service_name_split = r['name'].split('.')
+                if service_name_split[1] == "test" and service_name_split[0] == "insanic":
                     service_ids.append(r['id'])
 
             assert len(service_ids) == 0
