@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.3.16 (2018-06-08)
+0.3.16 (unreleased)
 -------------------
 
 - FEAT: pact integration in testing
