@@ -4,7 +4,7 @@ Changelog for insanic
 0.4.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: bad code when splitting service name in service list
 
 
 0.4.2 (2018-06-08)
