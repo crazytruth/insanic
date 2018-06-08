@@ -1,6 +1,8 @@
+import importlib
 import json
 import os
 import pytest
+import re
 import uuid
 
 from insanic.conf import settings
@@ -24,6 +26,14 @@ ARTIST_RESPONSE_BODY = {"result": [1,2,3]}
 
 def host(host):
     return host
+
+def is_pact_from_installed_package():
+    location = importlib.util.find_spec('pact').submodule_search_locations[0]
+
+    if location:
+        return re.search('.eggs', location)
+
+    return False
 
 @pytest.fixture(scope="function")
 def pact_with_real_service(monkeypatch):
@@ -59,6 +69,7 @@ def pact_with_real_service(monkeypatch):
     os.remove(event_promotion_file_path)
     os.remove(pact_log_file_path)
 
+@pytest.mark.skipif(is_pact_from_installed_package(), reason="can't get bin from eggs")
 async def test_pact_class(pact_with_real_service, monkeypatch):
     assert pact_with_real_service.providers == ['artist', 'promotion']
 
@@ -101,6 +112,7 @@ def pact_with_dummy_service(monkeypatch):
 
     yield pact
 
+@pytest.mark.skipif(is_pact_from_installed_package(), reason="can't get bin from eggs")
 async def test_publish(pact_with_dummy_service, monkeypatch):
     PactMockService.register_mock_dispatch('test_provider', 'GET', '/test', RESPONSE_BODY, 200)
 
@@ -127,6 +139,7 @@ async def test_publish(pact_with_dummy_service, monkeypatch):
     os.remove(contract_file_path)
     os.remove(pact_log_file_path)
 
+@pytest.mark.skipif(is_pact_from_installed_package(), reason="can't get bin from eggs")
 def test_generate_pact_endpoint(pact_with_dummy_service):
     pact_with_dummy_service.stop_pact()
     endpoint = generate_pact_endpoint_test()
