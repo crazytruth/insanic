@@ -39,6 +39,12 @@ To install:
 pip install insanic
 ```
 
+OR to install from source:
+
+``` bash
+pip install git+https://github.com/MyMusicTaste/insanic.git
+```
+
 ## Usage
 
 For very basic usage:
@@ -87,10 +93,19 @@ Insanic tests are run with pytest.
 Test with this command:
 
 ```sh
-python setup.py test
+$ python setup.py test
+
+# with coverage
+
+$ python setup.py test -a "--cov=insanic --cov-report term-missing:skip-covered"
+
 ```
 
+
+
 setuptools handles all the requirements for testing.
+
+
 
 ## Release History
 

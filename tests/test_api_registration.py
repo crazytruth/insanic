@@ -30,10 +30,8 @@ class TestBaseGateway:
         self.gateway = BaseGateway()
 
     @pytest.mark.parametrize("method, params", (
-            ("register_service", {"app": None, "session": None}),
-            ("register_routes", {"app": None, "session": None}),
-            ("deregister_service", {"session": None}),
-            ("deregister_routes", {"session": None}),
+            ("_register", {"session": None}),
+            ("_deregister", {"session": None}),
             ("register", {"app": None}),
             ("deregister", {})))
     async def test_not_implemented_errors(self, method, params):
@@ -56,23 +54,22 @@ class TestBaseGateway:
 class TestKongGateway:
 
     @pytest.fixture(autouse=True)
-    def kong_gateway(self, monkeypatch):
+    def kong_gateway(self, monkeypatch, session_id):
         monkeypatch.setattr(settings, "GATEWAY_REGISTRATION_ENABLED", True)
         monkeypatch.setattr(settings, "KONG_HOST", 'kong.msa.swarm')
         monkeypatch.setattr(settings, "KONG_ADMIN_PORT", 18001)
         monkeypatch.setattr(settings, "KONG_PLUGIN", {"JSONWebTokenAuthentication": "jwt"})
         from insanic.registration import KongGateway
-        self.gateway = KongGateway()
 
-    @pytest.fixture(autouse=True)
-    def kong_server_clean_up(self):
+        monkeypatch.setattr(KongGateway, "service_version", session_id, raising=False)
+        self.gateway = KongGateway()
 
         yield
 
         kong_base_url = self.gateway.kong_base_url
         resp = requests.get(kong_base_url.with_path('/services'))
         body = jsonloads(resp.text)
-        service_ids = [r['id'] for r in body.get('data', []) if "test" == r['name'].split('.')[1]]
+        service_ids = [r['id'] for r in body.get('data', []) if "test" in r['name']]
 
         for sid in service_ids:
             resp = requests.get(kong_base_url.with_path(f'/services/{sid}/routes'))
@@ -114,14 +111,16 @@ class TestKongGateway:
         assert self.gateway.machine_id is not None
         assert isinstance(self.gateway.machine_id, str)
 
-    def test_kong_service_name(self):
+    def test_kong_service_name(self, monkeypatch):
+        monkeypatch.setattr(settings, "SERVICE_VERSION", "0.0.0", raising=False)
+
         ksn = self.gateway.kong_service_name
 
-        sn, e, mi = ksn.split('.')
+        sn, e, mi = ksn.split('-')
 
-        assert sn == self.gateway.service_name.lower()
-        assert e == self.gateway.environment.lower()
-        assert mi == self.gateway.machine_id.lower()
+        assert sn == self.gateway.environment.lower()
+        assert e == self.gateway.service_name.lower()
+        assert mi == self.gateway.service_version.lower()
 
     # def test_service_spec(self, monkeypatch):
     #     monkeypatch.setattr(settings._wrapped, "SERVICE_LIST", {}, raising=False)
@@ -219,19 +218,70 @@ class TestKongGateway:
 
         assert response.status == 401
 
-    async def test_register_service_idempotence(self, monkeypatch, insanic_application):
+    async def test_register_service_idempotence(self, monkeypatch, insanic_application, session_id):
+
+        monkeypatch.setattr(self.gateway, "service_name", session_id[:10])
 
         async with self.gateway as gw:
-            await gw.register_service(insanic_application)
+            gw.app = insanic_application
+            await gw.register_service()
             assert hasattr(self.gateway, "service_id")
             assert self.gateway.service_id is not None
             sid = self.gateway.service_id
 
-            await gw.register_service(insanic_application)
+            await gw.register_service()
             assert sid == gw.service_id
 
-            await gw.register_service(insanic_application)
+            await gw.register_service()
             assert sid == gw.service_id
+
+            # clean up
+            await gw.deregister_service()
+
+    async def test_upstream_object(self, monkeypatch, insanic_application, session_id):
+        monkeypatch.setattr(self.gateway, "service_name", session_id[:10])
+
+        upstream_object = self.gateway.upstream_object
+
+        assert upstream_object['name'] == self.gateway.kong_service_name
+        assert upstream_object['healthchecks']['active']['http_path'].endswith('/health/')
+        assert upstream_object['healthchecks']['active']['healthy']['http_statuses'] == [200]
+
+    async def test_register_service_upstream_target(self, monkeypatch, insanic_application, session_id):
+
+        monkeypatch.setattr(self.gateway, "service_name", session_id[:10])
+
+        async with self.gateway as gw:
+            gw.app = insanic_application
+            await gw.register_service()
+            assert hasattr(self.gateway, "service_id")
+            assert self.gateway.service_id is not None
+
+            # test register upstream
+            await gw.register_upstream()
+            assert hasattr(self.gateway, "upstream_id")
+            assert self.gateway.upstream_id is not None
+            upstream_id = self.gateway.upstream_id
+
+            # test register target
+            await gw.register_target()
+            assert hasattr(self.gateway, 'target_id')
+            assert self.gateway.target_id is not None
+            target_id = self.gateway.target_id
+
+            # test register target idempotence
+            await gw.register_target()
+            assert target_id == self.gateway.target_id
+
+            # test upstream idempotence
+            await gw.register_upstream()
+            assert upstream_id == gw.upstream_id == self.gateway.upstream_id
+
+            # clean up
+            await gw.deregister_target()
+            await gw.deregister_upstream()
+            await gw.deregister_service()
+
 
     async def test_register_routes_but_no_routes(self, monkeypatch, insanic_application):
         '''
@@ -244,11 +294,12 @@ class TestKongGateway:
         :return:
         '''
         async with self.gateway as gw:
-            await gw.register_service(insanic_application)
+            gw.app = insanic_application
+            await gw.register_service()
             assert hasattr(self.gateway, "service_id")
             assert self.gateway.service_id is not None
             # this will trigger deregister service because there aren't any public routes
-            await gw.register_routes(insanic_application)
+            await gw.register_routes()
 
             assert self.gateway.service_id is None
 
@@ -271,12 +322,13 @@ class TestKongGateway:
 
         insanic_application.add_route(MockView.as_view(), route)
 
-        from insanic.registration import normalize_url_for_kong
+        from insanic.registration.kong import normalize_url_for_kong
         async with self.gateway as gw:
-            await gw.register_service(insanic_application)
+            gw.app = insanic_application
+            await gw.register_service()
             assert hasattr(self.gateway, "service_id")
             assert self.gateway.service_id is not None
-            await gw.register_routes(insanic_application)
+            await gw.register_routes()
 
             assert len(gw.routes) == 1
             assert [normalize_url_for_kong(r) for r in insanic_application.public_routes().keys()] in [r['paths'] for r
@@ -308,10 +360,11 @@ class TestKongGateway:
         insanic_application.add_route(MockView.as_view(), route)
 
         async with self.gateway as gw:
-            await gw.register_service(insanic_application)
+            gw.app = insanic_application
+            await gw.register_service()
             assert hasattr(self.gateway, "service_id")
             assert self.gateway.service_id is not None
-            await gw.register_routes(insanic_application)
+            await gw.register_routes()
 
             session = gw.session
 
@@ -358,14 +411,19 @@ class TestKongGateway:
 
         insanic_application.add_route(MockView.as_view(), route)
 
+        self.gateway.app = insanic_application
+
         async with self.gateway as gw:
-            await gw.register_service(insanic_application)
-            await gw.register_routes(insanic_application)
+            await gw.register_service()
+            await gw.register_routes()
 
             session = gw.session
 
             # Get routes id - Only one route should be available.
-            route_id = list(gw.routes.keys())[0]
+            try:
+                route_id = list(gw.routes.keys())[0]
+            except IndexError:
+                pass
 
             async with session.get(
                     f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}/plugins?route_id={route_id}"
@@ -394,7 +452,8 @@ class TestKongGateway:
 
         with pytest.raises(RuntimeError):
             async with self.gateway as gw:
-                await gw.register_routes(insanic_application)
+                gw.app = insanic_application
+                await gw.register_routes()
 
     async def test_deregister_routes_but_with_route_leftover_from_last_run(self, monkeypatch, insanic_application):
 
@@ -411,10 +470,11 @@ class TestKongGateway:
         insanic_application.add_route(MockView.as_view(), "/hello")
 
         async with self.gateway as gw:
-            await gw.register_service(insanic_application)
+            gw.app = insanic_application
+            await gw.register_service()
             assert hasattr(self.gateway, "service_id")
             assert self.gateway.service_id is not None
-            await gw.register_routes(insanic_application)
+            await gw.register_routes()
 
             gw.routes = {}
 
@@ -424,16 +484,17 @@ class TestKongGateway:
 
     async def test_deregister_routes_with_no_routes(self, insanic_application, caplog):
         async with self.gateway as gw:
-            await gw.register_service(insanic_application)
+            gw.app = insanic_application
+            await gw.register_service()
             await gw.deregister_routes()
 
-            assert caplog.records[-1].message.endswith("No routes to deregister.")
+            assert caplog.records[-1].message.endswith("This instance did not register any routes.")
 
     async def test_deregister_service_without_register(self, caplog):
         async with self.gateway as gw:
             await gw.deregister_service()
 
-            assert caplog.records[-1].message.endswith("has already been deregistered.")
+            assert caplog.records[-1].message.endswith("This instance did not register a service.")
 
     async def test_full_register_deregister(self, monkeypatch, insanic_application):
 
@@ -455,14 +516,21 @@ class TestKongGateway:
 
             # assert clean up
             kong_base_url = self.gateway.kong_base_url
-            resp = requests.get(kong_base_url.with_path('/services'))
-            body = jsonloads(resp.text)
-            service_ids = []
-            for r in body.get('data', []):
-                # app, env, mid = r['name'].split('.')
-                service_name_split = r['name'].split('.')
-                if service_name_split[1] == "test" and service_name_split[0] == "insanic":
-                    service_ids.append(r['id'])
+            next_url = kong_base_url.with_path('/services')
+            while next_url:
+                resp = requests.get(next_url)
+                body = jsonloads(resp.text)
+                service_ids = []
+                for r in body.get('data', []):
+                    # service_piece = r['name'].split('.')
+                    # app, env, mid = r['name'].split('.')
+                    if "test" in r['name'] and "insanic" in r['name']:
+                        service_ids.append(r['id'])
+
+                if "next" in body and body['next']:
+                    next_url = kong_base_url.with_path(body['next'])
+                else:
+                    break
 
             assert len(service_ids) == 0
 

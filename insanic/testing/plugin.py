@@ -1,6 +1,5 @@
 import asyncio
 import docker
-import json
 import pytest
 import requests
 import os
@@ -20,15 +19,13 @@ from insanic.choices import UserLevels
 from insanic.connections import _connections
 from insanic.conf import settings
 from insanic.loading import get_service
-from insanic.models import User, RequestService
+from insanic.models import User
 from insanic.services import Service
-from insanic.testing.helpers import MockService, Pact, PactMockService
+from insanic.testing.helpers import MockService
+from insanic.testing.pact import Pact, PactMockService
 from insanic.tracing.core import xray_recorder
 from insanic.tracing.context import AsyncContext
 from insanic.registration import gateway
-
-
-# pytest.register_assert_rewrite('insanic.testing.helpers')
 
 
 def pytest_configure(config):
@@ -381,6 +378,7 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
 
 def pytest_runtest_setup(item):
     pass
+
 
 pact = Pact()
 

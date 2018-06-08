@@ -35,7 +35,8 @@ class JSONFormatter(logging.Formatter):
         if not self._extra_fields:
             self._extra_fields = {"service": settings.get('SERVICE_NAME'),
                                   "environment": settings.get('MMT_ENV'),
-                                  "insanic_version": __version__, "service_version": "0.0.1"}
+                                  "insanic_version": __version__,
+                                  "service_version": settings.get('SERVICE_VERSION')}
         return self._extra_fields
 
     def formatTime(self, record, datefmt=None):

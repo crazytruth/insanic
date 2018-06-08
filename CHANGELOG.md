@@ -4,7 +4,11 @@ Changelog for insanic
 0.3.16 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- FEAT: pact integration in testing
+- FEAT: register upstreams and targets in kong
+- FEAT: only the registered container can deregister
+- FEAT: service versioning
+- FEAT: registering version to settings
 
 
 0.3.15 (2018-05-31)

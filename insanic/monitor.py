@@ -1,5 +1,3 @@
-import os
-
 from sanic import Blueprint
 from sanic.response import json
 
@@ -16,11 +14,12 @@ blueprint_monitor = Blueprint('monitor', strict_slashes=True)
 # the status of the connections to the infrastructure services used by the service instance
 # the status of the host, e.g. disk space
 # application specific logic
+
 @blueprint_monitor.route('/health/')
 def health_check(request):
     return json({
         "service": settings.SERVICE_NAME,
+        "service_version": settings.SERVICE_VERSION,
         "status": "OK",
         "insanic_version": __version__,
-        "env": os.environ
     }, status=HTTP_200_OK)

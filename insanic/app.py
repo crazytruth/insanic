@@ -5,12 +5,11 @@ from sanic.views import CompositionView
 from sanic_useragent import SanicUserAgent
 
 from insanic.conf import settings
-from insanic.functional import empty
+from insanic.functional import empty, cached_property
 from insanic.handlers import ErrorHandler
 from insanic.monitor import blueprint_monitor
 from insanic.log import get_logging_config, error_logger, logger
 from insanic.protocol import InsanicHttpProtocol
-
 from insanic.tracing import InsanicTracer
 
 LISTENER_TYPES = ("before_server_start", "after_server_start", "before_server_stop", "after_server_stop")
@@ -66,6 +65,22 @@ class Insanic(Sanic):
                     self.register_middleware(getattr(middleware, module_name), attach_to=m)
 
         self.blueprint(blueprint_monitor, url_prefix=f"/{settings.SERVICE_NAME}")
+
+        def _service_version():
+            import importlib
+            try:
+                return importlib.import_module(f'{settings.SERVICE_NAME}').__version__
+
+            except (ModuleNotFoundError, ImportError, AttributeError):
+                error_logger.critical("Please put `__version__ = 'X.X.X'`in your __init__.py")
+                if settings.MMT_ENV == "test":
+                    return "0.0.0.dev0"
+                else:
+                    raise
+
+        settings.SERVICE_VERSION = _service_version()
+        logger.info(f"{settings.SERVICE_NAME} v{settings.SERVICE_VERSION} service loaded.")
+
 
     def run(self, host=None, port=None, debug=False, ssl=None,
             sock=None, workers=1, protocol=None,
