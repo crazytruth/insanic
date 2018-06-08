@@ -291,7 +291,7 @@ class VaultConfig(BaseConfig):
 
         for s in swarm_services:
             service_spec = s['Spec']
-            service_name = service_spec['Name'].rsplit('_', 1)[-1].rsplit('-', 1).lower()
+            service_name = service_spec['Name'].rsplit('_', 1)[-1].rsplit('-', 1)[-1].lower()
 
             for p in service_spec['EndpointSpec']['Ports']:
                 if p['PublishMode'] == 'ingress':
