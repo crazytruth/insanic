@@ -8,6 +8,7 @@ from pact import Consumer, Provider
 from sanic.testing import PORT
 
 from insanic.conf import settings
+from insanic.testing.helpers import test_parameter_generator
 
 
 # copied from pytest-sanic

@@ -382,17 +382,20 @@ def pytest_runtest_setup(item):
 
 pact = Pact()
 
-@pytest.fixture(scope='session', autouse=True)
+
+@pytest.fixture(scope='session')
 def pact_server():
     pact.start_pact()
     yield
     pact.stop_pact()
 
-@pytest.fixture(scope='session', autouse=True)
+
+@pytest.fixture(scope='session')
 def pact_verify(pact_server):
     yield
     pact.verify()
 
-@pytest.fixture(scope='function', autouse=True)
+
+@pytest.fixture(scope='function')
 def mock_url(monkeypatch):
     monkeypatch.setattr('insanic.services.Service.url', PactMockService.url)

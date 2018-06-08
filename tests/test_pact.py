@@ -7,7 +7,7 @@ import uuid
 
 from insanic.conf import settings
 from insanic.services import Service
-from insanic.testing.helpers import Pact, PactMockService, generate_pact_endpoint_test, publish_pact
+from insanic.testing.pact import Pact, PactMockService, generate_pact_endpoint_test, publish_pact
 
 
 PROMOTION_UUID = uuid.uuid4().hex
