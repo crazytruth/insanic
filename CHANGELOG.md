@@ -1,7 +1,7 @@
 Changelog for insanic
 =====================
 
-0.4.1 (unreleased)
+0.4.1 (2018-06-08)
 ------------------
 
 - FIX: add packaging to required
