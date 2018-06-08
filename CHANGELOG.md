@@ -4,7 +4,7 @@ Changelog for insanic
 0.4.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- REFACTOR: remove used code from gateway
 
 
 0.4.1 (2018-06-08)

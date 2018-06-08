@@ -51,6 +51,8 @@ class TestBaseGateway:
         assert self.gateway.session.closed is True
 
 
+gw = None
+
 class TestKongGateway:
 
     @pytest.fixture(autouse=True)
@@ -63,20 +65,42 @@ class TestKongGateway:
 
         monkeypatch.setattr(KongGateway, "service_version", session_id, raising=False)
         self.gateway = KongGateway()
-
+        global gw
+        gw = self.gateway
         yield
 
-        kong_base_url = self.gateway.kong_base_url
+    @pytest.fixture(autouse=True, scope="module")
+    def kong_clean_up(self):
+
+        yield
+        global gw
+
+        kong_base_url = gw.kong_base_url
         resp = requests.get(kong_base_url.with_path('/services'))
         body = jsonloads(resp.text)
         service_ids = [r['id'] for r in body.get('data', []) if "test" in r['name']]
 
         for sid in service_ids:
+            # delete associated routes
             resp = requests.get(kong_base_url.with_path(f'/services/{sid}/routes'))
             body = jsonloads(resp.text)
 
             for r in body.get('data', []):
                 requests.delete(kong_base_url.with_path(f'/routes/{r["id"]}'))
+
+        # delete associated upstream
+        resp = requests.get(kong_base_url.with_path('/upstreams'))
+        body = jsonloads(resp.text)
+        upstream_ids = [r['id'] for r in body.get('data', []) if "test" in r['name']]
+
+        for uid in upstream_ids:
+            resp = requests.get(kong_base_url.with_path(f'/upstreams/{uid}/targets/all/'))
+
+            body = jsonloads(resp.text)
+            for r in body.get('data', []):
+                requests.delete(kong_base_url.with_path(f'/upstreams/{uid}/targets/{r["id"]}'))
+
+            requests.delete(kong_base_url.with_path(f'/upstreams/{uid}/'))
 
         for r in service_ids:
             requests.delete(kong_base_url.with_path(f'/services/{r}'))
@@ -105,11 +129,9 @@ class TestKongGateway:
         return insanic_application
 
     def test_init_assert(self):
-
         assert isinstance(self.gateway.kong_base_url, URL)
         assert URL(self.gateway.kong_base_url)
-        assert self.gateway.machine_id is not None
-        assert isinstance(self.gateway.machine_id, str)
+
 
     def test_kong_service_name(self, monkeypatch):
         monkeypatch.setattr(settings, "SERVICE_VERSION", "0.0.0", raising=False)
@@ -532,7 +554,8 @@ class TestKongGateway:
                 else:
                     break
 
-            assert len(service_ids) == 0
+            # is 1 because we no longer deregister service
+            assert len(service_ids) == 1
 
     async def test_http_session_manager(self, insanic_application):
         assert self.gateway.session is None

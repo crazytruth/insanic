@@ -5,7 +5,7 @@ from yarl import URL
 
 from insanic import status
 from insanic.conf import settings
-from insanic.scopes import get_machine_id, is_docker
+from insanic.scopes import is_docker
 from insanic.utils import get_my_ip, get_my_host_by_addr
 
 from insanic.registration.gateway import BaseGateway, http_session_manager, normalize_url_for_kong
@@ -27,7 +27,6 @@ class KongGateway(BaseGateway):
         self.kong_base_url = URL(f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}")
 
         self.service_name = settings.SERVICE_NAME
-        self.machine_id = get_machine_id()
         self._app = None
         self.registered_instance = {}
 
