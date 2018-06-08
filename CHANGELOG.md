@@ -1,8 +1,8 @@
 Changelog for insanic
 =====================
 
-0.3.16 (unreleased)
--------------------
+0.4.0 (2018-06-08)
+------------------
 
 - FEAT: pact integration in testing
 - FEAT: register upstreams and targets in kong
