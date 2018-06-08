@@ -18,7 +18,7 @@ def _extract_changelog(data):
     end_line = None
 
     for h in data['headings']:
-        if h['version'] == data['new_version']:
+        if h['version'] == data['original_version']:
             start_line = h['line']
         else:
             try:
