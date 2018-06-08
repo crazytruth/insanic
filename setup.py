@@ -76,7 +76,8 @@ setup(
         "hvac",
         "aiotask_context",
         # "infuse",
-        "python-dateutil"
+        "python-dateutil",
+        "packaging"
     ],
     # test_suite='nose.collector',
     tests_require=test_requires,
