@@ -175,3 +175,4 @@ class SanicInvalidUsage(InvalidUsage):
 class SanicNotFound(APIException):
     status_code = status.HTTP_404_NOT_FOUND
     message = "Not Found"
+    error_code = GlobalErrorCodes.not_found

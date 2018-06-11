@@ -23,6 +23,7 @@ class GlobalErrorCodes(Enum):
 
     # general errors
     invalid_usage = 999401
+    not_found = 999404
 
     # request related errors
     method_not_allowed = 999501
