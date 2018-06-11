@@ -19,6 +19,8 @@ from insanic.services.response import InsanicResponse
 from insanic.scopes import is_docker
 from insanic.utils import try_json_decode
 
+DEFAULT_SERVICE_REQEST_TIMEOUT = 1
+
 
 class ServiceRegistry(dict):
     __instance = None
@@ -105,7 +107,8 @@ class Service:
             self._session = aiohttp.ClientSession(loop=get_event_loop(),
                                                   connector=aiohttp.TCPConnector(limit_per_host=25,
                                                                                  ttl_dns_cache=300),
-                                                  response_class=InsanicResponse)
+                                                  response_class=InsanicResponse,
+                                                  read_timeout=DEFAULT_SERVICE_REQEST_TIMEOUT)
         return self._session
 
     def _construct_url(self, endpoint, query_params={}):
