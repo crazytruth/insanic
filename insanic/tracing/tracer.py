@@ -1,6 +1,7 @@
 import traceback
 
 from insanic import __version__
+from insanic.conf import settings
 from insanic.log import logger
 from insanic.tracing.patch import patch
 from insanic.tracing.context import AsyncContext
@@ -32,14 +33,14 @@ class InsanicXRayMiddleware:
 
         @app.middleware('request')
         async def start_trace(request):
-            if request.path != "/health":
+            if not request.path.endswith("/health/"):
                 # self._before_request_fn(request, traced_attributes)
 
                 await self._before_request(request)
 
         @app.middleware('response')
         def end_trace(request, response):
-            if request.path != "/health":
+            if not request.path.endswith("/health/"):
                 self._after_request(request, response)
 
             if hasattr(request, "span"):
@@ -70,6 +71,7 @@ class InsanicXRayMiddleware:
         )
 
         segment.put_annotation('insanic_version', __version__)
+        segment.put_annotation("service_version", settings.get('SERVICE_VERSION'))
         segment.put_http_meta(http.URL, request.url)
         segment.put_http_meta(http.METHOD, request.method)
         segment.put_http_meta(http.USER_AGENT, headers.get('User-Agent'))

@@ -26,17 +26,17 @@ class InsanicTracer:
         if importlib.util.find_spec('aws_xray_sdk') is None:
             messages.append('Tracing dependency [aws_xray_sdk] was not found!')
 
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
-            socket.gethostbyname(app.config.TRACING['HOST'])
+            socket.gethostbyname(app.config.TRACING_HOST)
             sock.settimeout(1)
-            if sock.connect_ex((app.config.TRACING['HOST'], app.config.TRACING['PORT'])) != 0:
+            if sock.connect_ex((app.config.TRACING_HOST, int(app.config.TRACING_PORT))) != 0:
                 messages.append(
-                    f"Could not connect to port on [{app.config.TRACING['HOST']}:{app.config.TRACING['PORT']}].")
+                    f"Could not connect to port on [{app.config.TRACING_HOST}:{app.config.TRACING_PORT}].")
         except socket.gaierror:
-            messages.append(f"Could not resolve host [{app.config.TRACING['HOST']}].")
+            messages.append(f"Could not resolve host [{app.config.TRACING_HOST}].")
         except Exception:
-            messages.append(f"Could not connect to [{app.config.TRACING['HOST']}:{app.config.TRACING['PORT']}].")
+            messages.append(f"Could not connect to [{app.config.TRACING_HOST}:{app.config.TRACING_PORT}].")
         finally:
             sock.close()
         return messages
@@ -48,9 +48,10 @@ class InsanicTracer:
         if app.config.TRACING['ENABLED']:
             messages = cls._check_prerequisites(app)
             if len(messages) == 0:
-                @app.listener('after_server_start')
-                async def after_server_start_start_tracing(app, loop=None, **kwargs):
-                    app.tracer = InsanicXRayMiddleware(app, loop)
+                if not hasattr(app, 'tracer'):
+                    @app.listener('after_server_start')
+                    async def after_server_start_start_tracing(app, loop=None, **kwargs):
+                        app.tracer = InsanicXRayMiddleware(app, loop)
 
                 app.sampler = Sampler(app)
             else:
