@@ -80,12 +80,9 @@ class Insanic(Sanic):
 
         settings.SERVICE_VERSION = _service_version()
         logger.info(f"{settings.SERVICE_NAME} v{settings.SERVICE_VERSION} service loaded.")
+        self.attach_plugins()
 
-
-    def run(self, host=None, port=None, debug=False, ssl=None,
-            sock=None, workers=1, protocol=None,
-            backlog=100, stop_event=None, register_sys_signals=True,
-            access_log=True):
+    def attach_plugins(self):
         SanicUserAgent.init_app(self)
         InsanicTracer.init_app(self)
 
@@ -98,7 +95,14 @@ class Insanic(Sanic):
                 error_logger.critical("[INFUSE] Infuse is required for production deployment.")
                 raise
             else:
-                error_logger.info("[INFUSE] proceeding without infuse. ")
+                error_logger.info(f"[INFUSE] proceeding without infuse. {e.msg}")
+
+    def run(self, host=None, port=None, debug=False, ssl=None,
+            sock=None, workers=1, protocol=None,
+            backlog=100, stop_event=None, register_sys_signals=True,
+            access_log=True):
+
+        # self.attach_plugins()
 
         if protocol is None:
             protocol = InsanicHttpProtocol

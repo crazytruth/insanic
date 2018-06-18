@@ -4,7 +4,9 @@ Changelog for insanic
 0.4.4 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: xray integration
+- FIX: plugin integration point changed
+- FEAT: changed error codes for not found
 
 
 0.4.3 (2018-06-08)

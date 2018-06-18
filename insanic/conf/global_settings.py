@@ -89,6 +89,9 @@ JWT_SERVICE_AUTH = {
 
 INTERNAL_IPS = ()
 
+TRACING_HOST = 'xray'
+TRACING_PORT = 2000
+
 TRACING = dict(
     ENABLED=True,
     HOST='xray',

@@ -75,7 +75,7 @@ setup(
         "python-consul",
         "hvac",
         "aiotask_context",
-        # "infuse",
+        # "infuse>=0.1.0",
         "python-dateutil",
         "packaging"
     ],
