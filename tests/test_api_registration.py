@@ -202,7 +202,7 @@ class TestKongGateway:
 
     def test_routes_with_jwt_auth_and_is_authenticated(self, monkeypatch, insanic_application, test_user_token_factory,
                                                        function_session_id):
-
+        import time
         monkeypatch.setattr(settings._wrapped, "ALLOWED_HOSTS", [], raising=False)
         monkeypatch.setattr(gateway, "_enabled", True)
         monkeypatch.setattr(gateway, "kong_base_url", URL(f"http://{settings.KONG_HOST}:18001"))
@@ -221,7 +221,15 @@ class TestKongGateway:
         insanic_application.add_route(MockView.as_view(), route)
 
         # Test without token
-        request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}')
+        for _ in range(10):
+            request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}')
+
+            if response.status != 503:
+                break
+
+            time.sleep(10)
+        else:
+            assert response.status == 401
 
         assert response.status == 401
 
