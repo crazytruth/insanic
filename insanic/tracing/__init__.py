@@ -1,10 +1,12 @@
 import importlib
 import socket
 
+from insanic.conf import settings
 from insanic.log import logger
 from insanic.tracing.tracer import InsanicXRayMiddleware
 from insanic.tracing.sampling import Sampler
 
+from aws_xray_sdk.core import patch
 
 class InsanicTracer:
 
@@ -12,8 +14,9 @@ class InsanicTracer:
     def _handle_error(cls, app, messages):
         error_message = "Tracing was not initialized because: " + ', '.join(messages)
 
-        if app.config.get('MMT_ENV', 'local') not in app.config.TRACING['FAIL_SOFT_ENVIRONMENTS'] \
-                and app.config.TRACING['REQUIRED']:
+        # if app.config.get('MMT_ENV', 'local') not in app.config.TRACING['FAIL_SOFT_ENVIRONMENTS'] \
+        #         and app.config.TRACING_REQUIRED:
+        if not app.config.TRACING_FAIL_SOFT and app.config.TRACING_REQUIRED:
             logger.critical(error_message)
             raise EnvironmentError(error_message)
         else:
@@ -45,7 +48,7 @@ class InsanicTracer:
     def init_app(cls, app):
         # checks to see if tracing can be enabled
 
-        if app.config.TRACING['ENABLED']:
+        if app.config.TRACING_ENABLED:
             messages = cls._check_prerequisites(app)
             if len(messages) == 0:
                 if not hasattr(app, 'tracer'):
@@ -53,6 +56,9 @@ class InsanicTracer:
                     async def after_server_start_start_tracing(app, loop=None, **kwargs):
                         app.tracer = InsanicXRayMiddleware(app, loop)
 
+                    patch(("aiobotocore", "pynamodb"))
+
                 app.sampler = Sampler(app)
             else:
                 cls._handle_error(app, messages)
+                settings.TRACING_ENABLED = False

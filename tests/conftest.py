@@ -12,7 +12,8 @@ from insanic.models import User
 
 from pytest_redis import factories
 
-settings.configure(SERVICE_NAME="insanic", GATEWAY_REGISTRATION_ENABLED=False, MMT_ENV="test")
+settings.configure(SERVICE_NAME="insanic", GATEWAY_REGISTRATION_ENABLED=False, MMT_ENV="test",
+                   TRACING_ENABLED=False)
 
 for cache_name, cache_config in settings.INSANIC_CACHES.items():
     globals()[f"redisdb_{cache_name}"] = factories.redisdb('redis_proc', db=cache_config.get('DATABASE'))
