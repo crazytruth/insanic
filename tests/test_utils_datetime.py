@@ -19,8 +19,9 @@ def test_get_utc_datetime():
 
     assert isinstance(dt, datetime)
     # Assume current_datetime and dt will be executed fast enough that it's under 1 second
-    delta = timedelta(seconds=1)
-    assert current_datetime - dt <= delta
+    from_delta = timedelta(seconds=0)
+    to_delta = timedelta(seconds=1)
+    assert from_delta <= dt - current_datetime <= to_delta
 
 
 def test_utc_to_datetime_default():
