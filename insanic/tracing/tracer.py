@@ -3,7 +3,6 @@ import traceback
 from insanic import __version__
 from insanic.conf import settings
 from insanic.log import logger
-from insanic.tracing.patch import patch
 from insanic.tracing.context import AsyncContext
 from insanic.tracing.core import xray_recorder
 

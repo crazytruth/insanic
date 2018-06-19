@@ -34,7 +34,7 @@ class Sampler:
 
     @cached_property
     def tracing_service_name(self):
-        return "{0}:{1}".format(self.app.config.MMT_ENV.upper(), self.app.config.SERVICE_NAME)
+        return f"{self.app.config.MMT_ENV.upper()}:{self.app.config.SERVICE_NAME}"
 
     def _validate_sampling_rule(self, rule):
         if not isinstance(rule, dict):

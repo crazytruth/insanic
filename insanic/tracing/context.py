@@ -1,14 +1,11 @@
 import aiotask_context
 import asyncio
-import logging
 
-from aws_xray_sdk.core.context import Context as _Context
-from aws_xray_sdk.core.async_context import TaskLocalStorage
-
-log = logging.getLogger(__name__)
+from aws_xray_sdk.core.async_context import TaskLocalStorage, AsyncContext as _AsyncContext
+from insanic.log import logger
 
 
-class AsyncContext(_Context):
+class AsyncContext(_AsyncContext):
     """
     Async Context for storing segments.
 
@@ -52,7 +49,7 @@ class AsyncContext(_Context):
         """
         entity = self.get_trace_entity()
         if not entity:
-            log.warning("No segment to end")
+            logger.warning("No segment to end")
             return
         if self._is_subsegment(entity):
             entity.parent_segment.close(end_time)
@@ -68,7 +65,7 @@ class AsyncContext(_Context):
         """
         entity = self.get_trace_entity()
         if not entity:
-            log.warning("Active segment or subsegment not found. Discarded %s." % subsegment.name)
+            logger.warning("Active segment or subsegment not found. Discarded %s." % subsegment.name)
             return
 
         entity.add_subsegment(subsegment)
@@ -92,7 +89,7 @@ class AsyncContext(_Context):
             setattr(self._local, "ref_entity", None)
             return True
         else:
-            log.warning("No subsegment to end.")
+            logger.warning("No subsegment to end.")
             return False
 
     def get_root_entity(self, entity):
@@ -115,3 +112,23 @@ class AsyncContext(_Context):
         else:
             entity = self._local.entities[0]
         return entity
+
+
+def task_factory(loop, coro):
+    """
+    Task factory function
+
+    Fuction closely mirrors the logic inside of
+    asyncio.BaseEventLoop.create_task. Then if there is a current
+    task and the current task has a context then share that context
+    with the new task
+    """
+    task = asyncio.Task(coro, loop=loop)
+    if task._source_traceback:  # flake8: noqa
+        del task._source_traceback[-1]  # flake8: noqa
+
+    # Share context with new task if possible
+    current_task = asyncio.Task.current_task(loop=loop)
+    if current_task is not None and hasattr(current_task, 'context'):
+        setattr(task, 'context', current_task.context.copy())
+    return task
