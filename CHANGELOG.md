@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.4.4 (unreleased)
+0.4.4 (2018-06-19)
 ------------------
 
 - FIX: xray integration
