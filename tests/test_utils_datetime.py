@@ -13,6 +13,16 @@ def test_get_utc_timestamp():
     assert ts == pytest.approx(time.time(), rel=1e-3)
 
 
+def test_get_utc_datetime():
+    current_datetime = datetime.now(tz=timezone.utc)
+    dt = insanic_datetime.get_utc_datetime()
+
+    assert isinstance(dt, datetime)
+    # Assume current_datetime and dt will be executed fast enough that it's under 1 second
+    delta = timedelta(seconds=1)
+    assert current_datetime - dt <= delta
+
+
 def test_utc_to_datetime_default():
     ts = insanic_datetime.utc_to_datetime()
     assert isinstance(ts, datetime)
@@ -61,6 +71,7 @@ def test_utc_to_iso_default():
 def test_utc_to_iso_problems(ts, units):
     with pytest.raises(ValueError):
         insanic_datetime.utc_to_iso(ts, units)
+
 
 def test_utc_to_iso_custom():
     test_timestamp = 946684800
