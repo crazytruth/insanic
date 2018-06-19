@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.4.6 (unreleased)
+0.4.6 (2018-06-19)
 ------------------
 
 - FIX: restructure xray middleware so user is set at the response middleware
