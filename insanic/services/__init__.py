@@ -17,9 +17,10 @@ from insanic.functional import cached_property_with_ttl
 from insanic.models import AnonymousUser
 from insanic.services.response import InsanicResponse
 from insanic.scopes import is_docker
+from insanic.tracing.utils import tracing_name
 from insanic.utils import try_json_decode
 
-DEFAULT_SERVICE_REQEST_TIMEOUT = 1
+DEFAULT_SERVICE_REQUEST_TIMEOUT = 1
 
 
 class ServiceRegistry(dict):
@@ -104,11 +105,19 @@ class Service:
     @property
     def session(self):
         if self._session is None or self._session.loop.is_closed() is True:
+
+            trace_config = None
+
+            if settings.TRACING_ENABLED:
+                from aws_xray_sdk.ext.aiohttp.client import aws_xray_trace_config
+                trace_config = aws_xray_trace_config(tracing_name(self.service_name))
+
             self._session = aiohttp.ClientSession(loop=get_event_loop(),
-                                                  connector=aiohttp.TCPConnector(limit_per_host=25,
+                                                  connector=aiohttp.TCPConnector(limit_per_host=10,
                                                                                  ttl_dns_cache=300),
                                                   response_class=InsanicResponse,
-                                                  read_timeout=DEFAULT_SERVICE_REQEST_TIMEOUT)
+                                                  read_timeout=DEFAULT_SERVICE_REQUEST_TIMEOUT,
+                                                  trace_configs=trace_config)
         return self._session
 
     def _construct_url(self, endpoint, query_params={}):
