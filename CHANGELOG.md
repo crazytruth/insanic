@@ -5,7 +5,8 @@ Changelog for insanic
 0.4.5 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: kong route registration with better route comparison
+- FIX: fix bug with configs in xray middleware
 
 
 0.4.4 (2018-06-19)

@@ -20,8 +20,6 @@ class KongGateway(BaseGateway):
     UPSTREAMS_RESOURCE = "upstreams"
     TARGETS_RESOURCE = "targets"
 
-    route_compare_fields = ['protocols', 'methods', 'hosts', 'regex_priority', 'strip_path', 'preserve_host']
-
     def __init__(self):
         super().__init__()
         self.kong_base_url = URL(f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}")
@@ -29,6 +27,10 @@ class KongGateway(BaseGateway):
         self.service_name = settings.SERVICE_NAME
         self._app = None
         self.registered_instance = {}
+
+    @property
+    def route_compare_fields(self):
+        return ['protocols', 'methods', 'hosts', 'regex_priority', 'strip_path', 'preserve_host', 'paths']
 
     @property
     def environment(self):
@@ -246,12 +248,29 @@ class KongGateway(BaseGateway):
         :rtype: bool
         """
         for c in compare_fields:
-            if route1[c] != route2.get(c):
-                return True
+            if isinstance(route1[c], list):
+                if sorted(route1[c]) != sorted(route2.get(c, [])):
+                    return True
+            else:
+                if route1[c] != route2.get(c):
+                    return True
         return False
         #
         # diff = r1.items() & r2.items()
         # return len(diff) != 0
+
+    def _route_object(self, path, methods):
+        return {
+            "protocols": ["http", "https"],
+            "methods": methods,
+            "hosts": settings.ALLOWED_HOSTS,
+            "paths": [path],
+            "service": {"id": self.service_id},
+            "strip_path": False,
+            "preserve_host": False,
+            "regex_priority": settings.KONG_ROUTE_REGEX_PRIORITY.get(settings.MMT_ENV, 10)
+        }
+
 
     @http_session_manager
     async def register_routes(self, *, session):
@@ -279,16 +298,7 @@ class KongGateway(BaseGateway):
 
                 for url, route_info in public_routes.items():
                     path = normalize_url_for_kong(url)
-                    route_data = {
-                        "protocols": ["http", "https"],
-                        "methods": route_info['public_methods'],
-                        "hosts": settings.ALLOWED_HOSTS,
-                        "paths": [path],
-                        "service": {"id": self.service_id},
-                        "strip_path": False,
-                        "preserve_host": False,
-                        "regex_priority": settings.KONG_ROUTE_REGEX_PRIORITY.get(settings.MMT_ENV, 10)
-                    }
+                    route_data = self._route_object(path, route_info['public_methods'])
                     registered_route = registered_routes.get(path, {})
 
                     if self.change_detected(route_data, registered_route,

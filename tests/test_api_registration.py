@@ -223,28 +223,48 @@ class TestKongGateway:
         # Test without token
         for _ in range(10):
             request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}')
-
-            if response.status != 503:
+            if response.status not in [404, 503]:
                 break
 
-            time.sleep(10)
+            time.sleep(5)
         else:
             assert response.status == 401
 
         assert response.status == 401
+        # try_multiple(f'http://{settings.KONG_HOST}:18000{route}', expected_status=401)
+
 
         # Test with token
         token = test_user_token_factory(email='test@tester.cc', level=UserLevels.ACTIVE)
-        request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
-                                                                headers={'Authorization': f"{token}"})
+        # request, response = try_multiple(f'http://{settings.KONG_HOST}:18000{route}', 202,
+        #                                  headers={'Authorization': f"{token}"} )
+
+        for _ in range(10):
+
+            request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
+                                                                    headers={'Authorization': f"{token}"})
+
+            if response.status != 503:
+                break
+            time.sleep(5)
+        else:
+            assert response.status == 202
 
         assert response.status == 202
         assert response.json == {'test': 'success'}
 
         # Test with banned user
         token = test_user_token_factory(email='test_banned@tester.cc', level=UserLevels.BANNED)
-        request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
-                                                                headers={'Authorization': f"{token}"})
+        # request, response = try_multiple(f'http://{settings.KONG_HOST}:18000{route}', 401, {'Authorization': f"{token}"})
+        for _ in range(10):
+            request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
+                                                                    headers={'Authorization': f"{token}"})
+
+            if response.status not in [404, 503]:
+                break
+            time.sleep(5)
+        else:
+            assert response.status == 401
 
         assert response.status == 401
 
@@ -569,3 +589,21 @@ class TestKongGateway:
         assert self.gateway.session is None
         await self.gateway.register(insanic_application)
         assert self.gateway.session is None
+
+
+    @pytest.mark.parametrize(
+        'path1, path2, method1, method2, expected',
+        (
+                ("/a", "/a", ["a"], ["a"], False),
+                ("/a", "/b", ["a"], ["a"], True),
+                ("/a", "/a", ["a"], ["b"], True),
+                ("/a", "/a", ["a"], ["a","b"], True),
+                ("/a", "/a", ["b","a"], ["a", "b"], False),
+        )
+    )
+    def test_route_change_detected(self, path1, path2, method1, method2, expected):
+
+        route1 = self.gateway._route_object(path1, method1)
+        route2 = self.gateway._route_object(path2, method2)
+
+        assert self.gateway.change_detected(route1, route2, ['paths', 'methods']) == expected
