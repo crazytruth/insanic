@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.4.5 (unreleased)
+0.4.5 (2018-06-19)
 ------------------
 
 - FIX: kong route registration with better route comparison
