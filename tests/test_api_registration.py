@@ -158,6 +158,12 @@ class TestKongGateway:
     #     sl = self.gateway.service_spec
     #     assert self.gateway._service_spec == service_spec
 
+    @staticmethod
+    async def _force_target_healthy(app, loop):
+        async with gateway as gw:
+            await gw.force_target_healthy()
+
+
     def test_routes_with_jwt_auth_and_allow_any(self, monkeypatch, insanic_application, test_user_token_factory,
                                                 function_session_id):
         monkeypatch.setattr(settings._wrapped, "ALLOWED_HOSTS", [], raising=False)
@@ -175,7 +181,7 @@ class TestKongGateway:
                              'user_type': (await request.user).__class__.__name__}, status=202)
 
         route = f"/test/{function_session_id}/"
-
+        insanic_application.listeners["after_server_start"].append(self._force_target_healthy)
         insanic_application.add_route(MockView.as_view(), route)
 
         # Test without token
@@ -217,7 +223,7 @@ class TestKongGateway:
                 return json({'test': 'success'}, status=202)
 
         route = f"/test/{function_session_id}/"
-
+        insanic_application.listeners["after_server_start"].append(self._force_target_healthy)
         insanic_application.add_route(MockView.as_view(), route)
 
         # Test without token
@@ -596,6 +602,7 @@ class TestKongGateway:
         (
                 ("/a", "/a", ["a"], ["a"], False),
                 ("/a", "/b", ["a"], ["a"], True),
+                ("/a", "/a/b", ["a"], ["a"], True),
                 ("/a", "/a", ["a"], ["b"], True),
                 ("/a", "/a", ["a"], ["a","b"], True),
                 ("/a", "/a", ["b","a"], ["a", "b"], False),

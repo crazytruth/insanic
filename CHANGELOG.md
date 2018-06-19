@@ -5,7 +5,11 @@ Changelog for insanic
 0.4.7 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- REFACTOR: tracing related settings
+- DEPRECATE: tracing wrapping of service object 
+- NEW: use aiohttp client config for inter service tracing
+- FEAT: new util method for kong (force_target_healthy)
+
 
 
 0.4.6 (2018-06-19)
