@@ -9,7 +9,7 @@ def get_utc_timestamp():
 
 
 def get_utc_datetime():
-    return datetime.fromtimestamp(get_utc_timestamp())
+    return datetime.fromtimestamp(get_utc_timestamp(), tz=timezone.utc)
 
 
 def utc_to_datetime(timestamp=None, units=None):
