@@ -1,9 +1,7 @@
 import aiotask_context
 import asyncio
 
-# from insanic.conf import settings
 from insanic.connections import _connections
-# from insanic.log import logger
 from insanic.registration import gateway
 from insanic.services import ServiceRegistry
 

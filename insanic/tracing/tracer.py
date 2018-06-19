@@ -39,15 +39,15 @@ class InsanicXRayMiddleware:
                 await self._before_request(request)
 
         @app.middleware('response')
-        def end_trace(request, response):
+        async def end_trace(request, response):
             if not request.path.endswith("/health/"):
-                self._after_request(request, response)
+                await self._after_request(request, response)
 
             if hasattr(request, "span"):
                 response.span = request.span
             return response
 
-        patch()
+        # patch()
 
     async def _before_request(self, request):
         headers = request.headers
@@ -91,14 +91,20 @@ class InsanicXRayMiddleware:
                 if payload:
                     segment.put_metadata("{0}".format(attr), payload, "request")
 
+        request.span = segment
+
+    async def _after_request(self, request, response):
+        segment = self._recorder.current_segment()
+
+        # setting user was moved from _before_request,
+        # because calling request.user authenticates, and if
+        # authenticators are not set for request, will end not being
+        # able to authenticate correctly
         user = await request.user
         if user.id:
             segment.set_user(user.id)
+            segment.put_annotation('user__level', user.level)
 
-        request.span = segment
-
-    def _after_request(self, request, response):
-        segment = self._recorder.current_segment()
         segment.put_http_meta(http.STATUS, response.status)
 
         cont_len = response.headers.get('Content-Length')

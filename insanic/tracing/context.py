@@ -1,3 +1,4 @@
+import aiotask_context
 import asyncio
 import logging
 
@@ -23,7 +24,7 @@ class AsyncContext(_Context):
             self._loop = asyncio.get_event_loop()
 
         if use_task_factory:
-            self._loop.set_task_factory(task_factory)
+            self._loop.set_task_factory(aiotask_context.copying_task_factory)
 
         self._local = TaskLocalStorage(loop=loop)
 
@@ -114,22 +115,3 @@ class AsyncContext(_Context):
         else:
             entity = self._local.entities[0]
         return entity
-
-def task_factory(loop, coro):
-    """
-    Task factory function
-
-    Fuction closely mirrors the logic inside of
-    asyncio.BaseEventLoop.create_task. Then if there is a current
-    task and the current task has a context then share that context
-    with the new task
-    """
-    task = asyncio.Task(coro, loop=loop)
-    if task._source_traceback:  # flake8: noqa
-        del task._source_traceback[-1]  # flake8: noqa
-
-    # Share context with new task if possible
-    current_task = asyncio.Task.current_task(loop=loop)
-    if current_task is not None and hasattr(current_task, 'context'):
-        setattr(task, 'context', current_task.context.copy())
-    return task
