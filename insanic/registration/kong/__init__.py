@@ -234,6 +234,24 @@ class KongGateway(BaseGateway):
             self.target_id = None
             self.logger_target("debug", "This instance did not register a target.")
 
+    @http_session_manager
+    async def force_target_healthy(self, *, session):
+        if self.target_id and self.upstream_id:
+            async with session.post(
+                    self.kong_base_url.with_path(
+                        f"/{self.UPSTREAMS_RESOURCE}/{self.upstream_id}/{self.TARGETS_RESOURCE}/{self.target_id}/healthy"
+                    ),
+                    json={},
+
+            ) as resp:
+                kong_target_response = await resp.text()
+                try:
+
+                    resp.raise_for_status()
+                    self.logger_target("debug", f"Forced healthy: {self.target_id}")
+                except aiohttp.client_exceptions.ClientResponseError:
+                    self.logger_target("debug", f"Failed to force healthy {self.target_id}: {kong_target_response}")
+
     def change_detected(self, route1, route2, compare_fields):
         """
         compares
