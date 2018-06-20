@@ -15,8 +15,8 @@ class Sampler:
             # }
         ],
         "default": {
-            "fixed_target": 30,
-            "rate": 0.05
+            "fixed_target": 60 * 10,
+            "rate": 0.01
         }
     }
 

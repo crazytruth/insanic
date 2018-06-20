@@ -164,8 +164,8 @@ class Service:
 
     async def _dispatch_fetch(self, method, request, **kwargs):
 
-        async with self.session.request(method, str(request.url), headers=request.headers,
-                                        data=request.body) as resp:
+        async with self.session._request(method, str(request.url), headers=request.headers,
+                                         data=request.body) as resp:
             await resp.read()
             return resp
 
