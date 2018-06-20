@@ -4,9 +4,10 @@ from insanic import __version__
 from insanic.conf import settings
 from insanic.log import logger
 from insanic.tracing.context import AsyncContext
-from insanic.tracing.core import xray_recorder
+
 
 try:
+    from aws_xray_sdk.core import xray_recorder
     from aws_xray_sdk.core.models import http
     from aws_xray_sdk.ext.util import calculate_sampling_decision, \
         calculate_segment_name, construct_xray_header
@@ -18,17 +19,13 @@ class InsanicXRayMiddleware:
 
     def __init__(self, app, loop):
 
-        recorder = xray_recorder
-
-        recorder.configure(service=app.sampler.tracing_service_name, context=AsyncContext(loop=loop),
-                           sampling=app.sampler.sampling_rules,
-                           daemon_address=f"{app.config.TRACING_HOST}:{app.config.TRACING_PORT}",
-                           context_missing="LOG_ERROR" if app.config.MMT_ENV == "local" else "RUNTIME_ERROR")
+        xray_recorder.configure(service=app.sampler.tracing_service_name, context=AsyncContext(loop=loop),
+                                sampling=app.sampler.sampling_rules,
+                                daemon_address=f"{app.config.TRACING_HOST}:{app.config.TRACING_PORT}",
+                                context_missing="LOG_ERROR" if app.config.MMT_ENV == "local" else "RUNTIME_ERROR")
 
         self.app = app
         logger.info("initializing xray middleware")
-
-        self._recorder = recorder
 
         @app.middleware('request')
         async def start_trace(request):
@@ -52,17 +49,17 @@ class InsanicXRayMiddleware:
         headers = request.headers
         xray_header = construct_xray_header(headers)
 
-        name = calculate_segment_name(request.host, self._recorder)
+        name = calculate_segment_name(request.host, xray_recorder)
 
         sampling_decision = calculate_sampling_decision(
             trace_header=xray_header,
-            recorder=self._recorder,
+            recorder=xray_recorder,
             service_name=request.host,
             method=request.method,
             path=request.path,
         )
 
-        segment = self._recorder.begin_segment(
+        segment = xray_recorder.begin_segment(
             name=name,
             traceid=xray_header.root,
             parent_id=xray_header.parent,
@@ -93,7 +90,7 @@ class InsanicXRayMiddleware:
         request.span = segment
 
     async def _after_request(self, request, response):
-        segment = self._recorder.current_segment()
+        segment = xray_recorder.current_segment()
 
         # setting user was moved from _before_request,
         # because calling request.user authenticates, and if
@@ -110,14 +107,14 @@ class InsanicXRayMiddleware:
         segment.put_annotation('response', response.body.decode())
         if cont_len:
             segment.put_http_meta(http.CONTENT_LENGTH, int(cont_len))
-        self._recorder.end_segment()
+        xray_recorder.end_segment()
         return response
 
     def _handle_exception(self, exception):
         if not exception:
             return
-        segment = self._recorder.current_segment()
+        segment = xray_recorder.current_segment()
         segment.put_http_meta(http.STATUS, 500)
-        stack = traceback.extract_stack(limit=self._recorder._max_trace_back)
+        stack = traceback.extract_stack(limit=xray_recorder._max_trace_back)
         segment.add_exception(exception, stack)
-        self._recorder.end_segment()
+        xray_recorder.end_segment()

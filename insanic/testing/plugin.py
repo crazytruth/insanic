@@ -2,12 +2,11 @@ import asyncio
 import docker
 import pytest
 import requests
-import os
 
 import uuid
 import uvloop
 
-from aws_xray_sdk.core.recorder import CONTEXT_MISSING_KEY
+from aws_xray_sdk.core import xray_recorder
 from collections import OrderedDict
 from functools import partial
 from io import BytesIO
@@ -23,8 +22,6 @@ from insanic.models import User
 from insanic.services import Service
 from insanic.testing.helpers import MockService
 from insanic.testing.pact import Pact, PactMockService
-from insanic.tracing.core import xray_recorder
-from insanic.tracing.context import AsyncContext
 from insanic.registration import gateway
 
 
@@ -40,16 +37,18 @@ def disable_kong(monkeypatch):
 
 @pytest.fixture(scope="function", autouse=True)
 def silence_tracer(event_loop):
-    os.environ[CONTEXT_MISSING_KEY] = "LOG_ERROR"
-    xray_recorder.configure(context=AsyncContext(loop=event_loop))
+    #     os.environ[CONTEXT_MISSING_KEY] = "LOG_ERROR"
+    xray_recorder.configure(sampling=False)
 
-    xray_recorder.begin_segment(name="test", sampling=0)
-    yield
-    try:
-        xray_recorder.end_segment()
-    except AttributeError as e:
-        print(e)
 
+#
+#     xray_recorder.begin_segment(name="test", sampling=0)
+#     yield
+#     try:
+#         xray_recorder.end_segment()
+#     except AttributeError as e:
+#         print(e)
+#
 
 @pytest.fixture(scope="session", autouse=True)
 def test_session_id():
