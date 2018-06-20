@@ -21,7 +21,7 @@ from insanic.services import ServiceRegistry
 
 
 def before_server_start_set_task_factory(app, loop, **kwargs):
-    loop.set_task_factory(aiotask_context.copying_task_factory)
+    loop.set_task_factory(aiotask_context.chainmap_task_factory)
 
 
 async def after_server_stop_clean_up(app, loop, **kwargs):

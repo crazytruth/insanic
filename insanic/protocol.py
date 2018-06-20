@@ -24,10 +24,8 @@ class InsanicHttpProtocol(HttpProtocol):
                 extra = {
                     'status': response.status,
                     'byte': len(response.body),
-                    'host': '{0}:{1}'.format(self.request.ip[0],
-                                             self.request.ip[1]),
-                    'request': '{0} {1}'.format(self.request.method,
-                                                self.request.url)
+                    'host': f'{self.request.ip[0]}:{self.request.ip[1]}',
+                    'request': f'{self.request.method} {self.request.url}'
                 }
                 if hasattr(response, 'span'):
                     span = response.span
@@ -42,18 +40,18 @@ class InsanicHttpProtocol(HttpProtocol):
                 if str(response.status)[0] == "5":
                     access_logger.exception('', extra=extra, exc_info=response.exception)
                 else:
-                    if not self.request.url.endswith('/health/') and not self.request.host == 'nil':
+                    if self.request.url.endswith('/health/') and self.request.host == 'nil':
+                        pass
+                    else:
                         access_logger.info('', extra=extra)
         except AttributeError as e:
             logger.error(
-                ('Invalid response object for url {}, '
-                 'Expected Type: HTTPResponse, Actual Type: {}').format(
-                    self.url, type(response)))
+                (f'Invalid response object for url {self.url}, '
+                 f'Expected Type: HTTPResponse, Actual Type: {type(response)}'))
             self.write_error(ServerError('Invalid response type'))
         except RuntimeError:
             logger.error(
-                'Connection lost before response written @ {}'.format(
-                    self.request.ip))
+                f'Connection lost before response written @ {self.request.ip}')
         except Exception as e:
             self.bail_out(
                 "Writing response failed, connection closed {}".format(

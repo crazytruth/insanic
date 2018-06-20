@@ -14,14 +14,14 @@ class AsyncContext(_AsyncContext):
     Also overrides clear_trace_entities
     """
     def __init__(self, *args, loop=None, use_task_factory=True, **kwargs):
-        super(AsyncContext, self).__init__(*args, **kwargs)
+        super(AsyncContext, self).__init__(use_task_factory=False, *args, **kwargs)
 
         self._loop = loop
         if loop is None:
             self._loop = asyncio.get_event_loop()
 
-        if use_task_factory:
-            self._loop.set_task_factory(aiotask_context.copying_task_factory)
+        # if use_task_factory:
+        #     self._loop.set_task_factory(aiotask_context.chainmap_task_factory)
 
         self._local = TaskLocalStorage(loop=loop)
 
