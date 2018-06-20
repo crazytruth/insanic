@@ -20,7 +20,7 @@ class InsanicXRayMiddleware:
     def __init__(self, app, loop):
 
         xray_recorder.configure(service=app.sampler.tracing_service_name, context=AsyncContext(loop=loop),
-                                sampling=app.sampler.sampling_rules,
+                                sampling_rules=app.sampler.sampling_rules,
                                 daemon_address=f"{app.config.TRACING_HOST}:{app.config.TRACING_PORT}",
                                 context_missing=app.config.TRACING_CONTEXT_MISSING_STRATEGY)
 
@@ -30,8 +30,6 @@ class InsanicXRayMiddleware:
         @app.middleware('request')
         async def start_trace(request):
             if not request.path.endswith("/health/"):
-                # self._before_request_fn(request, traced_attributes)
-
                 await self._before_request(request)
 
         @app.middleware('response')
