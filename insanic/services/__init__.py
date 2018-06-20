@@ -117,7 +117,7 @@ class Service:
                                                                                  ttl_dns_cache=300),
                                                   response_class=InsanicResponse,
                                                   read_timeout=DEFAULT_SERVICE_REQUEST_TIMEOUT,
-                                                  trace_configs=trace_config)
+                                                  trace_configs=[trace_config])
         return self._session
 
     def _construct_url(self, endpoint, query_params={}):
