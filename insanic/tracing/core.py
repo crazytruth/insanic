@@ -1,3 +1,1 @@
-from .recorder import InsanicAWSXRayRecorder
-
-xray_recorder = InsanicAWSXRayRecorder()
+from aws_xray_sdk.core import xray_recorder
