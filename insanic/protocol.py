@@ -42,7 +42,8 @@ class InsanicHttpProtocol(HttpProtocol):
                 if str(response.status)[0] == "5":
                     access_logger.exception('', extra=extra, exc_info=response.exception)
                 else:
-                    access_logger.info('', extra=extra)
+                    if not self.request.url.endswith('/health/') and not self.request.host == 'nil':
+                        access_logger.info('', extra=extra)
         except AttributeError as e:
             logger.error(
                 ('Invalid response object for url {}, '

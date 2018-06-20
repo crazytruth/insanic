@@ -9,7 +9,7 @@ Changelog for insanic
 - DEPRECATE: tracing wrapping of service object 
 - NEW: use aiohttp client config for inter service tracing
 - FEAT: new util method for kong (force_target_healthy)
-
+- REMOVE: logging for kong healthchecks
 
 
 0.4.6 (2018-06-19)
