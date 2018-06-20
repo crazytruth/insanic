@@ -16,7 +16,7 @@ class InsanicTracer:
 
         # if app.config.get('MMT_ENV', 'local') not in app.config.TRACING['FAIL_SOFT_ENVIRONMENTS'] \
         #         and app.config.TRACING_REQUIRED:
-        if not app.config.TRACING_FAIL_SOFT and app.config.TRACING_REQUIRED:
+        if not app.config.TRACING_SOFT_FAIL and app.config.TRACING_REQUIRED:
             logger.critical(error_message)
             raise EnvironmentError(error_message)
         else:
