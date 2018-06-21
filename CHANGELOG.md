@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.4.7 (unreleased)
+0.4.7 (2018-06-21)
 ------------------
 
 - FEAT: add request_service in logging
