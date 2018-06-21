@@ -1,10 +1,11 @@
 import traceback
+import ujson as json
 
 from insanic import __version__
 from insanic.conf import settings
 from insanic.log import logger
 from insanic.tracing.context import AsyncContext
-
+from insanic.tracing.utils import get_safe_dict
 
 try:
     from aws_xray_sdk.core import xray_recorder
@@ -25,7 +26,7 @@ class InsanicXRayMiddleware:
                                 context_missing=app.config.TRACING_CONTEXT_MISSING_STRATEGY)
 
         self.app = app
-        logger.info("initializing xray middleware")
+        logger.debug("[XRAY] Initializing xray middleware")
 
         @app.middleware('request')
         async def start_trace(request):
@@ -63,7 +64,7 @@ class InsanicXRayMiddleware:
             parent_id=xray_header.parent,
             sampling=sampling_decision,
         )
-
+        segment.save_origin_trace_header(xray_header)
         segment.put_annotation('insanic_version', __version__)
         segment.put_annotation("service_version", settings.get('SERVICE_VERSION'))
         segment.put_http_meta(http.URL, request.url)
@@ -77,13 +78,16 @@ class InsanicXRayMiddleware:
         else:
             segment.put_http_meta(http.CLIENT_IP, request.remote_addr)
 
-        attributes = ['args', 'body', ' content_type', 'cookies', 'data',
-                      'host', 'ip', 'method', 'path', 'scheme', 'url']
+        attributes = ['args', 'content_type', 'cookies', 'data',
+                      'host', 'ip', 'method', 'path', 'scheme', 'url', ]
         for attr in attributes:
             if hasattr(request, attr):
-                payload = str(getattr(request, attr))
-                if payload:
-                    segment.put_metadata("{0}".format(attr), payload, "request")
+                payload = getattr(request, attr)
+                if isinstance(payload, dict):
+                    payload = get_safe_dict(payload)
+                payload = json.dumps(payload)
+
+                segment.put_metadata(f"{attr}", payload, "request")
 
         request.span = segment
 
@@ -105,14 +109,10 @@ class InsanicXRayMiddleware:
         segment.put_annotation('response', response.body.decode())
         if cont_len:
             segment.put_http_meta(http.CONTENT_LENGTH, int(cont_len))
+
+        if hasattr(response, 'exception'):
+            stack = traceback.extract_stack(limit=xray_recorder.max_trace_back)
+            segment.add_exception(response.exception, stack)
+
         xray_recorder.end_segment()
         return response
-
-    def _handle_exception(self, exception):
-        if not exception:
-            return
-        segment = xray_recorder.current_segment()
-        segment.put_http_meta(http.STATUS, 500)
-        stack = traceback.extract_stack(limit=xray_recorder._max_trace_back)
-        segment.add_exception(exception, stack)
-        xray_recorder.end_segment()

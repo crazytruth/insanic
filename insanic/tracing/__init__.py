@@ -12,7 +12,7 @@ class InsanicTracer:
 
     @classmethod
     def _handle_error(cls, app, messages):
-        error_message = "Tracing was not initialized because: " + ', '.join(messages)
+        error_message = "[XRAY] Tracing was not initialized because: " + ', '.join(messages)
 
         # if app.config.get('MMT_ENV', 'local') not in app.config.TRACING['FAIL_SOFT_ENVIRONMENTS'] \
         #         and app.config.TRACING_REQUIRED:

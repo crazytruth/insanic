@@ -1,24 +1,8 @@
+from insanic.conf import settings
 from insanic.functional import cached_property
 
 
 class Sampler:
-    _default_sampling_rules = {
-        "version": 1,
-        "rules": [
-            # {
-            #     "description": "Player moves.",
-            #     "service_name": "*",
-            #     "http_method": "*",
-            #     "url_path": "/api/move/*",
-            #     "fixed_target": 0,
-            #     "rate": 0.05
-            # }
-        ],
-        "default": {
-            "fixed_target": 60 * 10,
-            "rate": 0.01
-        }
-    }
 
     _sample_rule = {
         "description": str,
