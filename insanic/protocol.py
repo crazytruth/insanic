@@ -27,6 +27,10 @@ class InsanicHttpProtocol(HttpProtocol):
                     'host': f'{self.request.ip[0]}:{self.request.ip[1]}',
                     'request': f'{self.request.method} {self.request.url}'
                 }
+                if hasattr(self.request, "_service"):
+                    extra.update({
+                        "request_service": self.request._service.request_service,
+                    })
                 if hasattr(response, 'span'):
                     span = response.span
                     if span is not None:

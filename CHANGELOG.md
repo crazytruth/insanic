@@ -5,6 +5,8 @@ Changelog for insanic
 0.4.7 (unreleased)
 ------------------
 
+- FEAT: add request_service in logging
+- FEAT: load settings from environment variables. These take precedence!
 - REFACTOR: tracing related settings
 - DEPRECATE: tracing wrapping of service object 
 - NEW: use aiohttp client config for inter service tracing
