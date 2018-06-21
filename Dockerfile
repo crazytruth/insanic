@@ -14,9 +14,8 @@ ONBUILD ENV ADDITIONAL_APK=$ADDITIONAL_APK
 ONBUILD RUN echo $ADDITIONAL_APK
 
 RUN sed -i '1i http://alpine.msa.swarm/alpine/v3.7/community' /etc/apk/repositories \
-    && sed -i '1i http://alpine.msa.swarm/alpine/v3.7/main' /etc/apk/repositories
-
-RUN apk add --update --no-cache --virtual .build-deps  \
+    && sed -i '1i http://alpine.msa.swarm/alpine/v3.7/main' /etc/apk/repositories \
+    && apk add --update --no-cache --virtual .build-deps  \
         build-base gcc libffi-dev jpeg-dev && \
     pip install --upgrade \
     --index http://nexus.mmt.local:8081/repository/pypi/pypi \
