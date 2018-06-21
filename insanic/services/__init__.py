@@ -17,8 +17,10 @@ from insanic.functional import cached_property_with_ttl
 from insanic.models import AnonymousUser
 from insanic.services.response import InsanicResponse
 from insanic.scopes import is_docker
+from insanic.tracing.clients import aws_xray_trace_config
 from insanic.tracing.utils import tracing_name
 from insanic.utils import try_json_decode
+
 
 DEFAULT_SERVICE_REQUEST_TIMEOUT = 1
 
@@ -106,18 +108,17 @@ class Service:
     def session(self):
         if self._session is None or self._session.loop.is_closed() is True:
 
-            trace_config = None
+            trace_configs = None
 
             if settings.TRACING_ENABLED:
-                from aws_xray_sdk.ext.aiohttp.client import aws_xray_trace_config
-                trace_config = aws_xray_trace_config(tracing_name(self.service_name))
+                trace_configs = [aws_xray_trace_config(tracing_name(self.service_name))]
 
             self._session = aiohttp.ClientSession(loop=get_event_loop(),
                                                   connector=aiohttp.TCPConnector(limit_per_host=10,
                                                                                  ttl_dns_cache=300),
                                                   response_class=InsanicResponse,
                                                   read_timeout=DEFAULT_SERVICE_REQUEST_TIMEOUT,
-                                                  trace_configs=[trace_config])
+                                                  trace_configs=trace_configs)
         return self._session
 
     def _construct_url(self, endpoint, query_params={}):
@@ -164,8 +165,8 @@ class Service:
 
     async def _dispatch_fetch(self, method, request, **kwargs):
 
-        async with self.session._request(method, str(request.url), headers=request.headers,
-                                         data=request.body) as resp:
+        async with self.session.request(method, str(request.url), headers=request.headers,
+                                        data=request.body) as resp:
             await resp.read()
             return resp
 
