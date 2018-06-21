@@ -20,11 +20,6 @@ class InsanicXRayMiddleware:
 
     def __init__(self, app, loop):
 
-        xray_recorder.configure(service=app.sampler.tracing_service_name, context=AsyncContext(loop=loop),
-                                sampling_rules=app.sampler.sampling_rules,
-                                daemon_address=f"{app.config.TRACING_HOST}:{app.config.TRACING_PORT}",
-                                context_missing=app.config.TRACING_CONTEXT_MISSING_STRATEGY)
-
         self.app = app
         logger.debug("[XRAY] Initializing xray middleware")
 

@@ -3,10 +3,11 @@ import socket
 
 from insanic.conf import settings
 from insanic.log import logger
+from insanic.tracing.context import AsyncContext
 from insanic.tracing.tracer import InsanicXRayMiddleware
 from insanic.tracing.sampling import Sampler
 
-from aws_xray_sdk.core import patch
+from aws_xray_sdk.core import patch, xray_recorder
 
 class InsanicTracer:
 
@@ -52,13 +53,23 @@ class InsanicTracer:
             messages = cls._check_prerequisites(app)
             if len(messages) == 0:
                 if not hasattr(app, 'tracer'):
-                    @app.listener('after_server_start')
-                    async def after_server_start_start_tracing(app, loop=None, **kwargs):
+                    app.sampler = Sampler(app)
+
+                    async def before_server_start_start_tracing(app, loop=None, **kwargs):
+                        xray_recorder.configure(service=app.sampler.tracing_service_name,
+                                                context=AsyncContext(loop=loop),
+                                                sampling_rules=app.sampler.sampling_rules,
+                                                daemon_address=f"{app.config.TRACING_HOST}:{app.config.TRACING_PORT}",
+                                                context_missing=app.config.TRACING_CONTEXT_MISSING_STRATEGY)
+
                         app.tracer = InsanicXRayMiddleware(app, loop)
+
+                    # need to configure xray as the first thing that happens so insert into 0
+                    app.listeners['before_server_start'].insert(0, before_server_start_start_tracing)
 
                     patch(("aiobotocore", "pynamodb"))
 
-                app.sampler = Sampler(app)
+
             else:
                 cls._handle_error(app, messages)
                 settings.TRACING_ENABLED = False

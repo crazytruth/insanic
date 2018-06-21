@@ -5,7 +5,7 @@ Changelog for insanic
 0.4.8 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- REFACTOR: xray config so it is the first thing to happen when starting server 
 
 
 0.4.7 (2018-06-21)
