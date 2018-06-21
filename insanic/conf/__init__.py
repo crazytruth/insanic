@@ -123,8 +123,10 @@ class VaultConfig(BaseConfig):
         self._role_id = role_id
         self.vault_client = VaultClient(url=self.VAULT_URL)
 
-        super().__init__()
+        super().__init__(load_env=False)
         self.load_from_vault()
+
+        self.load_environment_vars()
 
     @property
     def MMT_ENV(self):
