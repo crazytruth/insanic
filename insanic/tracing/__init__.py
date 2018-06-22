@@ -67,8 +67,7 @@ class InsanicTracer:
                     # need to configure xray as the first thing that happens so insert into 0
                     app.listeners['before_server_start'].insert(0, before_server_start_start_tracing)
 
-                    patch(("aiobotocore", "pynamodb"))
-
+                    patch(app.config.TRACING_PATCH_MODULES, raise_errors=False)
 
             else:
                 cls._handle_error(app, messages)
