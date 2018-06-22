@@ -106,6 +106,14 @@ $ python setup.py test -a "--cov=insanic --cov-report term-missing:skip-covered"
 setuptools handles all the requirements for testing.
 
 
+## Building Base Docker Image
+
+To build base image
+
+``` bash
+$ docker build --no-cache -t {username}/insanic -f Dockerfile .
+$ docker push {username}/insanic:latest
+```
 
 ## Release History
 

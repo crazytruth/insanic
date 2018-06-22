@@ -102,8 +102,6 @@ class Insanic(Sanic):
             backlog=100, stop_event=None, register_sys_signals=True,
             access_log=True):
 
-        # self.attach_plugins()
-
         if protocol is None:
             protocol = InsanicHttpProtocol
 
