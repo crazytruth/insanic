@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.4.9 (unreleased)
+0.4.9 (2018-06-22)
 ------------------
 
 - FIX: xray patching when packages do not exist
