@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.4.10 (unreleased)
+0.4.10 (2018-06-26)
 -------------------
 
 - FEAT: catch `asyncio.TimeoutError` on http_dispatch
