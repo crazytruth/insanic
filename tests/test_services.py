@@ -6,16 +6,20 @@ import pytest
 import random
 import uuid
 
-from yarl import URL
-
 from sanic.response import json
 from insanic.authentication import handlers
 from insanic.conf import settings
-from insanic.exceptions import ServiceUnavailable503Error
 from insanic.models import User, UserLevels, AnonymousRequestService, AnonymousUser
 from insanic.permissions import AllowAny
 from insanic.services import ServiceRegistry, Service
 from insanic.views import InsanicView
+
+
+def test_image_file():
+    with open('insanic.png', 'rb') as f:
+        contents = f.read()
+    return contents
+
 
 class TestServiceRegistry:
 
@@ -67,28 +71,28 @@ class TestServiceClass:
     def test_service_name(self):
         assert self.service.service_name == self.service_name
 
-    @pytest.mark.skip(reason="SERVICE_LIST is now deprecated")
-    def test_service_spec(self, monkeypatch):
-        assert self.service._service_spec() == {}
-
-        with pytest.raises(ServiceUnavailable503Error):
-            self.service._service_spec(True)
-
-        monkeypatch.setattr(settings, "SERVICE_LIST", {self.service_name: self.service_spec})
-
-        assert self.service._service_spec() == self.service_spec
-        assert self.service.schema == self.service_spec['schema']
-        assert self.service.host == self.service_spec['host']
-        assert self.service.port == self.service_spec['external_service_port']
-
-        url = self.service.url
-        assert isinstance(url, URL)
-        assert url.scheme == self.service_spec['schema']
-        assert url.host == self.service_spec['host']
-        assert url.port == self.service_spec['external_service_port']
-        assert url.path == "/api/v1/"
-
-        assert isinstance(self.service.session, aiohttp.ClientSession)
+    # @pytest.mark.skip(reason="SERVICE_LIST is now deprecated")
+    # def test_service_spec(self, monkeypatch):
+    #     assert self.service._service_spec() == {}
+    #
+    #     with pytest.raises(ServiceUnavailable503Error):
+    #         self.service._service_spec(True)
+    #
+    #     monkeypatch.setattr(settings, "SERVICE_LIST", {self.service_name: self.service_spec})
+    #
+    #     assert self.service._service_spec() == self.service_spec
+    #     assert self.service.schema == self.service_spec['schema']
+    #     assert self.service.host == self.service_spec['host']
+    #     assert self.service.port == self.service_spec['external_service_port']
+    #
+    #     url = self.service.url
+    #     assert isinstance(url, URL)
+    #     assert url.scheme == self.service_spec['schema']
+    #     assert url.host == self.service_spec['host']
+    #     assert url.port == self.service_spec['external_service_port']
+    #     assert url.path == "/api/v1/"
+    #
+    #     assert isinstance(self.service.session, aiohttp.ClientSession)
 
     def test_url_constructor(self, monkeypatch):
         monkeypatch.setattr(settings, "SERVICE_LIST", {self.service_name: self.service_spec})
@@ -132,6 +136,96 @@ class TestServiceClass:
         assert response == mock_response
         assert status_code == mock_status_code
 
+    def test_http_dispatch_request_timeout(self, monkeypatch):
+
+        async def _mock_dispatch(*args, **kwargs):
+            assert "request_timeout" in kwargs
+
+            return {"request_timeout": kwargs.get('request_timeout')}, 200
+
+        monkeypatch.setattr(self.service, '_dispatch', _mock_dispatch)
+
+        loop = uvloop.new_event_loop()
+
+        response = loop.run_until_complete(self.service.http_dispatch('GET', '/'))
+        assert response['request_timeout'] is None
+
+        loop = uvloop.new_event_loop()
+
+        response = loop.run_until_complete(
+            self.service.http_dispatch('POST', '/', payload={"a": "b"}, request_timeout=10))
+        assert response['request_timeout'] is 10
+
+    def test_http_dispatch_dispatch_fetch_request_timeout(self, monkeypatch):
+
+        async def _mock_dispatch_fetch(*args, **kwargs):
+            assert "request_timeout" in kwargs
+
+            class MockResponse:
+                status = 200
+
+                async def json(self, *args, **method_kwargs):
+                    return {"request_timeout": kwargs['request_timeout']}
+
+            return MockResponse()
+
+        monkeypatch.setattr(self.service, '_dispatch_fetch', _mock_dispatch_fetch)
+
+        loop = uvloop.new_event_loop()
+
+        response = loop.run_until_complete(
+            self.service.http_dispatch('PUT', '/', payload={"a": "b"}))
+        assert response['request_timeout'] == None
+
+        loop = uvloop.new_event_loop()
+
+        response = loop.run_until_complete(
+            self.service.http_dispatch('POST', '/', payload={"a": "b"}, request_timeout=10))
+        assert response['request_timeout'] == 10
+
+    @pytest.mark.parametrize("payload,files,headers, expect_content_type", (
+            ({"a": "b"}, {}, {}, 'application/json'),
+            ({"a": "b"}, {}, {"content-type": "multipart/form-data"}, "multipart/form-data"),
+            ({}, {"image": test_image_file()}, {}, 'multipart/form-data'),
+            ({}, {"image": test_image_file()}, {"content-type": "multipart/form-data"}, 'multipart/form-data'),
+            ({}, {"image": test_image_file()}, {"content-type": "application/json"}, 'application/json'),
+    ))
+    def test_http_dispatch_aiohttp_request_object_headers(self, monkeypatch, payload, files, headers,
+                                                          expect_content_type):
+
+        async def _mock_dispatch_fetch(method, request, *args, **kwargs):
+            class MockResponse:
+                status = 200
+
+                async def json(self, *args, **kwargs):
+                    return {"content-type": request.headers.get('Content-Type')}
+
+            lower_headers = {k.lower(): v for k, v in request.headers.items()}
+
+            assert "content-type" in lower_headers.keys()
+            assert "accept" in lower_headers.keys()
+
+            assert lower_headers['content-type'].startswith(expect_content_type)
+            # elif "content-type" in headers:
+            #     assert lower_headers['content-type'] == headers['content-type']
+            # else:
+            #     assert lower_headers['content-type'] == "application/json"
+
+            return MockResponse()
+
+        monkeypatch.setattr(self.service, '_dispatch_fetch', _mock_dispatch_fetch)
+
+        loop = uvloop.new_event_loop()
+
+        response = loop.run_until_complete(
+            self.service.http_dispatch('GET', '/', payload=payload, files=files, headers=headers))
+        assert expect_content_type in response['content-type']
+
+        loop = uvloop.new_event_loop()
+
+        response = loop.run_until_complete(
+            self.service.http_dispatch('POST', '/', payload={"a": "b"}, files=files, headers=headers))
+        assert expect_content_type in response['content-type']
 
     @pytest.mark.parametrize("extra_headers", ({}, {"content-length": 4}))
     async def test_prepare_headers(self, extra_headers, loop):
@@ -139,7 +233,7 @@ class TestServiceClass:
 
         headers = self.service._prepare_headers(extra_headers)
 
-        required_headers = ["Accept", "Content-Type", "Date", "Authorization"]
+        required_headers = ["Date", "Authorization"]
 
         for h in required_headers:
             assert h in headers.keys()

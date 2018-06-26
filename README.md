@@ -99,6 +99,10 @@ $ python setup.py test
 
 $ python setup.py test -a "--cov=insanic --cov-report term-missing:skip-covered"
 
+# a certain set of tests
+
+$ python setup.py test --pytest-args tests/test_pact.py
+
 ```
 
 

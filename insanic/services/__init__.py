@@ -67,7 +67,11 @@ class Service:
 
     @property
     def service_auth_token(self):
-        user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER) or dict(AnonymousUser)
+        default = dict(AnonymousUser)
+        try:
+            user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER, default)
+        except AttributeError:
+            user = default
         return jwt_service_encode_handler(jwt_service_payload_handler(self, user))
 
     @property
@@ -127,34 +131,49 @@ class Service:
             url = url.with_query(**query_params)
         return url
 
-    async def http_dispatch(self, method, endpoint, req_ctx=None, *, query_params={}, payload={}, headers={},
-                            propagate_error=False, skip_breaker=False, include_status_code=False):
+    async def http_dispatch(self, method, endpoint, req_ctx=None, *, query_params=None, payload=None,
+                            files=None, headers=None,
+                            propagate_error=False, skip_breaker=False, include_status_code=False, request_timeout=None):
+
 
         if req_ctx is not None:
             warnings.warn("`req_ctx`, the 3rd argument is deprecated.  Please remove. "
                           "Sending this will do absolutely nothing.")
 
+        files = files or {}
+        query_params = query_params or {}
+        payload = payload or {}
+        headers = headers or {}
+
+
         if method.upper() not in HTTP_METHODS:
             raise ValueError("{0} is not a valid method.".format(method))
 
         response, status_code = await self._dispatch(method, endpoint,
-                                                     query_params=query_params, payload=payload,
+                                                     query_params=query_params, payload=payload, files=files,
                                                      headers=headers,
                                                      propagate_error=propagate_error,
-                                                     skip_breaker=skip_breaker)
+                                                     skip_breaker=skip_breaker,
+                                                     request_timeout=request_timeout)
 
         if include_status_code:
             return response, status_code
         return response
 
-    def _prepare_headers(self, headers):
+    def _prepare_headers(self, headers, files=None):
         for h in self.remove_headers:
             if h in headers:
                 del headers[h]
 
-        headers.update({"Accept": "application/json"})
-        headers.update({"Content-Type": "application/json"})
-        # headers.update({"Referrer": "https://staging.mymusictaste.com"})
+        lower_headers = [k.lower() for k in headers.keys()]
+
+        if "accept" not in lower_headers:
+            headers.update({"Accept": "application/json"})
+
+        if "content-type" not in lower_headers:
+            files = files or {}
+            if len(files) is 0:
+                headers.update({"Content-Type": "application/json"})
         headers.update({"Date": datetime.datetime.utcnow()
                        .replace(tzinfo=datetime.timezone.utc).strftime("%a, %d %b %y %T %z")})
 
@@ -165,24 +184,58 @@ class Service:
 
     async def _dispatch_fetch(self, method, request, **kwargs):
 
-        async with self.session.request(method, str(request.url), headers=request.headers,
-                                        data=request.body) as resp:
+        request_params = {
+            "method": method,
+            "url": str(request.url),
+            "headers": request.headers,
+            "data": request.body
+        }
+
+        timeout = kwargs.pop('request_timeout')
+        if timeout:
+            request_params.update({"timeout": timeout})
+
+        async with self.session.request(**request_params) as resp:
             await resp.read()
             return resp
 
-    async def _dispatch(self, method, endpoint, *, query_params={}, payload={}, headers={},
-                        propagate_error=False, skip_breaker=False):
+    async def _dispatch(self, method, endpoint, *, query_params, payload, files, headers,
+                        propagate_error=False, skip_breaker=False, request_timeout=None):
+        """
 
-        url = self._construct_url(endpoint, query_params)
-        headers = self._prepare_headers(headers)
+        :param method:
+        :param endpoint:
+        :param query_params: dict
+        :param payload:  dict
+        :param files: dict
+        :param headers: dict
+        :param propagate_error: bool
+        :param skip_breaker: bool
+        :param request_timeout: int
+        :return:
+        """
 
-        if not isinstance(payload, str):
-            payload = json.dumps(payload)
+        url = self._construct_url(endpoint)
+        headers = self._prepare_headers(headers, files)
 
-        outbound_request = aiohttp.ClientRequest(method, url, headers=headers, data=payload)
+        for k, v in files.items():
+            if k in payload.keys():
+                raise RuntimeError(f"payload already already has the key, {k}. Can not overwrite.")
+            else:
+                payload[k] = v
+
+        if len(files) == 0 and headers == "application/json":
+            data = aiohttp.payload.JsonPayload(payload)
+        else:
+            data = payload
+
+        outbound_request = aiohttp.ClientRequest(method, url,
+                                                 params=query_params, headers=headers, data=data)
+        # outbound_request.headers.add("Content-Type", outbound_request.body.content_type)
 
         try:
-            _response_obj = await self._dispatch_fetch(method, outbound_request, skip_breaker=skip_breaker)
+            _response_obj = await self._dispatch_fetch(method, outbound_request, skip_breaker=skip_breaker,
+                                                       request_timeout=request_timeout)
 
             if propagate_error:
                 _response_obj.raise_for_status()
