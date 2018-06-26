@@ -1,11 +1,14 @@
 import os
 import urllib.request
+import socket
 
 from functools import wraps
 
 from insanic.log import logger
 
+
 AWS_ECS_METADATA_ENDPOINT = "169.254.170.2/v2/metadata"
+
 
 def public_facing(f):
     @wraps(f)
@@ -43,3 +46,15 @@ def get_machine_id():
         ip = socket.gethostbyname(socket.gethostname())
         machine_id = '{:02X}{:02X}{:02X}{:02X}'.format(*map(int, ip.split('.')))
     return machine_id
+
+
+def get_my_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('192.255.255.255', 1))
+        ip = s.getsockname()[0]
+    except:
+        ip = socket.gethostbyname(socket.gethostname())
+    finally:
+        s.close()
+    return ip
