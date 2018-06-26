@@ -4,8 +4,7 @@ import ujson as json
 from insanic import __version__
 from insanic.conf import settings
 from insanic.log import logger
-from insanic.tracing.context import AsyncContext
-from insanic.tracing.utils import get_safe_dict
+from insanic.tracing.utils import get_safe_dict, abbreviate_for_xray
 
 try:
     from aws_xray_sdk.core import xray_recorder
@@ -73,13 +72,14 @@ class InsanicXRayMiddleware:
         else:
             segment.put_http_meta(http.CLIENT_IP, request.remote_addr)
 
-        attributes = ['args', 'content_type', 'cookies', 'data',
+        attributes = ['args', 'content_type', 'cookies', '_data', 'files',
                       'host', 'ip', 'method', 'path', 'scheme', 'url', ]
         for attr in attributes:
             if hasattr(request, attr):
                 payload = getattr(request, attr)
+
                 if isinstance(payload, dict):
-                    payload = get_safe_dict(payload)
+                    payload = abbreviate_for_xray(get_safe_dict(payload))
                 payload = json.dumps(payload)
 
                 segment.put_metadata(f"{attr}", payload, "request")

@@ -10,6 +10,8 @@ Changelog for insanic
     - Will place `multipart/form-data` as content-type
 - FEAT: `request_timeout` on `http_dispatch` to override default
 - FIX: register target as ip instead of hostname on kong
+- FIX: xray middleware with images #114
+- FEAT: obfuscate more stuff on logs
 
 
 
