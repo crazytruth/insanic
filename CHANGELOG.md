@@ -5,6 +5,7 @@ Changelog for insanic
 0.4.10 (unreleased)
 -------------------
 
+- FEAT: catch `asyncio.TimeoutError` on http_dispatch
 - FEAT: `files` parameter on `http_dispatch` to send files. 
     - Will place `multipart/form-data` as content-type
 - FEAT: `request_timeout` on `http_dispatch` to override default

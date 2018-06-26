@@ -154,10 +154,13 @@ class RawPostDataException(Exception):
     pass
 
 
-class ServiceUnavailable503Error(APIException):
+class ServiceTimeoutError(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    message = "Service unavailable."
+    message = "Service timeout."
 
+class ServiceUnavailable503Error(APIException):
+    status_code = status.HTTP_504_GATEWAY_TIMEOUT
+    message = "Service unavailable."
 
 class UnprocessableEntity422Error(APIException):
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY

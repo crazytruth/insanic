@@ -1,7 +1,7 @@
 import aiohttp
 import aiotask_context
+import asyncio
 import datetime
-import ujson as json
 import warnings
 
 from asyncio import get_event_loop
@@ -300,6 +300,11 @@ class Service:
                                               error_code=GlobalErrorCodes.unknown_error,
                                               status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+            raise exc
+        except asyncio.TimeoutError:
+            exc = exceptions.ServiceTimeoutError(description=f'{self.service_name} has timed out.',
+                                                 error_code=GlobalErrorCodes.service_timeout,
+                                                 status_code=status.HTTP_504_GATEWAY_TIMEOUT)
             raise exc
         except aiohttp.client_exceptions.ClientPayloadError as e:
             raise

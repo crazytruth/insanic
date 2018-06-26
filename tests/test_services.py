@@ -1,5 +1,6 @@
 import aiohttp
 import aiotask_context
+import asyncio
 import jwt
 import uvloop
 import pytest
@@ -9,6 +10,7 @@ import uuid
 from sanic.response import json
 from insanic.authentication import handlers
 from insanic.conf import settings
+from insanic.exceptions import ServiceTimeoutError
 from insanic.models import User, UserLevels, AnonymousRequestService, AnonymousUser
 from insanic.permissions import AllowAny
 from insanic.services import ServiceRegistry, Service
@@ -183,6 +185,20 @@ class TestServiceClass:
             self.service.http_dispatch('POST', '/', payload={"a": "b"}, request_timeout=10))
         assert response['request_timeout'] == 10
 
+    def test_http_dispatch_catch_timeout(self, monkeypatch):
+
+        async def _mock_dispatch_fetch(*args, **kwargs):
+            await asyncio.sleep(2)
+            return {"status": "OK"}
+
+        monkeypatch.setattr(self.service.session._connector, 'connect', _mock_dispatch_fetch)
+
+        loop = asyncio.get_event_loop()
+
+        with pytest.raises(ServiceTimeoutError):
+            response = loop.run_until_complete(
+                self.service.http_dispatch('GET', '/'))
+
     @pytest.mark.parametrize("payload,files,headers, expect_content_type", (
             ({"a": "b"}, {}, {}, 'application/json'),
             ({"a": "b"}, {}, {"content-type": "multipart/form-data"}, "multipart/form-data"),
@@ -206,11 +222,6 @@ class TestServiceClass:
             assert "accept" in lower_headers.keys()
 
             assert lower_headers['content-type'].startswith(expect_content_type)
-            # elif "content-type" in headers:
-            #     assert lower_headers['content-type'] == headers['content-type']
-            # else:
-            #     assert lower_headers['content-type'] == "application/json"
-
             return MockResponse()
 
         monkeypatch.setattr(self.service, '_dispatch_fetch', _mock_dispatch_fetch)
