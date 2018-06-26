@@ -1,13 +1,10 @@
 import aiohttp
 
-from aiodns.error import DNSError
 from yarl import URL
 
 from insanic import status
 from insanic.conf import settings
-from insanic.scopes import is_docker
-from insanic.utils import get_my_ip, get_my_host_by_addr
-
+from insanic.scopes import get_my_ip
 from insanic.registration.gateway import BaseGateway, http_session_manager, normalize_url_for_kong
 from .fixtures import UPSTREAM_OBJECT
 
@@ -46,15 +43,7 @@ class KongGateway(BaseGateway):
 
     @property
     async def target(self):
-        if is_docker:
-            host = self.service_host
-        else:
-            try:
-                host = await get_my_host_by_addr()
-            except DNSError:
-                host = get_my_ip()
-
-        return f"{host}:{self.app._port}"
+        return f"{get_my_ip()}:{self.app._port}"
 
     @http_session_manager
     async def _register(self, *, session):
