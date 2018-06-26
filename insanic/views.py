@@ -123,3 +123,8 @@ class InsanicView(HTTPMethodView):
         if isawaitable(response):
             response = await response
         return response
+
+
+class InsanicAdminView(InsanicView):
+    permission_classes = [permissions.IsAuthenticated, permissions.IsServiceOnly]
+    authentication_classes = [authentication.HardJSONWebTokenAuthentication, ]
