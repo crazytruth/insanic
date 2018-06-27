@@ -204,7 +204,9 @@ class TestServiceClass:
             ({"a": "b"}, {}, {"content-type": "multipart/form-data"}, "multipart/form-data"),
             ({}, {"image": test_image_file()}, {}, 'multipart/form-data'),
             ({}, {"image": test_image_file()}, {"content-type": "multipart/form-data"}, 'multipart/form-data'),
+            ({}, {"image": test_image_file()}, {"Content-Type": "multipart/form-data"}, 'multipart/form-data'),
             ({}, {"image": test_image_file()}, {"content-type": "application/json"}, 'application/json'),
+            ({}, {"image": test_image_file()}, {"Content-type": "application/json"}, 'application/json'),
     ))
     def test_http_dispatch_aiohttp_request_object_headers(self, monkeypatch, payload, files, headers,
                                                           expect_content_type):
@@ -244,7 +246,7 @@ class TestServiceClass:
 
         headers = self.service._prepare_headers(extra_headers)
 
-        required_headers = ["Date", "Authorization"]
+        required_headers = ["date", "authorization"]
 
         for h in required_headers:
             assert h in headers.keys()
@@ -252,9 +254,12 @@ class TestServiceClass:
         for h in self.service.remove_headers:
             assert h not in headers.keys()
 
-        assert headers['Authorization'].startswith("MSA")
-        assert headers['Authorization'].endswith(self.service.service_auth_token)
-        assert len(headers['Authorization'].split(' ')) == 2
+        assert headers['authorization'].startswith("MSA")
+        assert headers['authorization'].endswith(self.service.service_auth_token)
+        assert len(headers['authorization'].split(' ')) == 2
+
+    async def test_lower_case_headers(self, insanic_application):
+        headers = self.service._prepare_headers({})
 
 
 class TestAioHttpCompatibility:
@@ -295,6 +300,31 @@ class TestRequestTaskContext:
 
         insanic_application.add_route(TokenView.as_view(), '/')
         request, response = insanic_application.test_client.get('/', headers={"Authorization": token})
+
+        assert response.status == 200
+
+    def test_task_context_service_after_authentication_lower_case(self, insanic_application, test_user,
+                                                       test_service_token_factory):
+        import aiotask_context
+
+        token = test_service_token_factory(test_user)
+
+        class TokenView(InsanicView):
+
+            async def get(self, request, *args, **kwargs):
+                user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER)
+                assert user is not None
+                assert user == dict(test_user)
+                request_user = await request.user
+                assert user == dict(request_user)
+
+                service = await request.service
+                assert service.request_service == "test"
+
+                return json({"hi": "hello"})
+
+        insanic_application.add_route(TokenView.as_view(), '/')
+        request, response = insanic_application.test_client.get('/', headers={"authorization": token})
 
         assert response.status == 200
 
@@ -443,8 +473,8 @@ class TestRequestTaskContext:
 
                 inject_headers = UserIPService._prepare_headers({})
 
-                assert "Authorization" in inject_headers
-                assert token == inject_headers['Authorization'].split()[-1]
+                assert "authorization" in inject_headers
+                assert token == inject_headers['authorization'].split()[-1]
 
                 return json({"user": dict(request_user)})
 
@@ -500,8 +530,8 @@ class TestRequestTaskContext:
 
                 inject_headers = UserIPService._prepare_headers({})
 
-                assert "Authorization" in inject_headers
-                assert token == inject_headers['Authorization'].split()[-1]
+                assert "authorization" in inject_headers
+                assert token == inject_headers['authorization'].split()[-1]
 
                 return json({"user": dict(request_user)})
 
@@ -560,8 +590,8 @@ class TestRequestTaskContext:
 
                 inject_headers = UserIPService._prepare_headers({})
 
-                assert "Authorization" in inject_headers
-                assert token == inject_headers['Authorization'].split()[-1]
+                assert "authorization" in inject_headers
+                assert token == inject_headers['authorization'].split()[-1]
 
                 return json({"user": dict(request_user)})
 
@@ -618,8 +648,8 @@ class TestRequestTaskContext:
 
                 inject_headers = UserIPService._prepare_headers({})
 
-                assert "Authorization" in inject_headers
-                assert token == inject_headers['Authorization'].split()[-1]
+                assert "authorization" in inject_headers
+                assert token == inject_headers['authorization'].split()[-1]
 
                 return json({"user": dict(request_user)})
 

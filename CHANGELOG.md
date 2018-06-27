@@ -5,7 +5,8 @@ Changelog for insanic
 0.4.11 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- FIX: bug when parsing payload to json
+- CHORE: refactor date header on http_dispatch
 
 
 0.4.10 (2018-06-26)
@@ -18,7 +19,6 @@ Changelog for insanic
 - FIX: register target as ip instead of hostname on kong
 - FIX: xray middleware with images #114
 - FEAT: obfuscate more stuff on logs
-
 
 
 0.4.9 (2018-06-22)
