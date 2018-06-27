@@ -20,6 +20,7 @@ from insanic.scopes import is_docker
 from insanic.tracing.clients import aws_xray_trace_config
 from insanic.tracing.utils import tracing_name
 from insanic.utils import try_json_decode
+from insanic.utils.datetime import get_utc_datetime
 
 
 DEFAULT_SERVICE_REQUEST_TIMEOUT = 1
@@ -165,22 +166,22 @@ class Service:
             if h in headers:
                 del headers[h]
 
-        lower_headers = [k.lower() for k in headers.keys()]
+        lower_headers = {k.lower(): v for k, v in headers.items()}
 
         if "accept" not in lower_headers:
-            headers.update({"Accept": "application/json"})
+            lower_headers.update({"accept": "application/json"})
 
         if "content-type" not in lower_headers:
             files = files or {}
             if len(files) is 0:
-                headers.update({"Content-Type": "application/json"})
-        headers.update({"Date": datetime.datetime.utcnow()
-                       .replace(tzinfo=datetime.timezone.utc).strftime("%a, %d %b %y %T %z")})
+                lower_headers.update({"content-type": "application/json"})
 
-        headers.update(
-            {"Authorization": f"{settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX']} {self.service_auth_token}"})
+        lower_headers.update({"date": get_utc_datetime().strftime("%a, %d %b %y %T %z")})
 
-        return headers
+        lower_headers.update(
+            {"authorization": f"{settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX']} {self.service_auth_token}"})
+
+        return lower_headers
 
     async def _dispatch_fetch(self, method, request, **kwargs):
 
@@ -224,7 +225,7 @@ class Service:
             else:
                 payload[k] = v
 
-        if len(files) == 0 and headers['Content-Type'] == "application/json":
+        if len(files) == 0 and headers['content-type'] == "application/json":
             data = aiohttp.payload.JsonPayload(payload)
         else:
             data = payload
