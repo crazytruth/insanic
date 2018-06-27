@@ -60,7 +60,8 @@ class InsanicTracer:
                                                 context=AsyncContext(loop=loop),
                                                 sampling_rules=app.sampler.sampling_rules,
                                                 daemon_address=f"{app.config.TRACING_HOST}:{app.config.TRACING_PORT}",
-                                                context_missing=app.config.TRACING_CONTEXT_MISSING_STRATEGY)
+                                                context_missing=app.config.TRACING_CONTEXT_MISSING_STRATEGY,
+                                                streaming_threshold=10)
 
                         app.tracer = InsanicXRayMiddleware(app, loop)
 
