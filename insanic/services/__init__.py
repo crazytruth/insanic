@@ -224,7 +224,7 @@ class Service:
             else:
                 payload[k] = v
 
-        if len(files) == 0 and headers == "application/json":
+        if len(files) == 0 and headers['Content-Type'] == "application/json":
             data = aiohttp.payload.JsonPayload(payload)
         else:
             data = payload
