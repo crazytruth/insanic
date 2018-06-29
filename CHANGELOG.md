@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.4.12 (unreleased)
+0.4.12 (2018-06-29)
 -------------------
 
 - CHORE: set streaming threshold to lower value
