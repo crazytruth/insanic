@@ -101,7 +101,7 @@ class Service:
         if hasattr(settings, "SWARM_SERVICE_LIST"):
             _port = settings.SWARM_SERVICE_LIST.get(self.service_name, {}).get(
                 'internal_service_port' if is_docker else 'external_service_port',
-                settings.SERVICE_GLOBAL_PORT)
+                _port)
         return _port
 
     @property

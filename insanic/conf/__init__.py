@@ -1,5 +1,6 @@
 import os
 import ujson as json
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -284,8 +285,11 @@ class VaultConfig(BaseConfig):
 
         services_endpoint = str(url)
 
-        with urllib.request.urlopen(services_endpoint) as response:
-            swarm_services = response.read()
+        try:
+            with urllib.request.urlopen(services_endpoint) as response:
+                swarm_services = response.read()
+        except urllib.error.URLError:
+            return {}
 
         swarm_services = json.loads(swarm_services)
 

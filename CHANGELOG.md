@@ -6,6 +6,7 @@ Changelog for insanic
 -------------------
 
 - CHORE: set streaming threshold to lower value
+- HOTFIX: catch error on environment not running on swarm  
 
 
 0.4.11 (2018-06-27)
