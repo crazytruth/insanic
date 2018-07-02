@@ -162,7 +162,8 @@ class ServiceJWTAuthentication(BaseJSONWebTokenAuthentication):
         return settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'].lower()
 
     def decode_jwt(self, **kwargs):
-        return handlers.jwt_service_decode_handler(**kwargs)
+        token = kwargs.pop('token')
+        return handlers.jwt_service_decode_handler(token)
 
     async def authenticate_credentials(self, request, payload):
         user = User(**payload.pop('user', AnonymousUser))
