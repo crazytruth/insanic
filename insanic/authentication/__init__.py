@@ -1,12 +1,16 @@
 """
 Provides various authentication policies.
 """
+import aiohttp
 import jwt
 
 
 from insanic import exceptions
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
+from insanic.loading import get_service
+from insanic.log import error_logger
+from insanic.registration import gateway
 
 from insanic.authentication import handlers
 from insanic.models import User, RequestService, AnonymousUser, AnonymousRequestService
@@ -49,8 +53,8 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
     Token based authentication using the JSON Web Token standard.
     """
 
-    def decode_jwt(self, token):
-        return handlers.jwt_decode_handler(token)
+    def decode_jwt(self, **kwargs):
+        return handlers.jwt_decode_handler(**kwargs)
 
     def get_jwt_value(self, request):
         auth = get_authorization_header(request).split()
@@ -67,7 +71,19 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
             raise exceptions.AuthenticationFailed(msg,
                                                   error_code=GlobalErrorCodes.invalid_authorization_header)
 
-        return auth[1]
+        return {"token": auth[1], "verify": False}
+
+    def try_decode_jwt(self, **jwt_value):
+        try:
+            payload = self.decode_jwt(**jwt_value)
+        except jwt.DecodeError:
+            msg = 'Error decoding signature.'
+            raise exceptions.AuthenticationFailed(msg,
+                                                  error_code=GlobalErrorCodes.signature_not_decodable)
+        except jwt.InvalidTokenError:
+            raise exceptions.AuthenticationFailed(error_code=GlobalErrorCodes.invalid_token)
+        return payload
+
 
     def get_consumer_header(self, request, header='x-consumer-username'):
         """
@@ -97,18 +113,11 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
         if jwt_value is None or not self.get_consumer_header(request):
             return None
 
-        try:
-            payload = self.decode_jwt(jwt_value)
-        except jwt.DecodeError:
-            msg = 'Error decoding signature.'
-            raise exceptions.AuthenticationFailed(msg,
-                                                  error_code=GlobalErrorCodes.signature_not_decodable)
-        except jwt.InvalidTokenError:
-            raise exceptions.AuthenticationFailed(error_code=GlobalErrorCodes.invalid_token)
-
+        payload = self.try_decode_jwt(**jwt_value)
         user, service = await self.authenticate_credentials(request, payload)
 
         return user, service, jwt_value
+
 
 class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
     """
@@ -133,7 +142,7 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         return '{0} realm="{1}"'.format(self.auth_header_prefix, self.www_authenticate_realm)
 
     async def authenticate_credentials(self, request, payload):
-        user_id = payload.get('id', payload.get('user_id'))
+        user_id = payload.pop('id', payload.get('user_id'))
 
         user = User(id=user_id, is_authenticated=True, **payload)
 
@@ -152,8 +161,8 @@ class ServiceJWTAuthentication(BaseJSONWebTokenAuthentication):
     def auth_header_prefix(self):
         return settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'].lower()
 
-    def decode_jwt(self, token):
-        return handlers.jwt_service_decode_handler(token)
+    def decode_jwt(self, **kwargs):
+        return handlers.jwt_service_decode_handler(**kwargs)
 
     async def authenticate_credentials(self, request, payload):
         user = User(**payload.pop('user', AnonymousUser))
@@ -167,11 +176,108 @@ class ServiceJWTAuthentication(BaseJSONWebTokenAuthentication):
 
         return user, service
 
+
 class HardJSONWebTokenAuthentication(JSONWebTokenAuthentication):
+
+    def try_decode_jwt(self, **jwt_value):
+        try:
+            return self.decode_jwt(**jwt_value)
+        except jwt.DecodeError:
+            msg = 'Error decoding signature.'
+            raise exceptions.AuthenticationFailed(msg,
+                                                  error_code=GlobalErrorCodes.signature_not_decodable)
+
+    async def authenticate(self, request):
+        """
+        Returns a two-tuple of `User` and token if a valid signature has been
+        supplied using JWT-based authentication.  Otherwise returns `None`.
+        """
+
+        jwt_value_generator = self.get_jwt_value(request)
+        consumer_header = self.get_consumer_header(request)
+
+        exec = exceptions.AuthenticationFailed(error_code=GlobalErrorCodes.invalid_token)
+        #
+        async for jwt_value in jwt_value_generator:
+
+            if jwt_value is None or not consumer_header:
+                return None
+
+            try:
+                payload = self.try_decode_jwt(**jwt_value)
+            except jwt.InvalidTokenError:
+                # exec = exceptions.AuthenticationFailed(error_code=GlobalErrorCodes.invalid_token)
+                pass
+            else:
+                user, service = await self.authenticate_credentials(request, payload)
+                break
+        else:
+            raise exec
+
+        return user, service, jwt_value
+
+    async def get_jwt_value(self, request):
+        """
+        gets values for decoding jwt and verifing
+        :param request:
+        :return: list of dict
+        """
+        jwt_auth = super().get_jwt_value(request)
+        jwt_auth["verify"] = True
+        jwt_auth['key'] = ""  # from kong
+
+        consumer_id = self.get_consumer_header(request)
+
+        next_url = gateway.kong_base_url.with_path(f'/consumers/{consumer_id}/jwt')
+
+        while next_url:
+            async with gateway.session.get(next_url) as resp:
+                try:
+                    response = await resp.json()
+                    resp.raise_for_status()
+                except aiohttp.client_exceptions.ClientError as e:
+                    error_logger.critical(f"Error Response from KONG: [{resp.status}] {response}")
+                    raise exceptions.ServiceUnavailable503Error("Gateway is unavailable for authentication.")
+                except Exception as e:
+                    error_logger.critical(f"Something went wrong with KONG: {e.args[0]}")
+                    raise exceptions.APIException("Something when wrong with gateway authentication.")
+
+            for j in response['data']:
+                jwt_auth.update({"key": j['secret']})
+                jwt_auth.update({"issuer": j['key']})
+                yield jwt_auth
+
+            next_url = response.get('next', None)
+
+    async def get_user(self, user_id):
+        """
+        get user from user service.  This was extracted as its own function so that user service can
+        override to hit db without sending a request to itself.
+
+        :param user_id:
+        :return:  ex. {"id": "", "level": ""}
+        :rtype dict:
+        """
+        return await get_service('user').http_dispatch('GET', f'/api/v2/users/{user_id}/',
+                                                       query_params={"query_type": "id",
+                                                                     "include": "id,level"},
+                                                       propagate_error=True)
+
     async def authenticate_credentials(self, request, payload):
         """
         Returns an active user that matches the payload's user id and email.
         """
+        # call user service and get data
+        user_id = payload['user_id']
+
+        user_data = await self.get_user(user_id)
+
+        return await super().authenticate_credentials(request, user_data)
+
+
+
+
+
         # TODO: this get user model stuff
         # User = get_user_model()
         # username = jwt_get_username_from_payload_handler(payload)
@@ -203,7 +309,3 @@ class HardJSONWebTokenAuthentication(JSONWebTokenAuthentication):
         # if not user.get('is_active'):
         #     msg = 'User account is disabled.'
         #     raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.unknown_error)
-
-        user = await super().authenticate_credentials(request, payload)
-
-        return user

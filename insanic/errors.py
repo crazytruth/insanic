@@ -13,6 +13,7 @@ class GlobalErrorCodes(Enum):
     invalid_payload = 999103
     invalid_token = 999104
     invalid_signature = 999105
+    invalid_access = 999110
 
     # user/service related
     inactive_user = 999201

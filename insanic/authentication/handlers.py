@@ -7,25 +7,43 @@ from calendar import timegm
 from insanic.conf import settings
 
 
-def jwt_decode_handler(token):
+def jwt_decode_handler(token, *, verify=False, key=None, issuer=None):
     options = {
         'verify_exp': settings.JWT_AUTH['JWT_VERIFY_EXPIRATION'],
     }
 
-    decoded = jwt.decode(token, verify=False, options=options)
+    decode_kwargs = {
+        "jwt": token,
+        "verify": verify,
+        "options": options
+    }
 
-    return decoded
+    if verify:
+        if key is None:
+            raise RuntimeError("If verify is set to True, a key has to be supplied.")
+        elif issuer is None:
+            raise RuntimeError("If verify is set to True, issuer has to be supplied.")
+
+        decode_kwargs.update({
+            'key': key,
+            'leeway': settings.JWT_AUTH['JWT_LEEWAY'],
+            'audience': settings.JWT_AUTH['JWT_AUDIENCE'],
+            'issuer': issuer,
+            'algorithms': [settings.JWT_AUTH['JWT_ALGORITHM']]
+        })
+
+    return jwt.decode(**decode_kwargs)
 
 
-def jwt_payload_handler(user, key):
-    username = user.email
+def jwt_payload_handler(user, issuer):
+    # username = user.email
     user_id = user.id
 
     payload = {
         'user_id': user_id,
-        'email': username,
+        # 'email': username,
         'level': user.level,
-        'iss': key,
+        'iss': issuer,
         'exp': datetime.utcnow() + settings.JWT_AUTH['JWT_EXPIRATION_DELTA'],
     }
 
@@ -41,7 +59,6 @@ def jwt_payload_handler(user, key):
         payload['rol'] = settings.JWT_AUTH['JWT_ROLE']
 
     return payload
-
 
 def jwt_encode_handler(payload, secret, algorithm):
     return jwt.encode(

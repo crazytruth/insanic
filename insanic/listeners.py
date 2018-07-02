@@ -1,3 +1,4 @@
+import aiohttp
 import aiotask_context
 import asyncio
 
@@ -48,6 +49,10 @@ async def after_server_start_connect_database(app, loop=None, **kwargs):
 
 
 async def after_server_start_register_service(app, loop, **kwargs):
+    # app.gateway_client_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ttl_dns_cache=300))
+    gateway.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ttl_dns_cache=300))
+
+
     async with gateway as gw:
         await gw.register(app)
 
@@ -55,3 +60,5 @@ async def after_server_start_register_service(app, loop, **kwargs):
 async def before_server_stop_deregister_service(app, loop, **kwargs):
     async with gateway as gw:
         await gw.deregister()
+
+    await gateway.session.close()

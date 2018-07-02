@@ -54,11 +54,11 @@ def set_redis_connection_info(redisdb, monkeypatch):
 def test_user_token_factory():
     created_test_user_ids = set()
 
-    def factory(id=None, *, email, level, return_with_user=False):
+    def factory(id=None, *, level, return_with_user=False):
         if not id:
             id = uuid.uuid4().hex
 
-        user = User(id=id, email=email, level=level)
+        user = User(id=id, level=level)
         created_test_user_ids.add(user.id)
         # Create test consumer
         requests.post(f"http://kong.msa.swarm:18001/consumers/", json={'username': user.id})
@@ -101,7 +101,7 @@ def test_service_token_factory():
 
     def factory(user=None):
         if user is None:
-            user = User(id=uuid.uuid4().hex, email='service@token.factory', level=UserLevels.ACTIVE)
+            user = User(id=uuid.uuid4().hex, level=UserLevels.ACTIVE)
         # source, aud, source_ip, destination_version, is_authenticated):
         service = MockService()
         payload = handlers.jwt_service_payload_handler(service, dict(user))

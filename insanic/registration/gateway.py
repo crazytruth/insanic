@@ -41,10 +41,17 @@ def normalize_url_for_kong(url):
 class BaseGateway:
 
     def __init__(self):
-        self._enabled = settings.GATEWAY_REGISTRATION_ENABLED
+        self._enabled = None
         self.routes = {}
         self.service_id = None
         self.session = None
+        self.is_context_session = False
+
+    @property
+    def enabled(self):
+        if self._enabled is None:
+            self._enabled = settings.GATEWAY_REGISTRATION_ENABLED
+        return self._enabled
 
     @property
     def app(self):
@@ -137,8 +144,13 @@ class BaseGateway:
                     raise
 
     async def __aenter__(self):
-        self.session = aiohttp.ClientSession()
+        if self.session is None:
+            self.session = aiohttp.ClientSession()
+            self.is_context_session = True
+
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.session.close()
+        if self.is_context_session:
+            await self.session.close()
+            self.is_context_session = False

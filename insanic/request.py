@@ -217,7 +217,7 @@ class Request(SanicRequest):
         for authenticator in self.authenticators:
             try:
                 user_auth_tuple = await authenticator.authenticate(self)
-            except exceptions.APIException:
+            except exceptions.APIException as e:
                 self._not_authenticated()
                 raise
 

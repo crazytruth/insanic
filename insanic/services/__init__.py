@@ -1,7 +1,6 @@
 import aiohttp
 import aiotask_context
 import asyncio
-import datetime
 import warnings
 
 from asyncio import get_event_loop

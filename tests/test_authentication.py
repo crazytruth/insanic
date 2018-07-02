@@ -15,15 +15,6 @@ from insanic.models import User
 from insanic.views import InsanicView
 
 
-#
-# @pytest.fixture(scope="session")
-# def user_token_factory():
-#     def factory(id=uuid.uuid4(), *, email, level):
-#         user = User(**{"id": id.hex, 'email': email, 'level': level})
-#         payload = handlers.jwt_payload_handler(user)
-#         return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_encode_handler(payload)])
-#
-#     return factory
 
 @pytest.fixture
 def kong_gateway(monkeypatch):
@@ -40,8 +31,8 @@ def user_token_factory(kong_gateway):
     gateway = kong_gateway
     created_test_user_ids = set()
 
-    def factory(id=uuid.uuid4(), *, email, level):
-        user = User(id=id.hex, email=email, level=level)
+    def factory(id=uuid.uuid4(), *, level, **kwargs):
+        user = User(id=id.hex, level=level)
         created_test_user_ids.add(user.id)
 
         # Create test consumer
@@ -146,6 +137,21 @@ def test_base_authentication_on_view(insanic_application):
                                                   HardJSONWebTokenAuthentication])
 class TestAuthentication():
 
+    @pytest.fixture(autouse=True)
+    def monkeypatch_gateway_session(self, monkeypatch):
+        from insanic.registration import gateway
+        from yarl import URL
+        monkeypatch.setattr(gateway, "_kong_base_url", URL("http://kong.msa.swarm:18001"))
+
+    def monkeypatch_get_user(self, monkeypatch, authentication_class, user):
+        async def mock_get_user(self, user_id):
+            if user_id == user.id:
+                return {"id": user.id, "level": user.level}
+
+        monkeypatch.setattr(authentication_class, "get_user", mock_get_user, raising=False)
+
+
+
     def _create_app_with_authentication(self, authentication_class):
         app = Insanic('test')
 
@@ -158,10 +164,12 @@ class TestAuthentication():
         app.add_route(TokenView.as_view(), '/')
         return app
 
-    def test_jwt_token_authentication_user_not_active(self, authentication_class, test_user_token_factory):
+    def test_jwt_token_authentication_user_not_active(self, monkeypatch, authentication_class, test_user_token_factory):
         app = self._create_app_with_authentication(authentication_class)
-        user, token = test_user_token_factory(email='test@test.test', level=UserLevels.DEACTIVATED,
+        user, token = test_user_token_factory(level=UserLevels.DEACTIVATED,
                                               return_with_user=True)
+
+        self.monkeypatch_get_user(monkeypatch, authentication_class, user)
 
         request, response = app.test_client.get(
             '/',
@@ -175,11 +183,13 @@ class TestAuthentication():
         assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.inactive_user
         assert "User account is disabled." in response.json['description']
 
-    def test_jwt_token_authentication_success(self, authentication_class, user_token_factory):
+    def test_jwt_token_authentication_success(self, monkeypatch, authentication_class, user_token_factory):
         app = self._create_app_with_authentication(authentication_class)
         user_id = uuid.uuid4()
+        level = UserLevels.ACTIVE
+        token = user_token_factory(id=user_id, level=level)
 
-        token = user_token_factory(id=user_id, email="test@test.test", level=UserLevels.ACTIVE)
+        self.monkeypatch_get_user(monkeypatch, authentication_class, User(id=user_id.hex, level=level))
 
         request, response = app.test_client.get(
             '/',
@@ -203,7 +213,7 @@ class TestServiceJWTAuthentication:
 
     def test_decode_jwt(self, auth, test_service_token_factory):
         test_user_id = 'a6454e643f7f4e8889b7085c466548d4'
-        test_user = User(id=uuid.UUID(test_user_id).hex, email="test@decode.jwt", level=UserLevels.STAFF,
+        test_user = User(id=uuid.UUID(test_user_id).hex, level=UserLevels.STAFF,
                          is_authenticated=True)
 
         token = test_service_token_factory(test_user)
@@ -216,7 +226,7 @@ class TestServiceJWTAuthentication:
 
     async def test_authenticate_credentials(self, auth, test_service_token_factory):
         test_user_id = 'a6454e643f7f4e8889b7085c466548d4'
-        test_user = User(id=uuid.UUID(test_user_id).hex, email="test@decode.jwt", level=UserLevels.STAFF,
+        test_user = User(id=uuid.UUID(test_user_id).hex, level=UserLevels.STAFF,
                          is_authenticated=True)
         token = test_service_token_factory(test_user)
         payload = handlers.jwt_service_decode_handler(token.split()[1])

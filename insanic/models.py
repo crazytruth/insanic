@@ -3,12 +3,11 @@ from insanic.conf import settings
 
 
 class User:
-    __slots__ = ('_is_authenticated', 'id', 'email', 'level')
+    __slots__ = ('_is_authenticated', 'id', 'level')
 
-    def __init__(self, *, id, email, level, is_authenticated=False, **kwargs):
+    def __init__(self, *, id, level, is_authenticated=False, **kwargs):
         self._is_authenticated = is_authenticated
         self.id = id
-        self.email = email
         self.level = level
 
     @property
@@ -37,11 +36,10 @@ class User:
             else:
                 user_type = "User"
 
-        return ",".join([user_type, self.id, self.email])
+        return ",".join([user_type, self.id])
 
     def __iter__(self):
         yield ("id", self.id)
-        yield ("email", self.email)
         yield ("level", self.level)
         yield ("is_authenticated", self._is_authenticated)
 
@@ -49,7 +47,7 @@ class User:
 class _AnonymousUser(User):
 
     def __init__(self):
-        super().__init__(id='', email='', level=-1)
+        super().__init__(id='', level=-1)
 
 
 class RequestService:

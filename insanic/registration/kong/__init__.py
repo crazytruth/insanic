@@ -19,11 +19,22 @@ class KongGateway(BaseGateway):
 
     def __init__(self):
         super().__init__()
-        self.kong_base_url = URL(f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}")
-
-        self.service_name = settings.SERVICE_NAME
+        self._kong_base_url = None
+        self._service_name = None
         self._app = None
         self.registered_instance = {}
+
+    @property
+    def kong_base_url(self):
+        if self._kong_base_url is None:
+            self._kong_base_url = URL(f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}")
+        return self._kong_base_url
+
+    @property
+    def service_name(self):
+        if self._service_name is None:
+            self._service_name = settings.SERVICE_NAME
+        return self._service_name
 
     @property
     def route_compare_fields(self):
