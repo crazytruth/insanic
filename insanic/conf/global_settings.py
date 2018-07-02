@@ -137,7 +137,8 @@ KONG_ROUTE_REGEX_PRIORITY = {"local": 10,
 KONG_ROUTE_REGEX_DEFAULT = 10
 KONG_FAIL_SOFT_ENVIRONMENTS = ("local", "test",)
 
-KONG_PLUGIN = {"JSONWebTokenAuthentication": "jwt",}
+KONG_PLUGIN = {"JSONWebTokenAuthentication": "jwt",
+               "HardJSONWebTokenAuthentication": "jwt", }
 
 # VAULT_APPROLE_BIND_SECRET = "pull" # value can be pull or push
 

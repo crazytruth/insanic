@@ -128,7 +128,7 @@ class Insanic(Sanic):
                     if hasattr(_handler, "scope") and _handler.scope == "public":
                         # if method is decorated with public_facing, add to kong routes
                         if route.pattern.pattern not in _public_routes:
-                            _public_routes[route.pattern.pattern] = {'public_methods': [], 'plugins': []}
+                            _public_routes[route.pattern.pattern] = {'public_methods': [], 'plugins': set()}
                         _public_routes[route.pattern.pattern]['public_methods'].append(method.upper())
 
                 # If route has been added to kong, enable some plugins
@@ -136,7 +136,7 @@ class Insanic(Sanic):
                     for ac in route.handler.view_class.authentication_classes:
                         plugin = settings.KONG_PLUGIN.get(ac.__name__)
                         if plugin:
-                            _public_routes[route.pattern.pattern]['plugins'].append(plugin)
+                            _public_routes[route.pattern.pattern]['plugins'].add(plugin)
 
             self._public_routes = _public_routes
         return self._public_routes
