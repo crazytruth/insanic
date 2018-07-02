@@ -8,7 +8,6 @@ import jwt
 from insanic import exceptions
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
-from insanic.loading import get_service
 from insanic.log import error_logger
 from insanic.registration import gateway
 
@@ -180,6 +179,18 @@ class ServiceJWTAuthentication(BaseJSONWebTokenAuthentication):
 
 class HardJSONWebTokenAuthentication(JSONWebTokenAuthentication):
 
+    def __init__(self):
+        super().__init__()
+        self._user_service = None
+
+    @property
+    def user_service(self):
+        if self._user_service is None:
+            from insanic.loading import get_service
+            self._user_service = get_service('user')
+        return self._user_service
+
+
     def try_decode_jwt(self, **jwt_value):
         try:
             return self.decode_jwt(**jwt_value)
@@ -259,10 +270,10 @@ class HardJSONWebTokenAuthentication(JSONWebTokenAuthentication):
         :return:  ex. {"id": "", "level": ""}
         :rtype dict:
         """
-        return await get_service('user').http_dispatch('GET', f'/api/v2/users/{user_id}/',
-                                                       query_params={"query_type": "id",
-                                                                     "include": "id,level"},
-                                                       propagate_error=True)
+        return await self.user_service.http_dispatch('GET', f'/api/v2/users/{user_id}/',
+                                                     query_params={"query_type": "id",
+                                                                   "include": "id,level"},
+                                                     propagate_error=True)
 
     async def authenticate_credentials(self, request, payload):
         """
