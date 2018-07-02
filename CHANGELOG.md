@@ -5,7 +5,8 @@ Changelog for insanic
 0.4.13 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- FEAT: hard jwt authentication 
+- FIX: xray tracing not recording body
 
 
 0.4.12 (2018-06-29)

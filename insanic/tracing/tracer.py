@@ -72,7 +72,7 @@ class InsanicXRayMiddleware:
         else:
             segment.put_http_meta(http.CLIENT_IP, request.remote_addr)
 
-        attributes = ['args', 'content_type', 'cookies', '_data', 'files',
+        attributes = ['args', 'content_type', 'cookies', 'data',
                       'host', 'ip', 'method', 'path', 'scheme', 'url', ]
         for attr in attributes:
             if hasattr(request, attr):
