@@ -77,7 +77,7 @@ setup(
         "aiotask_context",
         # "infuse>=0.1.0",
         "python-dateutil",
-        "packaging"
+        "packaging",
     ],
     # test_suite='nose.collector',
     tests_require=test_requires,

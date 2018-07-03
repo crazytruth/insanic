@@ -48,7 +48,7 @@ class TestBaseGateway:
             assert self.gateway.session is not None
             assert isinstance(gw.session, aiohttp.ClientSession)
 
-        assert self.gateway.session.closed is True
+        assert self.gateway.session is None
 
 
 gw = None
@@ -69,11 +69,11 @@ class TestKongGateway:
         gw = self.gateway
         yield
 
-    @pytest.fixture(autouse=True, scope="module")
-    def kong_clean_up(self):
-
-        yield
-        global gw
+        # @pytest.fixture(autouse=True, scope="module")
+        # def kong_clean_up(self):
+        #
+        #     yield
+        #     global gw
 
         kong_base_url = gw.kong_base_url.with_host('kong.msa.swarm')
         resp = requests.get(kong_base_url.with_path('/services'))
@@ -227,18 +227,8 @@ class TestKongGateway:
         insanic_application.add_route(MockView.as_view(), route)
 
         # Test without token
-        for _ in range(10):
-            request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}')
-            if response.status not in [404, 503]:
-                break
-
-            time.sleep(5)
-        else:
-            assert response.status == 401
-
+        request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}')
         assert response.status == 401
-        # try_multiple(f'http://{settings.KONG_HOST}:18000{route}', expected_status=401)
-
 
         # Test with token
         token = test_user_token_factory(level=UserLevels.ACTIVE)
@@ -254,15 +244,9 @@ class TestKongGateway:
         # Test with banned user
         token = test_user_token_factory(level=UserLevels.BANNED)
         # request, response = try_multiple(f'http://{settings.KONG_HOST}:18000{route}', 401, {'Authorization': f"{token}"})
-        for _ in range(10):
-            request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
-                                                                    headers={'Authorization': f"{token}"})
 
-            if response.status not in [404, 503]:
-                break
-            time.sleep(5)
-        else:
-            assert response.status == 401
+        request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
+                                                                headers={'Authorization': f"{token}"})
 
         assert response.status == 401
 

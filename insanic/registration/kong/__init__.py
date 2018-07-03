@@ -56,6 +56,41 @@ class KongGateway(BaseGateway):
     async def target(self):
         return f"{get_my_ip()}:{self.app._port}"
 
+    @property
+    def service_id(self):
+        return self.registered_instance.get(self.SERVICES_RESOURCE, None)
+
+    @service_id.setter
+    def service_id(self, value):
+        if value is None and self.SERVICES_RESOURCE in self.registered_instance:
+            del self.registered_instance[self.SERVICES_RESOURCE]
+        else:
+            self.registered_instance[self.SERVICES_RESOURCE] = value
+
+    @property
+    def upstream_id(self):
+        return self.registered_instance.get(self.UPSTREAMS_RESOURCE, None)
+
+    @upstream_id.setter
+    def upstream_id(self, value):
+        if value is None and self.UPSTREAMS_RESOURCE in self.registered_instance:
+            del self.registered_instance[self.UPSTREAMS_RESOURCE]
+        else:
+            self.registered_instance[self.UPSTREAMS_RESOURCE] = value
+
+    @property
+    def target_id(self):
+        return self.registered_instance.get(self.TARGETS_RESOURCE, None)
+
+    @target_id.setter
+    def target_id(self, value):
+        if value is None and self.TARGETS_RESOURCE in self.registered_instance:
+            del self.registered_instance[self.TARGETS_RESOURCE]
+        else:
+            self.registered_instance[self.TARGETS_RESOURCE] = value
+
+
+
     @http_session_manager
     async def _register(self, *, session):
         await self.register_service()
@@ -107,12 +142,19 @@ class KongGateway(BaseGateway):
     async def deregister_service(self, *, session):
         if self.SERVICES_RESOURCE in self.registered_instance:
             async with session.delete(
-                    self.kong_base_url.with_path(f"/services/{self.registered_instance[self.SERVICES_RESOURCE]}")
+                    self.kong_base_url.with_path(f"/services/{self.service_id}")
             ) as resp:
-                resp.raise_for_status()
-                self.logger_service("debug", f"Deregistered service {self.registered_instance[self.SERVICES_RESOURCE]}")
-                self.service_id = None
-                del self.registered_instance[self.SERVICES_RESOURCE]
+                response = await resp.text()
+                try:
+                    resp.raise_for_status()
+                    self.logger_service("debug", f"Deregistered service {self.service_id}")
+                    # del self.registered_instance[self.SERVICES_RESOURCE]
+                    self.service_id = None
+                except aiohttp.client_exceptions.ClientResponseError:
+                    self.logger_service('critical',
+                                        f"FAILED: deregistering service {self.kong_service_name}: {response}")
+                    raise
+
         else:
             self.service_id = None
             self.logger_service("debug", "This instance did not register a service.")
@@ -166,14 +208,13 @@ class KongGateway(BaseGateway):
                 self.logger_upstream("debug",
                                      f"Deregistered upstream {self.registered_instance[self.UPSTREAMS_RESOURCE]}")
                 self.upstream_id = None
-                del self.registered_instance[self.UPSTREAMS_RESOURCE]
         else:
             self.upstream_id = None
             self.logger_upstream("debug", "This instance did not register an upstream.")
 
     @http_session_manager
     async def register_target(self, *, session):
-        if self.enabled and hasattr(self, 'upstream_id') and self.upstream_id is not None:
+        if self.enabled and self.upstream_id is not None:
 
             next_url = self.kong_base_url.with_path(
                 f"/{self.UPSTREAMS_RESOURCE}/{self.upstream_id}/{self.TARGETS_RESOURCE}/")
@@ -207,7 +248,6 @@ class KongGateway(BaseGateway):
                         resp.raise_for_status()
                         target_id = kong_target_response['id']
                         message = "Registered Target {target} as {target_id} for {service_host}"
-                        self.registered_instance[self.TARGETS_RESOURCE] = target_id
                     except aiohttp.client_exceptions.ClientResponseError:  # pragma: no cover
                         self.logger_target("critical",
                                            f"FAILED: registering target {target}: {kong_target_response}")
@@ -229,7 +269,6 @@ class KongGateway(BaseGateway):
                 resp.raise_for_status()
                 self.logger_target("debug", f"Deregistered target {self.registered_instance[self.TARGETS_RESOURCE]}")
                 self.target_id = None
-                del self.registered_instance[self.TARGETS_RESOURCE]
         else:
             self.target_id = None
             self.logger_target("debug", "This instance did not register a target.")

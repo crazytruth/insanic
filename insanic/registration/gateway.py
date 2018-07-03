@@ -43,7 +43,6 @@ class BaseGateway:
     def __init__(self):
         self._enabled = None
         self.routes = {}
-        self.service_id = None
         self.session = None
         self.is_context_session = False
 
@@ -144,7 +143,7 @@ class BaseGateway:
                     raise
 
     async def __aenter__(self):
-        if self.session is None:
+        if self.session is None or (hasattr(self.session, 'closed') and self.session.closed):
             self.session = aiohttp.ClientSession()
             self.is_context_session = True
 
@@ -154,3 +153,4 @@ class BaseGateway:
         if self.is_context_session:
             await self.session.close()
             self.is_context_session = False
+            self.session = None

@@ -138,6 +138,13 @@ def test_base_authentication_on_view(insanic_application):
                                                   HardJSONWebTokenAuthentication])
 class TestAuthentication():
 
+    @staticmethod
+    async def _deregister_routes(app, loop):
+        from insanic.registration import gateway
+        async with gateway as gw:
+            await gw.deregister_routes()
+
+
     @pytest.fixture(autouse=True)
     def monkeypatch_gateway_session(self, monkeypatch):
         from insanic.registration import gateway
@@ -162,6 +169,7 @@ class TestAuthentication():
                 return json({})
 
         app.add_route(TokenView.as_view(), '/')
+        app.listeners["before_server_stop"].insert(0, self._deregister_routes)
         return app
 
     def test_jwt_token_authentication_user_not_active(self, monkeypatch, authentication_class, test_user_token_factory):
@@ -185,6 +193,7 @@ class TestAuthentication():
 
     def test_jwt_token_authentication_success(self, monkeypatch, authentication_class, user_token_factory):
         app = self._create_app_with_authentication(authentication_class)
+
         user_id = uuid.uuid4()
         level = UserLevels.ACTIVE
         token = user_token_factory(id=user_id, level=level)
