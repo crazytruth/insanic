@@ -1,11 +1,14 @@
 import aiohttp
 import aiotask_context
 import asyncio
+import io
 import warnings
 
+# from aiohttp.formdata import FormData
 from asyncio import get_event_loop
 
 from sanic.constants import HTTP_METHODS
+from sanic.request import File
 from yarl import URL
 
 from insanic import exceptions, status
@@ -182,6 +185,29 @@ class Service:
 
         return lower_headers
 
+    def _prepare_body(self, headers, payload, files=None):
+        if files is None:
+            files = {}
+
+        if len(files) == 0 and headers.get('content-type') == "application/json":
+            data = aiohttp.payload.JsonPayload(payload)
+        else:
+            data = aiohttp.formdata.FormData(payload)
+            for k, v in files.items():
+                if k in payload.keys():
+                    raise RuntimeError(f"CONFLICT ERROR: payload already has the key, {k}. Can not overwrite.")
+                elif isinstance(v, io.IOBase):
+                    data.add_field(k, v)
+                elif isinstance(v, File):
+                    data.add_field(k, v.body, filename=v.name, content_type=v.type)
+                else:
+                    raise RuntimeError(
+                        "INVALID FILE: invalid value for files. Must be either and instance of io.IOBase(using open), "
+                        "sanic File object, or bytestring.")
+
+        return data
+
+
     async def _dispatch_fetch(self, method, request, **kwargs):
 
         request_params = {
@@ -217,18 +243,7 @@ class Service:
 
         url = self._construct_url(endpoint)
         headers = self._prepare_headers(headers, files)
-
-        for k, v in files.items():
-            if k in payload.keys():
-                raise RuntimeError(f"payload already already has the key, {k}. Can not overwrite.")
-            else:
-                payload[k] = v
-
-        if len(files) == 0 and headers['content-type'] == "application/json":
-            data = aiohttp.payload.JsonPayload(payload)
-        else:
-
-            data = payload
+        data = self._prepare_body(headers, payload, files)
 
         outbound_request = aiohttp.ClientRequest(method, url,
                                                  params=query_params, headers=headers, data=data)

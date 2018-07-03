@@ -6,7 +6,9 @@ import uvloop
 import pytest
 import random
 import uuid
+import ujson
 
+from sanic.request import File
 from sanic.response import json
 from insanic.authentication import handlers
 from insanic.conf import settings
@@ -258,9 +260,65 @@ class TestServiceClass:
         assert headers['authorization'].endswith(self.service.service_auth_token)
         assert len(headers['authorization'].split(' ')) == 2
 
-    async def test_lower_case_headers(self, insanic_application):
+    @pytest.mark.parametrize('payload,files,expected_type', (
+            ({}, {}, aiohttp.JsonPayload),
+            ({"a": "b"}, {}, aiohttp.JsonPayload),
+            ({}, {"image": open("insanic.png", "rb")}, aiohttp.FormData),
+            ({"a": "b"}, {"image": open("insanic.png", "rb")}, aiohttp.FormData),
+            ({}, {"image": File('image/png', open("insanic.png", "rb").read(1024), "insanic.png")},
+             aiohttp.FormData),
+            ({"a": "b"}, {"image": File('image/png', open("insanic.png", "rb").read(1024), "insanic.png")},
+             aiohttp.FormData),
+    ))
+    async def test_prepare_body(self, payload, files, expected_type):
+        headers = self.service._prepare_headers({}, files)
+
+        body = self.service._prepare_body(headers, payload, files)
+
+        assert isinstance(body, expected_type)
+
+        if expected_type == aiohttp.JsonPayload:
+            value = ujson.loads(body._value.decode())
+            assert value == payload
+        elif expected_type == aiohttp.FormData:
+            assert body.is_multipart is True
+
+    async def test_prepare_body_error_duplicate_keys_in_payload_and_files(self):
+        payload = {"a": "b"}
+        files = {"a": open("insanic.png", "rb")}
+
+        headers = self.service._prepare_headers({}, files)
+
+        with pytest.raises(RuntimeError):
+            try:
+                self.service._prepare_body(headers, payload, files)
+            except RuntimeError as e:
+                assert e.args[0].startswith("CONFLICT ERROR:")
+                raise
+
+    @pytest.mark.parametrize("files", (
+            {"i": "string"},
+            {"i": b"bytes"},
+            {"i": 1},
+            {"i": 1.0},
+            {"i": open("insanic.png", 'rb').read(1024)}
+    ))
+    async def test_prepare_body_error_invalid_file_format(self, files):
+        payload = {"a": "b"}
+        headers = self.service._prepare_headers({}, files)
+
+        with pytest.raises(RuntimeError):
+            try:
+                self.service._prepare_body(headers, payload, files)
+            except RuntimeError as e:
+                assert e.args[0].startswith("INVALID FILE")
+                raise
+
+    async def test_lower_case_headers(self):
         headers = self.service._prepare_headers({})
 
+        for k in headers:
+            assert k.islower()
 
 class TestAioHttpCompatibility:
 

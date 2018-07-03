@@ -7,6 +7,9 @@ Changelog for insanic
 
 - FEAT: hard jwt authentication 
 - FIX: xray tracing not recording body
+- CHORE: refactor gateway registration
+- FIX: multipart/form-data in http_dispatch using aiohttp.FormData
+- TEST: tests for sending multipart/form-data
 
 
 0.4.12 (2018-06-29)

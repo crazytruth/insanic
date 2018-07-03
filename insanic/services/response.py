@@ -10,6 +10,6 @@ class InsanicResponse(ClientResponse):
                 self.request_info,
                 self.history,
                 status=self.status,
-                message=self.text(),
+                message=self._body,
                 headers=self.headers)
 
