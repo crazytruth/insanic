@@ -176,7 +176,7 @@ class KongGateway(BaseGateway):
         if self.enabled and hasattr(self, 'upstream_id') and self.upstream_id is not None:
 
             next_url = self.kong_base_url.with_path(
-                f"/{self.UPSTREAMS_RESOURCE}/{self.kong_service_name}/{self.TARGETS_RESOURCE}/")
+                f"/{self.UPSTREAMS_RESOURCE}/{self.upstream_id}/{self.TARGETS_RESOURCE}/")
 
             targets = []
             while next_url is not None:

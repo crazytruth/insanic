@@ -45,7 +45,7 @@ class BaseSpecificPermissionTestClass:
         headers = {}
         if user_level is not None:
             user_id = uuid.uuid4().hex
-            user, token = test_user_token_factory(id=user_id, email="test", level=user_level, return_with_user=True)
+            user, token = test_user_token_factory(id=user_id, level=user_level, return_with_user=True)
             headers = {"Authorization": token,
                        "x-consumer-username": user.id}
 
@@ -205,7 +205,7 @@ class TestIsOwnerOrAdminUser(BaseSpecificPermissionTestClass):
 
         headers = {}
         if user_level is not None:
-            user, token = test_user_token_factory(email="test", level=user_level, return_with_user=True)
+            user, token = test_user_token_factory(level=user_level, return_with_user=True)
             user_id = user.id
             headers = {"Authorization": token,
                        "X-Consumer-Username": user.id}
@@ -243,7 +243,7 @@ class TestIsOwnerOrAdminUser(BaseSpecificPermissionTestClass):
         headers = {}
         user_id = uuid.uuid4().hex
         if user_level is not None:
-            user, token = test_user_token_factory(email="test", level=user_level, return_with_user=True)
+            user, token = test_user_token_factory(level=user_level, return_with_user=True)
             headers = {"Authorization": token,
                        "x-consumer-username": user.id}
 

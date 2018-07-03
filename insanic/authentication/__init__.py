@@ -115,7 +115,7 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
         payload = self.try_decode_jwt(**jwt_value)
         user, service = await self.authenticate_credentials(request, payload)
 
-        return user, service, jwt_value
+        return user, service, jwt_value['token']
 
 
 class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):

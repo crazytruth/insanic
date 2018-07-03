@@ -82,8 +82,8 @@ class TestThrottling:
         PerUserThrottles
         """
         insanic_application.add_route(MockView.as_view(), '/')
-        user1, token1 = test_user_token_factory(email="test1@mmt.com", level=UserLevels.ACTIVE, return_with_user=True)
-        user2, token2 = test_user_token_factory(email="test2@mmt.com", level=UserLevels.ACTIVE, return_with_user=True)
+        user1, token1 = test_user_token_factory(level=UserLevels.ACTIVE, return_with_user=True)
+        user2, token2 = test_user_token_factory(level=UserLevels.ACTIVE, return_with_user=True)
 
         for dummy in range(3):
             insanic_application.test_client.get('/', headers={"Authorization": token1, "x-consumer-username": user1.id})
@@ -298,7 +298,7 @@ class TestScopedRateThrottle:
                 return text('dummy')
 
         user_id = 1
-        user = User(id=user_id, email="test@test.test", level=UserLevels.ACTIVE, is_authenticated=True)
+        user = User(id=user_id, level=UserLevels.ACTIVE, is_authenticated=True)
 
         class MockRequest:
             @property
@@ -487,7 +487,7 @@ class TestAnonRateThrottle:
 
     def test_authenticated_user_not_affected(self, loop):
         user_id = 1
-        user = User(id=user_id, email="test@test.test", level=UserLevels.ACTIVE, is_authenticated=True)
+        user = User(id=user_id, level=UserLevels.ACTIVE, is_authenticated=True)
 
         class MockRequest:
             @property
@@ -499,7 +499,7 @@ class TestAnonRateThrottle:
 
     def test_get_cache_key_returns_correct_value(self, loop):
         user_id = 1
-        user = User(id=user_id, email="test@test.test", level=UserLevels.ACTIVE, is_authenticated=False)
+        user = User(id=user_id, level=UserLevels.ACTIVE, is_authenticated=False)
 
         class MockRequest:
             ip = None

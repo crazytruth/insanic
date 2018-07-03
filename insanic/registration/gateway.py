@@ -47,11 +47,11 @@ class BaseGateway:
         self.session = None
         self.is_context_session = False
 
-    @property
-    def enabled(self):
-        if self._enabled is None:
-            self._enabled = settings.GATEWAY_REGISTRATION_ENABLED
-        return self._enabled
+    # @property
+    # def enabled(self):
+    #     if self._enabled is None:
+    #         self._enabled = settings.GATEWAY_REGISTRATION_ENABLED
+    #     return self._enabled
 
     @property
     def app(self):
@@ -108,9 +108,9 @@ class BaseGateway:
         _cp = current_process()
 
         if _cp.name == "MainProcess":
-            return self._enabled
+            return settings.GATEWAY_REGISTRATION_ENABLED
         elif _cp.name.startswith("Process-"):
-            return self._enabled and _cp.name.replace("Process-", "") == "1"
+            return settings.GATEWAY_REGISTRATION_ENABLED and _cp.name.replace("Process-", "") == "1"
         else:
             raise RuntimeError("Unable to resolve process name.")
 

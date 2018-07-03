@@ -19,7 +19,7 @@ from insanic.views import InsanicView
 
 def test_image_file():
     with open('insanic.png', 'rb') as f:
-        contents = f.read()
+        contents = f
     return contents
 
 
@@ -202,11 +202,11 @@ class TestServiceClass:
     @pytest.mark.parametrize("payload,files,headers, expect_content_type", (
             ({"a": "b"}, {}, {}, 'application/json'),
             ({"a": "b"}, {}, {"content-type": "multipart/form-data"}, "multipart/form-data"),
-            ({}, {"image": test_image_file()}, {}, 'multipart/form-data'),
-            ({}, {"image": test_image_file()}, {"content-type": "multipart/form-data"}, 'multipart/form-data'),
-            ({}, {"image": test_image_file()}, {"Content-Type": "multipart/form-data"}, 'multipart/form-data'),
-            ({}, {"image": test_image_file()}, {"content-type": "application/json"}, 'application/json'),
-            ({}, {"image": test_image_file()}, {"Content-type": "application/json"}, 'application/json'),
+            ({}, {"image": open('insanic.png', 'rb')}, {}, 'multipart/form-data'),
+            ({}, {"image": open('insanic.png', 'rb')}, {"content-type": "multipart/form-data"}, 'multipart/form-data'),
+            ({}, {"image": open('insanic.png', 'rb')}, {"Content-Type": "multipart/form-data"}, 'multipart/form-data'),
+            ({}, {"image": open('insanic.png', 'rb')}, {"content-type": "application/json"}, 'application/json'),
+            ({}, {"image": open('insanic.png', 'rb')}, {"Content-type": "application/json"}, 'application/json'),
     ))
     def test_http_dispatch_aiohttp_request_object_headers(self, monkeypatch, payload, files, headers,
                                                           expect_content_type):
@@ -275,7 +275,7 @@ class TestRequestTaskContext:
     @pytest.fixture()
     def test_user(self):
         test_user_id = 'a6454e643f7f4e8889b7085c466548d4'
-        return User(id=uuid.UUID(test_user_id).hex, email="test@decode.jwt", level=UserLevels.STAFF,
+        return User(id=uuid.UUID(test_user_id).hex, level=UserLevels.STAFF,
                     is_authenticated=True)
 
     def test_task_context_service_after_authentication(self, insanic_application, test_user,
@@ -331,7 +331,7 @@ class TestRequestTaskContext:
     def test_task_context_user_after_authentication(self, insanic_application, test_user, test_user_token_factory):
         import aiotask_context
 
-        token = test_user_token_factory(id=test_user.id, email=test_user.email, level=test_user.level)
+        token = test_user_token_factory(id=test_user.id, level=test_user.level)
 
         class TokenView(InsanicView):
 
@@ -380,7 +380,7 @@ class TestRequestTaskContext:
         # insanic_application.run(host='127.0.0.1', port=unused_port)
         requests = []
         for i in range(10):
-            user = User(id=i, email=f"test{i}@decode.jwt", level=UserLevels.STAFF,
+            user = User(id=i, level=UserLevels.STAFF,
                         is_authenticated=True)
 
             token = test_service_token_factory(user)
@@ -429,8 +429,7 @@ class TestRequestTaskContext:
         users = []
         requests = []
         for i in range(10):
-            user, token = test_user_token_factory(email=f"test{i}@decode.jwt",
-                                                  level=UserLevels.STAFF, return_with_user=True)
+            user, token = test_user_token_factory(level=UserLevels.STAFF, return_with_user=True)
             requests.append(client.get('/', headers={"Authorization": token}))
             users.append(user)
 
@@ -486,8 +485,7 @@ class TestRequestTaskContext:
         users = []
         requests = []
         for i in range(10):
-            user, token = test_user_token_factory(email=f"test{i}@decode.jwt",
-                                                  level=UserLevels.STAFF, return_with_user=True)
+            user, token = test_user_token_factory(level=UserLevels.STAFF, return_with_user=True)
             requests.append(client.get('/', headers={"Authorization": token}))
             users.append(user)
 
@@ -543,7 +541,7 @@ class TestRequestTaskContext:
         requests = []
 
         for i in range(10):
-            user = User(id=i, email=f"test{i}@decode.jwt", level=UserLevels.STAFF,
+            user = User(id=i, level=UserLevels.STAFF,
                         is_authenticated=True)
 
             token = test_service_token_factory(user)

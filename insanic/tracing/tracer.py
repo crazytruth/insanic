@@ -101,7 +101,8 @@ class InsanicXRayMiddleware:
         segment.put_http_meta(http.STATUS, response.status)
 
         cont_len = response.headers.get('Content-Length')
-        segment.put_annotation('response', response.body.decode())
+        # truncate response if too lo
+        segment.put_annotation('response', response.body.decode()[:1000])
         if cont_len:
             segment.put_http_meta(http.CONTENT_LENGTH, int(cont_len))
 

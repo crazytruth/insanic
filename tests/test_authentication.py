@@ -12,6 +12,7 @@ from insanic.choices import UserLevels
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.models import User
+from insanic.scopes import public_facing
 from insanic.views import InsanicView
 
 
@@ -150,14 +151,13 @@ class TestAuthentication():
 
         monkeypatch.setattr(authentication_class, "get_user", mock_get_user, raising=False)
 
-
-
     def _create_app_with_authentication(self, authentication_class):
         app = Insanic('test')
 
         class TokenView(InsanicView):
             authentication_classes = (authentication_class,)
 
+            @public_facing
             def get(self, request, *args, **kwargs):
                 return json({})
 

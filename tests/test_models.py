@@ -4,7 +4,6 @@ from insanic.choices import UserLevels
 from insanic.models import User, AnonymousUser
 
 TEST_USER_ID = "1"
-TEST_USER_EMAIL = 'test@email.com'
 
 
 @pytest.fixture()
@@ -12,7 +11,7 @@ def test_user():
     test_level = UserLevels.ACTIVE
     test_authenticated = True
 
-    return User(id=TEST_USER_ID, email=TEST_USER_EMAIL, level=test_level, is_authenticated=test_authenticated)
+    return User(id=TEST_USER_ID, level=test_level, is_authenticated=test_authenticated)
 
 
 def test_anonymous_user():
@@ -28,7 +27,6 @@ def test_anonymous_user():
 
 def test_user_active(test_user):
     assert test_user.id == TEST_USER_ID
-    assert test_user.email == TEST_USER_EMAIL
     assert test_user.level == UserLevels.ACTIVE
     assert test_user.is_staff is False
     assert test_user.is_authenticated is True
@@ -37,7 +35,6 @@ def test_user_active(test_user):
 
     assert str(test_user).startswith('User')
     assert test_user.id in str(test_user)
-    assert test_user.email in str(test_user)
 
 
 def test_user_ban(test_user):

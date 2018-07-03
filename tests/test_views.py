@@ -112,28 +112,28 @@ def test_view_permission(test_user_token_factory):
     assert response.status == status.HTTP_401_UNAUTHORIZED
     assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.signature_not_decodable
 
-    user, token = test_user_token_factory(email="test@mmt.com", level=UserLevels.BANNED, return_with_user=True)
+    user, token = test_user_token_factory(level=UserLevels.BANNED, return_with_user=True)
     request, response = app.test_client.get('/', headers={
         "Authorization": token, 'x-consumer-username': user.id})
 
     assert response.status == status.HTTP_401_UNAUTHORIZED
     assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.inactive_user
 
-    user, token = test_user_token_factory(email="test@mmt.com", level=UserLevels.DEACTIVATED, return_with_user=True)
+    user, token = test_user_token_factory(level=UserLevels.DEACTIVATED, return_with_user=True)
     request, response = app.test_client.get('/', headers={
         "Authorization": token, 'x-consumer-username': user.id})
 
     assert response.status == status.HTTP_401_UNAUTHORIZED
     assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.inactive_user
 
-    user, token = test_user_token_factory(email="test@mmt.com", level=UserLevels.ACTIVE, return_with_user=True)
+    user, token = test_user_token_factory(level=UserLevels.ACTIVE, return_with_user=True)
     request, response = app.test_client.get('/', headers={
         "Authorization": token, 'x-consumer-username': user.id})
 
     assert response.status == status.HTTP_200_OK
     assert response.json == response_body
 
-    user, token = test_user_token_factory(email="test@mmt.com", level=UserLevels.STAFF, return_with_user=True)
+    user, token = test_user_token_factory(level=UserLevels.STAFF, return_with_user=True)
     request, response = app.test_client.get('/', headers={
         "Authorization": token, 'x-consumer-username': user.id})
 
@@ -155,7 +155,7 @@ def test_permission_denied(test_user_token_factory, user_level, monkeypatch):
 
     app.add_route(DummyView.as_view(), '/')
 
-    user, token = test_user_token_factory(email="test@mmt.com", level=user_level, return_with_user=True)
+    user, token = test_user_token_factory(level=user_level, return_with_user=True)
 
     request, response = app.test_client.get('/', headers={
         "Authorization": token, 'x-consumer-username': user.id})
@@ -178,7 +178,7 @@ def test_is_admin(test_user_token_factory, user_level):
 
     app.add_route(DummyView.as_view(), '/')
 
-    user, token = test_user_token_factory(email="test@mmt.com", level=user_level, return_with_user=True)
+    user, token = test_user_token_factory(level=user_level, return_with_user=True)
 
     request, response = app.test_client.get('/', headers={
         "Authorization": token, 'x-consumer-username': user.id})

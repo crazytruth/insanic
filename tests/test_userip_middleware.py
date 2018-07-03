@@ -25,7 +25,7 @@ def test_userip_middleware(service_name, has_token, has_service_token, expected,
     headers = {}
 
     if has_token:
-        user, token = test_user_token_factory(email="test", level=UserLevels.ACTIVE, return_with_user=True)
+        user, token = test_user_token_factory(level=UserLevels.ACTIVE, return_with_user=True)
         headers = {"Authorization": token, 'x-consumer-username': user.id}
 
     if has_service_token:

@@ -75,7 +75,7 @@ class TestKongGateway:
         yield
         global gw
 
-        kong_base_url = gw.kong_base_url
+        kong_base_url = gw.kong_base_url.with_host('kong.msa.swarm')
         resp = requests.get(kong_base_url.with_path('/services'))
         body = jsonloads(resp.text)
         service_ids = [r['id'] for r in body.get('data', []) if "test" in r['name']]
@@ -168,7 +168,7 @@ class TestKongGateway:
                                                 function_session_id):
         monkeypatch.setattr(settings._wrapped, "ALLOWED_HOSTS", [], raising=False)
         monkeypatch.setattr(gateway, "_enabled", True)
-        monkeypatch.setattr(gateway, "kong_base_url", URL(f"http://{settings.KONG_HOST}:18001"))
+        monkeypatch.setattr(gateway, "_kong_base_url", URL(f"http://{settings.KONG_HOST}:18001"))
         monkeypatch.setattr(testing, "HOST", "0.0.0.0")
 
         class MockView(InsanicView):
@@ -192,7 +192,7 @@ class TestKongGateway:
         assert response.json == {'anonymous_header': True, 'user_type': '_AnonymousUser'}
 
         # Test with token
-        token = test_user_token_factory(email='test@tester.cc', level=UserLevels.ACTIVE)
+        token = test_user_token_factory(level=UserLevels.ACTIVE)
         request, response = client.get(f'http://{settings.KONG_HOST}:18000{route}',
                                                                 headers={'Authorization': f"{token}"})
 
@@ -200,7 +200,7 @@ class TestKongGateway:
         assert response.json == {'anonymous_header': False, 'user_type': 'User'}
 
         # Test with banned user
-        token = test_user_token_factory(email='test_banned@tester.cc', level=UserLevels.BANNED)
+        token = test_user_token_factory(level=UserLevels.BANNED)
         request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
                                                                 headers={'Authorization': f"{token}"})
 
@@ -211,7 +211,7 @@ class TestKongGateway:
         import time
         monkeypatch.setattr(settings._wrapped, "ALLOWED_HOSTS", [], raising=False)
         monkeypatch.setattr(gateway, "_enabled", True)
-        monkeypatch.setattr(gateway, "kong_base_url", URL(f"http://{settings.KONG_HOST}:18001"))
+        monkeypatch.setattr(gateway, "_kong_base_url", URL(f"http://{settings.KONG_HOST}:18001"))
         monkeypatch.setattr(testing, "HOST", "0.0.0.0")
 
         class MockView(InsanicView):
@@ -241,26 +241,18 @@ class TestKongGateway:
 
 
         # Test with token
-        token = test_user_token_factory(email='test@tester.cc', level=UserLevels.ACTIVE)
+        token = test_user_token_factory(level=UserLevels.ACTIVE)
         # request, response = try_multiple(f'http://{settings.KONG_HOST}:18000{route}', 202,
         #                                  headers={'Authorization': f"{token}"} )
 
-        for _ in range(10):
-
-            request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
-                                                                    headers={'Authorization': f"{token}"})
-
-            if response.status != 503:
-                break
-            time.sleep(5)
-        else:
-            assert response.status == 202
+        request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
+                                                                headers={'Authorization': f"{token}"})
 
         assert response.status == 202
         assert response.json == {'test': 'success'}
 
         # Test with banned user
-        token = test_user_token_factory(email='test_banned@tester.cc', level=UserLevels.BANNED)
+        token = test_user_token_factory(level=UserLevels.BANNED)
         # request, response = try_multiple(f'http://{settings.KONG_HOST}:18000{route}', 401, {'Authorization': f"{token}"})
         for _ in range(10):
             request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
@@ -276,7 +268,7 @@ class TestKongGateway:
 
     async def test_register_service_idempotence(self, monkeypatch, insanic_application, session_id):
 
-        monkeypatch.setattr(self.gateway, "service_name", session_id[:10])
+        monkeypatch.setattr(self.gateway, "_service_name", session_id[:10])
 
         async with self.gateway as gw:
             gw.app = insanic_application
@@ -295,7 +287,7 @@ class TestKongGateway:
             await gw.deregister_service()
 
     async def test_upstream_object(self, monkeypatch, insanic_application, session_id):
-        monkeypatch.setattr(self.gateway, "service_name", session_id[:10])
+        monkeypatch.setattr(self.gateway, "_service_name", session_id[:10])
 
         upstream_object = self.gateway.upstream_object
 
@@ -305,7 +297,7 @@ class TestKongGateway:
 
     async def test_register_service_upstream_target(self, monkeypatch, insanic_application, session_id):
 
-        monkeypatch.setattr(self.gateway, "service_name", session_id[:10])
+        monkeypatch.setattr(self.gateway, "_service_name", session_id[:10])
 
         async with self.gateway as gw:
             gw.app = insanic_application
@@ -580,7 +572,7 @@ class TestKongGateway:
                 for r in body.get('data', []):
                     # service_piece = r['name'].split('.')
                     # app, env, mid = r['name'].split('.')
-                    if "test" in r['name'] and "insanic" in r['name']:
+                    if "test" in r['name']:
                         service_ids.append(r['id'])
 
                 if "next" in body and body['next']:

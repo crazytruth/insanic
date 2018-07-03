@@ -227,6 +227,7 @@ class Service:
         if len(files) == 0 and headers['content-type'] == "application/json":
             data = aiohttp.payload.JsonPayload(payload)
         else:
+
             data = payload
 
         outbound_request = aiohttp.ClientRequest(method, url,

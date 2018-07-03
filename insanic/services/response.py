@@ -12,3 +12,4 @@ class InsanicResponse(ClientResponse):
                 status=self.status,
                 message=self.text(),
                 headers=self.headers)
+
