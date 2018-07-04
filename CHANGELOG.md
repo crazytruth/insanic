@@ -5,7 +5,7 @@ Changelog for insanic
 0.4.15 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- FIX: update protocl with updated sanic
 
 
 0.4.14 (2018-07-04)
