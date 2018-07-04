@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.4.15 (unreleased)
+0.4.15 (2018-07-04)
 -------------------
 
 - FIX: update protocol with updated sanic
