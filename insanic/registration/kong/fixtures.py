@@ -21,7 +21,7 @@ UPSTREAM_OBJECT = {
                 "http_statuses": [
                 ],
                 "tcp_failures": 3,  # Number of TCP failures in active probes to consider a target unhealthy.
-                "timeouts": 1,  # Number of timeouts in active probes to consider a target unhealthy.
+                "timeouts": 3,  # Number of timeouts in active probes to consider a target unhealthy.
                 "http_failures": 0
             }
         },

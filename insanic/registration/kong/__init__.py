@@ -285,7 +285,6 @@ class KongGateway(BaseGateway):
             ) as resp:
                 kong_target_response = await resp.text()
                 try:
-
                     resp.raise_for_status()
                     self.logger_target("debug", f"Forced healthy: {self.target_id}")
                 except aiohttp.client_exceptions.ClientResponseError:
