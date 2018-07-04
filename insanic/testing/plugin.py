@@ -13,7 +13,7 @@ from io import BytesIO
 from pytest_asyncio.plugin import unused_tcp_port
 from zipfile import ZipFile
 
-from insanic.authentication import handlers
+from insanic.authentication import handlers, HardJSONWebTokenAuthentication, JSONWebTokenAuthentication
 from insanic.choices import UserLevels
 from insanic.connections import _connections
 from insanic.conf import settings
@@ -24,11 +24,22 @@ from insanic.testing.helpers import MockService
 from insanic.testing.pact import Pact, PactMockService
 from insanic.registration import gateway
 
+xray_recorder.configure(sampling=False, context_missing="LOG_ERROR")
 
 def pytest_configure(config):
     config.addinivalue_line("markers",
                             "runservices: Mark the test as runservices which "
                             "will run dependent services as docker containers")
+
+
+@pytest.fixture(autouse=True)
+def patch_hard_jwt_authentication(monkeypatch):
+    monkeypatch.setattr(HardJSONWebTokenAuthentication, "get_jwt_value", JSONWebTokenAuthentication.get_jwt_value)
+    monkeypatch.setattr(HardJSONWebTokenAuthentication, "try_decode_jwt", JSONWebTokenAuthentication.try_decode_jwt)
+    monkeypatch.setattr(HardJSONWebTokenAuthentication, "authenticate_credentials",
+                        JSONWebTokenAuthentication.authenticate_credentials)
+    monkeypatch.setattr(HardJSONWebTokenAuthentication, "authenticate", JSONWebTokenAuthentication.authenticate)
+
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -37,18 +48,7 @@ def disable_kong(monkeypatch):
 
 @pytest.fixture(scope="function", autouse=True)
 def silence_tracer(event_loop):
-    #     os.environ[CONTEXT_MISSING_KEY] = "LOG_ERROR"
-    xray_recorder.configure(sampling=False)
-
-
-#
-#     xray_recorder.begin_segment(name="test", sampling=0)
-#     yield
-#     try:
-#         xray_recorder.end_segment()
-#     except AttributeError as e:
-#         print(e)
-#
+    xray_recorder.configure(sampling=False, context_missing="LOG_ERROR")
 
 @pytest.fixture(scope="session", autouse=True)
 def test_session_id():

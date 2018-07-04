@@ -190,7 +190,6 @@ class HardJSONWebTokenAuthentication(JSONWebTokenAuthentication):
             self._user_service = get_service('user')
         return self._user_service
 
-
     def try_decode_jwt(self, **jwt_value):
         try:
             return self.decode_jwt(**jwt_value)
@@ -243,23 +242,28 @@ class HardJSONWebTokenAuthentication(JSONWebTokenAuthentication):
         next_url = gateway.kong_base_url.with_path(f'/consumers/{consumer_id}/jwt')
 
         while next_url:
-            async with gateway.session.get(next_url) as resp:
-                try:
-                    response = await resp.json()
-                    resp.raise_for_status()
-                except aiohttp.client_exceptions.ClientError as e:
-                    error_logger.critical(f"Error Response from KONG: [{resp.status}] {response}")
-                    raise exceptions.ServiceUnavailable503Error("Gateway is unavailable for authentication.")
-                except Exception as e:
-                    error_logger.critical(f"Something went wrong with KONG: {e.args[0]}")
-                    raise exceptions.APIException("Something when wrong with gateway authentication.")
-
+            response = await self.get_jwt_from_kong(next_url)
             for j in response['data']:
                 jwt_auth.update({"key": j['secret']})
                 jwt_auth.update({"issuer": j['key']})
                 yield jwt_auth
 
             next_url = response.get('next', None)
+
+    async def get_jwt_from_kong(self, next_url):
+        async with gateway.session.get(next_url) as resp:
+            try:
+                response = await resp.json()
+                resp.raise_for_status()
+            except aiohttp.client_exceptions.ClientError as e:
+                error_logger.critical(f"Error Response from KONG: [{resp.status}] {response}")
+                raise exceptions.ServiceUnavailable503Error("Gateway is unavailable for authentication.")
+            except Exception as e:
+                error_logger.critical(f"Something went wrong with KONG: {e.args[0]}")
+                raise exceptions.APIException("Something when wrong with gateway authentication.")
+            else:
+                return response
+
 
     async def get_user(self, user_id):
         """
