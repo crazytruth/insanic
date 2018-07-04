@@ -5,8 +5,9 @@ import io
 import warnings
 
 # from aiohttp.formdata import FormData
+from aws_xray_sdk.core import xray_recorder
 from asyncio import get_event_loop
-
+from inspect import isawaitable
 from sanic.constants import HTTP_METHODS
 from sanic.request import File
 from yarl import URL
@@ -134,6 +135,7 @@ class Service:
             url = url.with_query(**query_params)
         return url
 
+    # @xray_recorder.capture_async("http_dispatch")
     async def http_dispatch(self, method, endpoint, req_ctx=None, *, query_params=None, payload=None,
                             files=None, headers=None,
                             propagate_error=False, skip_breaker=False, include_status_code=False, request_timeout=None):
@@ -207,7 +209,7 @@ class Service:
 
         return data
 
-
+    @xray_recorder.capture_async("insanic_dispatch_fetch")
     async def _dispatch_fetch(self, method, request, **kwargs):
 
         request_params = {
@@ -225,6 +227,7 @@ class Service:
             await resp.read()
             return resp
 
+    @xray_recorder.capture_async("_dispatch")
     async def _dispatch(self, method, endpoint, *, query_params, payload, files, headers,
                         propagate_error=False, skip_breaker=False, request_timeout=None):
         """
@@ -260,7 +263,12 @@ class Service:
             response = try_json_decode(await _response_obj.json())
 
         except aiohttp.client_exceptions.ClientResponseError as e:
-            response = try_json_decode(await e.message)
+
+            message = e.message
+            if isawaitable(message):
+                message = await message
+
+            response = try_json_decode(message)
             try:
                 status_code = e.code
             except AttributeError:
