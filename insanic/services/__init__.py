@@ -36,8 +36,8 @@ class ServiceRegistry(dict):
         if ServiceRegistry.__instance is None:
             ServiceRegistry.__instance = dict.__new__(cls)
             ServiceRegistry.__instance.update(**{s: None for s in
-                                                 set(settings.SERVICE_CONNECTIONS +
-                                                     settings.REQUIRED_SERVICE_CONNECTIONS)})
+                                                 set(list(settings.SERVICE_CONNECTIONS) +
+                                                     list(settings.REQUIRED_SERVICE_CONNECTIONS))})
 
         return ServiceRegistry.__instance
 
