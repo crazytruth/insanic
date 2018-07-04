@@ -4,8 +4,6 @@ import asyncio
 import io
 import warnings
 
-# from aiohttp.formdata import FormData
-from aws_xray_sdk.core import xray_recorder
 from asyncio import get_event_loop
 from inspect import isawaitable
 from sanic.constants import HTTP_METHODS
@@ -21,6 +19,7 @@ from insanic.models import AnonymousUser
 from insanic.services.response import InsanicResponse
 from insanic.scopes import is_docker
 from insanic.tracing.clients import aws_xray_trace_config
+from insanic.tracing.decorators import capture_async
 from insanic.tracing.utils import tracing_name
 from insanic.utils import try_json_decode
 from insanic.utils.datetime import get_utc_datetime
@@ -135,7 +134,7 @@ class Service:
             url = url.with_query(**query_params)
         return url
 
-    # @xray_recorder.capture_async("http_dispatch")
+    @capture_async("insanic_http_dispatch")
     async def http_dispatch(self, method, endpoint, req_ctx=None, *, query_params=None, payload=None,
                             files=None, headers=None,
                             propagate_error=False, skip_breaker=False, include_status_code=False, request_timeout=None):
@@ -209,7 +208,7 @@ class Service:
 
         return data
 
-    @xray_recorder.capture_async("insanic_dispatch_fetch")
+    @capture_async("insanic__dispatch_fetch")
     async def _dispatch_fetch(self, method, request, **kwargs):
 
         request_params = {
@@ -227,7 +226,7 @@ class Service:
             await resp.read()
             return resp
 
-    @xray_recorder.capture_async("_dispatch")
+    @capture_async("insanic__dispatch")
     async def _dispatch(self, method, endpoint, *, query_params, payload, files, headers,
                         propagate_error=False, skip_breaker=False, request_timeout=None):
         """
