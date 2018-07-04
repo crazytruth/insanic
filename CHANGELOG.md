@@ -5,6 +5,7 @@ Changelog for insanic
 0.4.13 (unreleased)
 -------------------
 
+- FEAT: decorators for capturing functions as subsegments
 - FEAT: hard jwt authentication 
 - FIX: xray tracing not recording body
 - CHORE: refactor gateway registration
