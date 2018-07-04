@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.4.14 (unreleased)
+0.4.14 (2018-07-04)
 -------------------
 
 - FIX: hardjwtauth for testing
