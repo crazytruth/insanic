@@ -8,14 +8,18 @@ import random
 import uuid
 import ujson
 
+from aioresponses import aioresponses
 from sanic.request import File
 from sanic.response import json
+
+from insanic import status
 from insanic.authentication import handlers
 from insanic.conf import settings
-from insanic.exceptions import ServiceTimeoutError
+from insanic.exceptions import ServiceTimeoutError, APIException
 from insanic.models import User, UserLevels, AnonymousRequestService, AnonymousUser
 from insanic.permissions import AllowAny
 from insanic.services import ServiceRegistry, Service
+from insanic.services.response import InsanicResponse
 from insanic.views import InsanicView
 
 
@@ -24,6 +28,8 @@ def test_image_file():
         contents = f
     return contents
 
+
+settings.TRACING_ENABLED = False
 
 class TestServiceRegistry:
 
@@ -144,7 +150,6 @@ class TestServiceClass:
 
         async def _mock_dispatch(*args, **kwargs):
             assert "request_timeout" in kwargs
-
             return {"request_timeout": kwargs.get('request_timeout')}, 200
 
         monkeypatch.setattr(self.service, '_dispatch', _mock_dispatch)
@@ -241,6 +246,72 @@ class TestServiceClass:
         response = loop.run_until_complete(
             self.service.http_dispatch('POST', '/', payload={"a": "b"}, files=files, headers=headers))
         assert expect_content_type in response['content-type']
+
+    @pytest.mark.parametrize("response_code", [k for k in status.REVERSE_STATUS if k >= 400])
+    def test_http_dispatch_raise_for_status(self, response_code):
+        """
+        raise for different types of response codes
+
+        :param monkeypatch:
+        :return:
+        """
+
+        loop = uvloop.new_event_loop()
+
+        with aioresponses() as m:
+            m.get('http://test:8000/', status=response_code, payload={"hello": "hi"},
+                  response_class=InsanicResponse)
+
+            with pytest.raises(APIException):
+                try:
+                    response = loop.run_until_complete(
+                        self.service.http_dispatch('GET', '/',
+                                                   payload={}, files={}, headers={},
+                                                   propagate_error=True))
+                except APIException as e:
+                    assert e.status_code == response_code
+                    raise e
+
+    # @pytest.mark.parametrize("raise_exception", (
+    #     aiohttp.client_exceptions.ClientError,
+    #     aiohttp.client_exceptions.ClientResponseError,
+    #     aiohttp.client_exceptions.ContentTypeError,
+    #     aiohttp.client_exceptions.ClientHttpProxyError,
+    #     aiohttp.client_exceptions.ClientConnectionError,
+    #     aiohttp.client_exceptions.ClientOSError,
+    #     aiohttp.client_exceptions.ClientConnectorError,
+    #     aiohttp.client_exceptions.ServerConnectionError,
+    #     aiohttp.client_exceptions.ServerDisconnectedError,
+    #     aiohttp.client_exceptions.ServerTimeoutError,
+    #     aiohttp.client_exceptions.ClientPayloadError,
+    #     aiohttp.client_exceptions.InvalidURL
+    # ))
+    # def test_http_dispatch_raise_for_exception(self, raise_exception):
+    #     """
+    #
+    #
+    #     :param monkeypatch:
+    #     :return:
+    #     """
+    #
+    #     from aioresponses import aioresponses
+    #
+    #     loop = uvloop.new_event_loop()
+    #
+    #     with aioresponses() as m:
+    #         exec = raise_exception("{}", [])
+    #         m.get('http://test:8000/a', exception=exec, response_class=InsanicResponse)
+    #
+    #         with pytest.raises(APIException):
+    #             try:
+    #                 response = loop.run_until_complete(
+    #                     self.service.http_dispatch('GET', '/a',
+    #                                                payload={}, files={}, headers={},
+    #                                                propagate_error=True))
+    #             except APIException as e:
+    #                 assert e
+    #                 raise e
+
 
     @pytest.mark.parametrize("extra_headers", ({}, {"content-length": 4}))
     async def test_prepare_headers(self, extra_headers, loop):

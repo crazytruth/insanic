@@ -34,7 +34,8 @@ test_requires = [
     "pytest-flake8",
     "asynctest",
     "pact-python",
-    "requests"
+    "requests",
+    "aioresponses"
     # "beautifulsoup4"
     # "docker",
     # "aiobotocore",

@@ -163,9 +163,8 @@ class TestKongGateway:
         async with gateway as gw:
             await gw.force_target_healthy()
 
-
-    def test_routes_with_jwt_auth_and_allow_any(self, monkeypatch, insanic_application, test_user_token_factory,
-                                                function_session_id):
+    @pytest.fixture
+    def sanic_test_server(self, loop, insanic_application, test_server, monkeypatch, test_route):
         monkeypatch.setattr(settings._wrapped, "ALLOWED_HOSTS", [], raising=False)
         monkeypatch.setattr(gateway, "_enabled", True)
         monkeypatch.setattr(gateway, "_kong_base_url", URL(f"http://{settings.KONG_HOST}:18001"))
@@ -180,75 +179,90 @@ class TestKongGateway:
                 return json({'anonymous_header': request.headers.get('x-anonymous-consumer') == 'true',
                              'user_type': (await request.user).__class__.__name__}, status=202)
 
-        route = f"/test/{function_session_id}/"
-        insanic_application.listeners["after_server_start"].append(self._force_target_healthy)
-        insanic_application.add_route(MockView.as_view(), route)
+        # insanic_application.listeners["after_server_start"].append(self._force_target_healthy)
+        insanic_application.add_route(MockView.as_view(), test_route)
+
+        return loop.run_until_complete(test_server(insanic_application, host='0.0.0.0'))
+
+    @pytest.fixture
+    def test_route(self, function_session_id):
+        return f"/test/{function_session_id}/"
+
+    async def test_routes_with_jwt_auth_and_allow_any(self, sanic_test_server, test_user_token_factory, test_route):
 
         # Test without token
-        client = insanic_application.test_client
-        request, response = client.get(f'http://{settings.KONG_HOST}:18000{route}')
+        gateway.app._port = sanic_test_server.port
 
-        assert response.status == 202
-        assert response.json == {'anonymous_header': True, 'user_type': '_AnonymousUser'}
+        async with gateway as gw:
+            await gw.deregister_target()
+            await gw.register_target()
+            await gw.force_target_healthy()
+
+        test_url = f'http://{settings.KONG_HOST}:18000{test_route}'
+
+        async with gateway.session.get(test_url) as resp:
+            response_json = await resp.json()
+            assert resp.status == 202
+            assert response_json == {'anonymous_header': True, 'user_type': '_AnonymousUser'}
 
         # Test with token
         token = test_user_token_factory(level=UserLevels.ACTIVE)
-        request, response = client.get(f'http://{settings.KONG_HOST}:18000{route}',
-                                                                headers={'Authorization': f"{token}"})
 
-        assert response.status == 202
-        assert response.json == {'anonymous_header': False, 'user_type': 'User'}
+        async with gateway.session.get(test_url, headers={"Authorization": token}) as resp:
+            response_json = await resp.json()
+            assert resp.status == 202
+            assert response_json == {'anonymous_header': False, 'user_type': 'User'}
 
         # Test with banned user
         token = test_user_token_factory(level=UserLevels.BANNED)
-        request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
-                                                                headers={'Authorization': f"{token}"})
 
-        assert response.status == 401
+        async with gateway.session.get(test_url, headers={"Authorization": token}) as resp:
+            response_json = await resp.json()
+            assert resp.status == 401
 
-    def test_routes_with_jwt_auth_and_is_authenticated(self, monkeypatch, insanic_application, test_user_token_factory,
-                                                       function_session_id):
+    async def test_routes_with_jwt_auth_and_is_authenticated(self, sanic_test_server, test_user_token_factory,
+                                                             test_route):
         import time
-        monkeypatch.setattr(settings._wrapped, "ALLOWED_HOSTS", [], raising=False)
-        monkeypatch.setattr(gateway, "_enabled", True)
-        monkeypatch.setattr(gateway, "_kong_base_url", URL(f"http://{settings.KONG_HOST}:18001"))
-        monkeypatch.setattr(testing, "HOST", "0.0.0.0")
+        gateway.app._port = sanic_test_server.port
 
-        class MockView(InsanicView):
-            authentication_classes = [JSONWebTokenAuthentication]
-            permission_classes = [IsAuthenticated]
-
-            @public_facing
-            async def get(self, request, *args, **kwargs):
-                return json({'test': 'success'}, status=202)
-
-        route = f"/test/{function_session_id}/"
-        insanic_application.listeners["after_server_start"].append(self._force_target_healthy)
-        insanic_application.add_route(MockView.as_view(), route)
+        test_url = f'http://{settings.KONG_HOST}:18000{test_route}'
 
         # Test without token
-        request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}')
-        assert response.status == 401
+        async with gateway.session.get(test_url) as resp:
+            response_json = await resp.json()
+            assert resp.status == 401
+            # assert response_json == {'anonymous_header': True, 'user_type': '_AnonymousUser'}
+
+        # request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}')
+        # assert response.status == 401
 
         # Test with token
         token = test_user_token_factory(level=UserLevels.ACTIVE)
-        # request, response = try_multiple(f'http://{settings.KONG_HOST}:18000{route}', 202,
-        #                                  headers={'Authorization': f"{token}"} )
+        async with gateway.session.get(test_url, headers={"Authorization": token}) as resp:
+            response_json = await resp.json()
+            assert resp.status == 202
+            assert response_json == {'test': 'success'}
 
-        request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
-                                                                headers={'Authorization': f"{token}"})
+            # assert response_json == {'anonymous_header': True, 'user_type': '_AnonymousUser'}
 
-        assert response.status == 202
-        assert response.json == {'test': 'success'}
+        # request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
+        #                                                         headers={'Authorization': f"{token}"})
+        #
+        # assert response.status == 202
+        # assert response.json == {'test': 'success'}
 
         # Test with banned user
         token = test_user_token_factory(level=UserLevels.BANNED)
         # request, response = try_multiple(f'http://{settings.KONG_HOST}:18000{route}', 401, {'Authorization': f"{token}"})
+        token = test_user_token_factory(level=UserLevels.ACTIVE)
+        async with gateway.session.get(test_url, headers={"Authorization": token}) as resp:
+            response_json = await resp.json()
+            assert resp.status == 401
+            # assert response_json == {'test': 'success'}
+        # request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
+        #                                                         headers={'Authorization': f"{token}"})
 
-        request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
-                                                                headers={'Authorization': f"{token}"})
-
-        assert response.status == 401
+        # assert response.status == 401
 
     async def test_register_service_idempotence(self, monkeypatch, insanic_application, session_id):
 

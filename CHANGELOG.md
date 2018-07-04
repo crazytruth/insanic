@@ -10,6 +10,7 @@ Changelog for insanic
 - CHORE: refactor gateway registration
 - FIX: multipart/form-data in http_dispatch using aiohttp.FormData
 - TEST: tests for sending multipart/form-data
+- FEAT: wrap service dispatch with xray 
 
 
 0.4.12 (2018-06-29)
