@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.4.13 (unreleased)
+0.4.13 (2018-07-04)
 -------------------
 
 - FEAT: decorators for capturing functions as subsegments
