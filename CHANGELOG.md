@@ -6,6 +6,7 @@ Changelog for insanic
 -------------------
 
 - FIX: hardjwtauth for testing
+- CHORE: ensure connection configs can be extended
 
 
 0.4.13 (2018-07-04)
