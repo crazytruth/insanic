@@ -8,9 +8,9 @@ from insanic.conf import settings
 
 
 def capture_async(name=None):
-    if settings.TRACING_ENABLED:
-        @wrapt.decorator
-        async def wrapper(wrapped, instance, args, kwargs):
+    @wrapt.decorator
+    async def wrapper(wrapped, instance, args, kwargs):
+        if settings.TRACING_ENABLED:
             func_name = name
             if not func_name:
                 func_name = wrapped.__name__
@@ -44,18 +44,16 @@ def capture_async(name=None):
                             xray_recorder._send_segment()
                         else:
                             xray_recorder.stream_subsegments()
-    else:
-        @wrapt.decorator
-        async def wrapper(wrapped, instance, args, kwargs):
+        else:
             return await wrapped(*args, **kwargs)
-
     return wrapper
 
 
 def capture(name=None):
-    if settings.TRACING_ENABLED:
-        @wrapt.decorator
-        def wrapper(wrapped, instance, args, kwargs):
+    @wrapt.decorator
+    def wrapper(wrapped, instance, args, kwargs):
+        if settings.TRACING_ENABLED:
+
             func_name = name
             if not func_name:
                 func_name = wrapped.__name__
@@ -89,9 +87,6 @@ def capture(name=None):
                             xray_recorder._send_segment()
                         else:
                             xray_recorder.stream_subsegments()
-    else:
-        @wrapt.decorator
-        async def wrapper(wrapped, instance, args, kwargs):
-            return await wrapped(*args, **kwargs)
-
+        else:
+            return wrapped(*args, **kwargs)
     return wrapper
