@@ -19,7 +19,7 @@ from insanic.models import AnonymousUser
 from insanic.services.response import InsanicResponse
 from insanic.scopes import is_docker
 from insanic.tracing.clients import aws_xray_trace_config
-from insanic.tracing.decorators import capture_async
+from insanic.tracing.decorators import capture_async, capture
 from insanic.tracing.utils import tracing_name
 from insanic.utils import try_json_decode
 from insanic.utils.datetime import get_utc_datetime
@@ -226,6 +226,12 @@ class Service:
             await resp.read()
             return resp
 
+    @capture('insanic_create_request_object')
+    def create_request_object(self, method, url, query_params, headers, data):
+        return aiohttp.ClientRequest(method, url,
+                                     params=query_params, headers=headers, data=data)
+
+
     @capture_async("insanic__dispatch")
     async def _dispatch(self, method, endpoint, *, query_params, payload, files, headers,
                         propagate_error=False, skip_breaker=False, request_timeout=None):
@@ -247,8 +253,7 @@ class Service:
         headers = self._prepare_headers(headers, files)
         data = self._prepare_body(headers, payload, files)
 
-        outbound_request = aiohttp.ClientRequest(method, url,
-                                                 params=query_params, headers=headers, data=data)
+        outbound_request = self.create_request_object(method, url, query_params, headers, data)
         # outbound_request.headers.add("Content-Type", outbound_request.body.content_type)
 
         try:
