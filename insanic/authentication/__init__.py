@@ -234,6 +234,9 @@ class HardJSONWebTokenAuthentication(JSONWebTokenAuthentication):
         :return: list of dict
         """
         jwt_auth = super().get_jwt_value(request)
+        if jwt_auth is None:
+            raise StopAsyncIteration
+
         jwt_auth["verify"] = True
         jwt_auth['key'] = ""  # from kong
 

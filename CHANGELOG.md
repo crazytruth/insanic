@@ -5,7 +5,7 @@ Changelog for insanic
 0.4.16 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- FIX: hard jwt when no token is provided
 
 
 0.4.15 (2018-07-04)
