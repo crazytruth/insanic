@@ -164,6 +164,7 @@ class Service:
             return response, status_code
         return response
 
+    @capture("insanic_prepare_headers")
     def _prepare_headers(self, headers, files=None):
         for h in self.remove_headers:
             if h in headers:
@@ -186,6 +187,7 @@ class Service:
 
         return lower_headers
 
+    @capture("insanic_prepare_body")
     def _prepare_body(self, headers, payload, files=None):
         if files is None:
             files = {}
@@ -226,7 +228,6 @@ class Service:
             await resp.read()
             return resp
 
-    @capture('insanic_create_request_object')
     def create_request_object(self, method, url, query_params, headers, data):
         return aiohttp.ClientRequest(method, url,
                                      params=query_params, headers=headers, data=data)
