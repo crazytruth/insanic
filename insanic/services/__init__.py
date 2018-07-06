@@ -140,7 +140,7 @@ class Service:
     @classmethod
     def session(cls):
 
-        if cls._session is None or cls._session.closed:
+        if cls._session is None or cls._session.closed or cls._session.loop._closed:
 
             trace_configs = None
 
