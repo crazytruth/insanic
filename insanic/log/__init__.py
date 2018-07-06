@@ -50,7 +50,7 @@ def get_logging_config():
             },
             "access": {
                 "format": "%(asctime)s - (%(name)s)[%(levelname)s][%(host)s]: " +
-                          "%(request)s %(message)s %(status)d %(byte)d",
+                          "%(request)s %(message)s %(status)d %(byte)d %(request_service)s",
                 "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
                 "class": "logging.Formatter"
             },
@@ -65,7 +65,7 @@ def get_logging_config():
                            "span_id": "%(ot_span_id)s",
                            "sampled": "%(ot_sampled)s", "request_duration": "%(ot_duration)s",
                            "parent_id": "%(ot_parent_id)s",
-                           "exc_text": "%(exc_text)s"},
+                           "exc_text": "%(exc_text)s", "request_service": "%(request_service)s"},
                 'datefmt': '%Y-%m-%dT%H:%M:%S.%%(msecs)d%z'
             }
         }
