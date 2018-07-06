@@ -5,7 +5,7 @@ from sanic.views import CompositionView
 from sanic_useragent import SanicUserAgent
 
 from insanic.conf import settings
-from insanic.functional import empty, cached_property
+from insanic.functional import empty
 from insanic.handlers import ErrorHandler
 from insanic.monitor import blueprint_monitor
 from insanic.log import get_logging_config, error_logger, logger
