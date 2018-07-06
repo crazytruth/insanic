@@ -29,6 +29,7 @@ class GlobalErrorCodes(Enum):
     # request related errors
     method_not_allowed = 999501
     throttled = 999502
+    request_timeout = 999503
 
     # server related errors
     server_signature_error = 999601

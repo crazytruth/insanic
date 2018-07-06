@@ -159,9 +159,9 @@ class ServiceUnavailable503Error(APIException):
     message = "Service unavailable."
 
 
-class ServiceTimeoutError(APIException):
-    status_code = status.HTTP_504_GATEWAY_TIMEOUT
-    message = "Service timeout."
+class RequestTimeoutError(APIException):
+    status_code = status.HTTP_408_REQUEST_TIMEOUT
+    message = "Request timeout."
 
 class UnprocessableEntity422Error(APIException):
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
