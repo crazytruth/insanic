@@ -28,6 +28,15 @@ from insanic.utils.datetime import get_utc_datetime
 DEFAULT_SERVICE_REQUEST_TIMEOUT = 1
 
 
+def service_auth_token(service):
+    default = dict(AnonymousUser)
+    try:
+        user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER, default)
+    except AttributeError:
+        user = default
+    return jwt_service_encode_handler(jwt_service_payload_handler(service, user))
+
+
 class ServiceRegistry(dict):
     __instance = None
     _conn = None
@@ -61,21 +70,21 @@ class ServiceRegistry(dict):
 
 
 class Service:
-    remove_headers = ["content-length", 'user-agent', 'host', 'postman-token']
+    _session = None
 
     def __init__(self, service_type):
         self._registry = ServiceRegistry()
         self._service_name = service_type
-        self._session = None
+        # self._session = None
 
-    @property
-    def service_auth_token(self):
-        default = dict(AnonymousUser)
-        try:
-            user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER, default)
-        except AttributeError:
-            user = default
-        return jwt_service_encode_handler(jwt_service_payload_handler(self, user))
+    # @property
+    # def service_auth_token(self):
+    #     default = dict(AnonymousUser)
+    #     try:
+    #         user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER, default)
+    #     except AttributeError:
+    #         user = default
+    #     return jwt_service_encode_handler(jwt_service_payload_handler(self, user))
 
     @property
     def service_name(self):
@@ -111,22 +120,44 @@ class Service:
         url_partial_path = "/api/v1/"
         return URL(f"{self.schema}://{self.host}:{self.port}{url_partial_path}")
 
-    @property
-    def session(self):
-        if self._session is None or self._session.loop.is_closed() is True:
+    # @property
+    # def session(self):
+    #     if self._session is None or self._session.loop.is_closed() is True:
+    #
+    #         trace_configs = None
+    #
+    #         if settings.TRACING_ENABLED:
+    #             trace_configs = [aws_xray_trace_config(tracing_name(self.service_name))]
+    #
+    #         self._session = aiohttp.ClientSession(loop=get_event_loop(),
+    #                                               connector=aiohttp.TCPConnector(limit_per_host=10,
+    #                                                                              ttl_dns_cache=300),
+    #                                               response_class=InsanicResponse,
+    #                                               read_timeout=DEFAULT_SERVICE_REQUEST_TIMEOUT,
+    #                                               trace_configs=trace_configs)
+    #     return self._session
+
+    @classmethod
+    def session(cls):
+
+        if cls._session is None or cls._session.loop.is_closed() is True:
 
             trace_configs = None
 
             if settings.TRACING_ENABLED:
-                trace_configs = [aws_xray_trace_config(tracing_name(self.service_name))]
+                trace_configs = [aws_xray_trace_config()]
 
-            self._session = aiohttp.ClientSession(loop=get_event_loop(),
-                                                  connector=aiohttp.TCPConnector(limit_per_host=10,
+            cls._session = aiohttp.ClientSession(loop=get_event_loop(),
+                                                 connector=aiohttp.TCPConnector(limit=200,
+                                                                                limit_per_host=50,
                                                                                  ttl_dns_cache=300),
                                                   response_class=InsanicResponse,
                                                   read_timeout=DEFAULT_SERVICE_REQUEST_TIMEOUT,
                                                   trace_configs=trace_configs)
-        return self._session
+
+        return cls._session
+
+
 
     def _construct_url(self, endpoint, query_params={}):
         url = self.url.with_path(endpoint)
@@ -138,8 +169,6 @@ class Service:
     async def http_dispatch(self, method, endpoint, req_ctx=None, *, query_params=None, payload=None,
                             files=None, headers=None,
                             propagate_error=False, skip_breaker=False, include_status_code=False, request_timeout=None):
-
-
         if req_ctx is not None:
             warnings.warn("`req_ctx`, the 3rd argument is deprecated.  Please remove. "
                           "Sending this will do absolutely nothing.")
@@ -148,7 +177,6 @@ class Service:
         query_params = query_params or {}
         payload = payload or {}
         headers = headers or {}
-
 
         if method.upper() not in HTTP_METHODS:
             raise ValueError("{0} is not a valid method.".format(method))
@@ -164,11 +192,8 @@ class Service:
             return response, status_code
         return response
 
-    @capture("insanic_prepare_headers")
+
     def _prepare_headers(self, headers, files=None):
-        for h in self.remove_headers:
-            if h in headers:
-                del headers[h]
 
         lower_headers = {k.lower(): v for k, v in headers.items()}
 
@@ -183,11 +208,11 @@ class Service:
         lower_headers.update({"date": get_utc_datetime().strftime("%a, %d %b %y %T %z")})
 
         lower_headers.update(
-            {"authorization": f"{settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX']} {self.service_auth_token}"})
+            {"authorization": f"{settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX']} {service_auth_token(self)}"})
 
         return lower_headers
 
-    @capture("insanic_prepare_body")
+
     def _prepare_body(self, headers, payload, files=None):
         if files is None:
             files = {}
@@ -211,26 +236,28 @@ class Service:
         return data
 
     @capture_async("insanic__dispatch_fetch")
-    async def _dispatch_fetch(self, method, request, **kwargs):
+    async def _dispatch_fetch(self, method, url, headers, data, **kwargs):
 
         request_params = {
             "method": method,
-            "url": str(request.url),
-            "headers": request.headers,
-            "data": request.body
+            "url": str(url),
+            "headers": headers,
+            "data": data
         }
 
         timeout = kwargs.pop('request_timeout')
         if timeout:
             request_params.update({"timeout": timeout})
 
-        async with self.session.request(**request_params) as resp:
+        request_params.update({"trace_request_ctx": {"name": tracing_name(self.service_name)}})
+
+        async with self.session().request(**request_params) as resp:
             await resp.read()
             return resp
 
-    def create_request_object(self, method, url, query_params, headers, data):
-        return aiohttp.ClientRequest(method, url,
-                                     params=query_params, headers=headers, data=data)
+    # def create_request_object(self, method, url, query_params, headers, data):
+    #     return aiohttp.ClientRequest(method, url,
+    #                                  params=query_params, headers=headers, data=data)
 
 
     @capture_async("insanic__dispatch")
@@ -250,15 +277,14 @@ class Service:
         :return:
         """
 
-        url = self._construct_url(endpoint)
+        url = self._construct_url(endpoint, query_params=query_params)
         headers = self._prepare_headers(headers, files)
         data = self._prepare_body(headers, payload, files)
 
-        outbound_request = self.create_request_object(method, url, query_params, headers, data)
-        # outbound_request.headers.add("Content-Type", outbound_request.body.content_type)
+        # outbound_request = self.create_request_object(method, url, query_params, headers, data)
 
         try:
-            _response_obj = await self._dispatch_fetch(method, outbound_request, skip_breaker=skip_breaker,
+            _response_obj = await self._dispatch_fetch(method, url, headers, data, skip_breaker=skip_breaker,
                                                        request_timeout=request_timeout)
 
             if propagate_error:
@@ -331,9 +357,9 @@ class Service:
 
             raise exc
         except asyncio.TimeoutError:
-            exc = exceptions.ServiceTimeoutError(description=f'{self.service_name} has timed out.',
-                                                 error_code=GlobalErrorCodes.service_timeout,
-                                                 status_code=status.HTTP_504_GATEWAY_TIMEOUT)
+            exc = exceptions.RequestTimeoutError(description=f'Request to {self.service_name} took too long!',
+                                                 error_code=GlobalErrorCodes.request_timeout,
+                                                 status_code=status.HTTP_408_REQUEST_TIMEOUT)
             raise exc
         except aiohttp.client_exceptions.ClientPayloadError as e:
             raise

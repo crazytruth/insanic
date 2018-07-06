@@ -6,7 +6,9 @@ Changelog for insanic
 -------------------
 
 - FIX: hard jwt when no token is provided
-
+- UPDATE: return 408 when request takes too long. Different from 504 when the server
+- UPDATE: one client session to rule them all!! for service objects 
+- UPDATE: json logging to include request service
 
 0.4.15 (2018-07-04)
 -------------------

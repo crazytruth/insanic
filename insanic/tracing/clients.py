@@ -78,7 +78,7 @@ def aws_xray_trace_config(name=None):
 
     def _trace_config_ctx_factory(trace_request_ctx):
         return SimpleNamespace(
-            name=name,
+            name=trace_request_ctx.get('name', None),
             trace_request_ctx=trace_request_ctx
         )
 
