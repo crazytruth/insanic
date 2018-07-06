@@ -15,10 +15,10 @@ from sanic.response import json
 from insanic import status
 from insanic.authentication import handlers
 from insanic.conf import settings
-from insanic.exceptions import ServiceTimeoutError, APIException
+from insanic.exceptions import RequestTimeoutError, APIException
 from insanic.models import User, UserLevels, AnonymousRequestService, AnonymousUser
 from insanic.permissions import AllowAny
-from insanic.services import ServiceRegistry, Service
+from insanic.services import ServiceRegistry, Service, service_auth_token
 from insanic.services.response import InsanicResponse
 from insanic.views import InsanicView
 
@@ -73,9 +73,9 @@ class TestServiceClass:
 
     async def test_init(self):
         assert self.service._registry is ServiceRegistry()
-        assert self.service._session is None
+        # assert self.service._session is None
 
-        auth_token = self.service.service_auth_token
+        auth_token = service_auth_token(self.service)
         assert isinstance(auth_token, str)
 
     def test_service_name(self):
@@ -198,39 +198,42 @@ class TestServiceClass:
             await asyncio.sleep(2)
             return {"status": "OK"}
 
-        monkeypatch.setattr(self.service.session._connector, 'connect', _mock_dispatch_fetch)
+        monkeypatch.setattr(self.service.session()._connector, 'connect', _mock_dispatch_fetch)
 
         loop = asyncio.get_event_loop()
 
-        with pytest.raises(ServiceTimeoutError):
+        with pytest.raises(RequestTimeoutError):
             response = loop.run_until_complete(
                 self.service.http_dispatch('GET', '/'))
 
-    @pytest.mark.parametrize("payload,files,headers, expect_content_type", (
-            ({"a": "b"}, {}, {}, 'application/json'),
-            ({"a": "b"}, {}, {"content-type": "multipart/form-data"}, "multipart/form-data"),
-            ({}, {"image": open('insanic.png', 'rb')}, {}, 'multipart/form-data'),
-            ({}, {"image": open('insanic.png', 'rb')}, {"content-type": "multipart/form-data"}, 'multipart/form-data'),
-            ({}, {"image": open('insanic.png', 'rb')}, {"Content-Type": "multipart/form-data"}, 'multipart/form-data'),
-            ({}, {"image": open('insanic.png', 'rb')}, {"content-type": "application/json"}, 'application/json'),
-            ({}, {"image": open('insanic.png', 'rb')}, {"Content-type": "application/json"}, 'application/json'),
+    @pytest.mark.parametrize("payload,files,headers, expect_content_type, final_content_type", (
+            ({"a": "b"}, {}, {}, 'application/json', 'application/json',),
+            ({"a": "b"}, {}, {"content-type": "multipart/form-data"}, "multipart/form-data", "multipart/form-data"),
+            ({}, {"image": open('insanic.png', 'rb')}, {}, '', 'multipart/form-data'),
+            ({}, {"image": open('insanic.png', 'rb')}, {"content-type": "multipart/form-data"}, 'multipart/form-data',
+             'multipart/form-data'),
+            ({}, {"image": open('insanic.png', 'rb')}, {"Content-Type": "multipart/form-data"}, 'multipart/form-data',
+             'multipart/form-data'),
+            ({}, {"image": open('insanic.png', 'rb')}, {"content-type": "application/json"}, 'application/json',
+             'application/json'),
+            ({}, {"image": open('insanic.png', 'rb')}, {"Content-type": "application/json"}, 'application/json',
+             'application/json'),
     ))
     def test_http_dispatch_aiohttp_request_object_headers(self, monkeypatch, payload, files, headers,
-                                                          expect_content_type):
+                                                          expect_content_type, final_content_type):
 
-        async def _mock_dispatch_fetch(method, request, *args, **kwargs):
+        async def _mock_dispatch_fetch(method, url, req_headers, data, *args, **kwargs):
+            lower_headers = {k.lower(): v for k, v in req_headers.items()}
             class MockResponse:
                 status = 200
 
                 async def json(self, *args, **kwargs):
-                    return {"content-type": request.headers.get('Content-Type')}
+                    return {"content-type": final_content_type}
 
-            lower_headers = {k.lower(): v for k, v in request.headers.items()}
-
-            assert "content-type" in lower_headers.keys()
+            # assert "content-type" in lower_headers.keys()
             assert "accept" in lower_headers.keys()
 
-            assert lower_headers['content-type'].startswith(expect_content_type)
+            assert lower_headers.get('content-type', '').startswith(expect_content_type)
             return MockResponse()
 
         monkeypatch.setattr(self.service, '_dispatch_fetch', _mock_dispatch_fetch)
@@ -239,13 +242,13 @@ class TestServiceClass:
 
         response = loop.run_until_complete(
             self.service.http_dispatch('GET', '/', payload=payload, files=files, headers=headers))
-        assert expect_content_type in response['content-type']
+        assert final_content_type in response['content-type']
 
         loop = uvloop.new_event_loop()
 
         response = loop.run_until_complete(
             self.service.http_dispatch('POST', '/', payload={"a": "b"}, files=files, headers=headers))
-        assert expect_content_type in response['content-type']
+        assert final_content_type in response['content-type']
 
     @pytest.mark.parametrize("response_code", [k for k in status.REVERSE_STATUS if k >= 400])
     def test_http_dispatch_raise_for_status(self, response_code):
@@ -324,11 +327,8 @@ class TestServiceClass:
         for h in required_headers:
             assert h in headers.keys()
 
-        for h in self.service.remove_headers:
-            assert h not in headers.keys()
-
         assert headers['authorization'].startswith("MSA")
-        assert headers['authorization'].endswith(self.service.service_auth_token)
+        assert headers['authorization'].endswith(service_auth_token(self.service))
         assert len(headers['authorization'].split(' ')) == 2
 
     @pytest.mark.parametrize('payload,files,expected_type', (
@@ -587,7 +587,7 @@ class TestRequestTaskContext:
                 request_user = await request.user
                 payload = handlers.jwt_decode_handler(request.auth)
 
-                token = UserIPService.service_auth_token
+                token = service_auth_token(UserIPService)
                 assert token is not None
 
                 service_payload = jwt.decode(
@@ -643,7 +643,7 @@ class TestRequestTaskContext:
                 request_user = await request.user
                 payload = handlers.jwt_decode_handler(request.auth)
 
-                token = UserIPService.service_auth_token
+                token = service_auth_token(UserIPService)
                 assert token is not None
 
                 service_payload = jwt.decode(
@@ -703,7 +703,7 @@ class TestRequestTaskContext:
                 request_user = await request.user
                 payload = handlers.jwt_decode_handler(request.auth)
 
-                token = UserIPService.service_auth_token
+                token = service_auth_token(UserIPService)
                 assert token is not None
 
                 service_payload = jwt.decode(
@@ -761,7 +761,7 @@ class TestRequestTaskContext:
                 request_user = await request.user
                 assert request.auth is None
 
-                token = UserIPService.service_auth_token
+                token = service_auth_token(UserIPService)
                 assert token is not None
 
                 service_payload = jwt.decode(

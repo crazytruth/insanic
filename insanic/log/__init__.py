@@ -50,7 +50,7 @@ def get_logging_config():
             },
             "access": {
                 "format": "%(asctime)s - (%(name)s)[%(levelname)s][%(host)s]: " +
-                          "%(request)s %(message)s %(status)d %(byte)d %(request_service)s",
+                          "%(request)s %(message)s %(status)d %(byte)d",
                 "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
                 "class": "logging.Formatter"
             },
