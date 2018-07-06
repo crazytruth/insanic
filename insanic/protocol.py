@@ -7,6 +7,9 @@ class InsanicHttpProtocol(HttpProtocol):
 
     def log_response(self, response):
         if self.access_log:
+            if self.request.url.endswith('/health/') and self.request.host == 'nil':
+                return
+
             extra = {
                 'status': response.status,
                 'byte': len(response.body),
@@ -15,7 +18,7 @@ class InsanicHttpProtocol(HttpProtocol):
             }
             if hasattr(self.request, "_service"):
                 extra.update({
-                    "request_service": self.request._service.request_service,
+                    "request_service": str(self.request._service.request_service),
                 })
             if hasattr(response, 'span'):
                 span = response.span
@@ -30,7 +33,4 @@ class InsanicHttpProtocol(HttpProtocol):
             if str(response.status)[0] == "5":
                 access_logger.exception('', extra=extra, exc_info=response.exception)
             else:
-                if self.request.url.endswith('/health/') and self.request.host == 'nil':
-                    pass
-                else:
-                    access_logger.info('', extra=extra)
+                access_logger.info('', extra=extra)
