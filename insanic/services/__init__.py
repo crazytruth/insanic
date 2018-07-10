@@ -291,7 +291,7 @@ class Service:
                 _response_obj.raise_for_status()
 
             response_status = _response_obj.status
-            response = try_json_decode(await _response_obj.json())
+            response = try_json_decode(await _response_obj.text())
 
         except aiohttp.client_exceptions.ClientResponseError as e:
 
