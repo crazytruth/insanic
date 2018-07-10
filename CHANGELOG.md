@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.4.17 (unreleased)
+0.4.17 (2018-07-10)
 -------------------
 
 - FEAT: allow workers to set from INSANIC_WORKERS environment variable
