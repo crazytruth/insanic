@@ -1,25 +1,29 @@
+import os
+
 import logging
 import sys
 
 
 def get_logging_config():
+    log_level = os.environ.get('INSANIC_LOG_LEVEL', 'INFO')
+
     LOGGING_CONFIG_DEFAULTS = dict(
         version=1,
         disable_existing_loggers=False,
         loggers={
             "root": {
-                "level": "DEBUG",
+                "level": log_level,
                 "handlers": ["console"]
             },
             "sanic.error": {
-                "level": "INFO",
+                "level": log_level,
                 "handlers": ["error_console"],
                 "propagate": True,
                 "qualname": "sanic.error"
             },
 
             "sanic.access": {
-                "level": "INFO",
+                "level": log_level,
                 "handlers": ["access_console"],
                 "propagate": True,
                 "qualname": "sanic.access"
