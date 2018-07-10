@@ -5,7 +5,7 @@ Changelog for insanic
 0.4.18 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- FIX: cast INSANIC_WORKERS to integer
 
 
 0.4.17 (2018-07-10)
