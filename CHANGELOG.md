@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.4.18 (unreleased)
+0.4.18 (2018-07-10)
 -------------------
 
 - FIX: cast INSANIC_WORKERS to integer
