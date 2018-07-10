@@ -8,6 +8,7 @@ Changelog for insanic
 - FEAT: allow workers to set from INSANIC_WORKERS environment variable
 - FEAT: ping/pong service api with depth 
 - FEAT: allow log level to be set from environment variables
+- FIX: add slash to userip call 
 
 
 0.4.16 (2018-07-06)
