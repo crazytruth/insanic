@@ -5,7 +5,9 @@ Changelog for insanic
 0.4.17 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- FEAT: allow workers to set from INSANIC_WORKERS environment variable
+- FEAT: ping/pong service api with depth 
+- FEAT: allow log level to be set from environment variables
 
 
 0.4.16 (2018-07-06)

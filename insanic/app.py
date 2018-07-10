@@ -1,3 +1,4 @@
+import os
 import string
 
 from sanic import Sanic
@@ -106,6 +107,8 @@ class Insanic(Sanic):
             protocol = InsanicHttpProtocol
 
         self._port = int(port)
+
+        workers = os.environ.get('INSANIC_WORKERS', workers)
 
         super().run(host, port, debug, ssl, sock, workers, protocol,
                     backlog, stop_event, register_sys_signals,
