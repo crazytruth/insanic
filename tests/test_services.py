@@ -176,6 +176,9 @@ class TestServiceClass:
                 async def json(self, *args, **method_kwargs):
                     return {"request_timeout": kwargs['request_timeout']}
 
+                async def text(self, *args, **method_kwargs):
+                    return ujson.dumps({"request_timeout": kwargs['request_timeout']})
+
             return MockResponse()
 
         monkeypatch.setattr(self.service, '_dispatch_fetch', _mock_dispatch_fetch)
@@ -229,6 +232,9 @@ class TestServiceClass:
 
                 async def json(self, *args, **kwargs):
                     return {"content-type": final_content_type}
+
+                async def text(self, *args, **kwargs):
+                    return ujson.dumps({"content-type": final_content_type})
 
             # assert "content-type" in lower_headers.keys()
             assert "accept" in lower_headers.keys()
