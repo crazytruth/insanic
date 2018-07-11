@@ -31,20 +31,20 @@ def get_utc_datetime():
 
 def utc_to_datetime(timestamp=None, units=None):
     warnings.warn("utc_to_datetime has been deprecated because the "
-                  "method name is misleading. Use `timestamp_to_datetime`")
+                  "function name is misleading. Use `timestamp_to_datetime`")
     return timestamp_to_datetime(timestamp, units)
 
 
 def utc_milliseconds_to_datetime(timestamp):
     warnings.warn("`utc_milliseconds_to_datetime` has been deprecated because the "
-                  "method name is misleading. Use `timestamp_milliseconds_to_datetime`")
+                  "function name is misleading. Use `timestamp_milliseconds_to_datetime`")
 
     return timestamp_milliseconds_to_datetime(timestamp=timestamp)
 
 
 def utc_to_iso(timestamp=None, units_hint=None):
     warnings.warn("`utc_milliseconds_to_datetime` has been deprecated because the "
-                  "method name is misleading. Use `timestamp_milliseconds_to_datetime`")
+                  "function name is misleading. Use `timestamp_milliseconds_to_datetime`")
     return timestamp_to_iso(timestamp, units_hint)
 
 
@@ -79,8 +79,8 @@ def timestamp_to_datetime(timestamp=None, units=None):
 
 def utc_seconds_to_datetime(timestamp):
     warnings.warn("`utc_seconds_to_datetime` has been deprecated because the "
-                  "method name is misleading. Use `timestamp_seconds_to_datetime`")
-    return timestamp_to_datetime(timestamp)
+                  "function name is misleading. Use `timestamp_seconds_to_datetime`")
+    return timestamp_seconds_to_datetime(timestamp)
 
 
 def timestamp_seconds_to_datetime(timestamp):
