@@ -25,15 +25,15 @@ async def response_time(func, *args, **kwargs):
     try:
         response, status_code = await func(*args, **kwargs)
     except APIException as e:
-        return {"response": e.__dict__(), "status_code": e.status_code,
-                "request_time": f"{int((time.time()-start) * 1000)} ms"}
-    else:
-        return {"response": response, "status_code": status_code,
-                "request_time": f"{int((time.time()-start) * 1000)} ms"}
+        response = e.__dict__()
+        status_code = e.status_code
 
+    return {"response": response, "status_code": status_code,
+            "request_time": f"{int((time.time()-start) * 1000)} ms"}
 
 @blueprint_monitor.route('/ping/')
 async def ping(request):
+    start = time.time()
     try:
         depth = int(request.query_params.get("depth", 0))
     except ValueError:
@@ -42,6 +42,7 @@ async def ping(request):
     if depth and len(settings.SERVICE_CONNECTIONS) > 0:
         ping_tasks = {}
         ping_responses = {}
+
         for s in settings.SERVICE_CONNECTIONS:
             try:
                 service = get_service(s)
@@ -53,16 +54,17 @@ async def ping(request):
                                   query_params={"depth": depth - 1},
                                   include_status_code=True)
                 )})
-
         await asyncio.gather(*ping_tasks.values())
-
         for k, v in ping_tasks.items():
             ping_responses.update({k: v.result()})
-
-        return json(ping_responses)
-
+        resp = ping_responses
     else:
-        return text("pong")
+        resp = "pong"
+
+    return json({
+        "response": resp,
+        "process_time": f"{int((time.time()-start) * 1000)} ms",
+    })
 
 
 @blueprint_monitor.route('/health/')
