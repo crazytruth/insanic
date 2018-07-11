@@ -1,3 +1,4 @@
+import aiotask_context
 import logging
 import time
 import socket
@@ -27,16 +28,22 @@ class JSONFormatter(logging.Formatter):
         self.hostname = socket.gethostname()
         self._extra_fields = None
 
-        # for k,v in self.extra_fields.items():
-        #     setattr(self, k, v)
-
     @property
     def extra_fields(self):
         if not self._extra_fields:
-            self._extra_fields = {"service": settings.get('SERVICE_NAME'),
-                                  "environment": settings.get('MMT_ENV'),
-                                  "insanic_version": __version__,
-                                  "service_version": settings.get('SERVICE_VERSION')}
+            self._extra_fields = {
+                "service": settings.get('SERVICE_NAME'),
+                "environment": settings.get('MMT_ENV'),
+                "insanic_version": __version__,
+                "service_version": settings.get('SERVICE_VERSION')
+            }
+
+        try:
+            correlation_id = aiotask_context.get(settings.TASK_CONTEXT_CORRELATION_ID, default='unknown')
+        except ValueError:
+            correlation_id = "not set"
+        self._extra_fields.update({"correlation_id": correlation_id})
+
         return self._extra_fields
 
     def formatTime(self, record, datefmt=None):

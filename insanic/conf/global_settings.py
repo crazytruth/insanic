@@ -43,6 +43,7 @@ CACHES = {
 }
 
 TASK_CONTEXT_REQUEST_USER = "request_user"
+TASK_CONTEXT_CORRELATION_ID = "correlation_id"
 
 REDIS_HOST = "localhost"
 REDIS_PORT = 6379
@@ -141,6 +142,10 @@ KONG_PLUGIN = {"JSONWebTokenAuthentication": "jwt",
                "HardJSONWebTokenAuthentication": "jwt", }
 
 # VAULT_APPROLE_BIND_SECRET = "pull" # value can be pull or push
+REQUEST_ID_HEADER_FIELD = "X-Insanic-Request-ID"
+
+
+
 
 
 PACT_BROKER_URL = 'http://pact'

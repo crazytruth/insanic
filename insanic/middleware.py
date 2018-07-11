@@ -1,13 +1,13 @@
 import asyncio
+import aiotask_context
+
 from insanic.conf import settings
 from insanic.loading import get_service
 
 
-# async def request_middleware(request):
-#     pass
-#
-# async def response_middleware(request, response):
-#     pass
+def request_middleware(request):
+    aiotask_context.set(settings.TASK_CONTEXT_CORRELATION_ID,
+                        request.headers.get(settings.REQUEST_ID_HEADER_FIELD, "unknown"))
 
 async def response_userip_middleware(request, response):
 
