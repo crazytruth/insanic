@@ -194,7 +194,7 @@ class TestKongGateway:
         gateway.app._port = sanic_test_server.port
 
         async with gateway as gw:
-            await gw.deregister_target()
+            gw.deregister_target()
             await gw.register_target()
             await gw.force_target_healthy()
 
@@ -229,7 +229,7 @@ class TestKongGateway:
 
         # Test without token
         async with gateway.session.get(test_url) as resp:
-            response_json = await resp.json()
+            response_json = await resp.text()
             assert resp.status == 401
             # assert response_json == {'anonymous_header': True, 'user_type': '_AnonymousUser'}
 
@@ -324,7 +324,7 @@ class TestKongGateway:
             assert upstream_id == gw.upstream_id == self.gateway.upstream_id
 
             # clean up
-            await gw.deregister_target()
+            gw.deregister_target()
             await gw.deregister_upstream()
             await gw.deregister_service()
 
