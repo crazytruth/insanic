@@ -14,6 +14,7 @@ Changelog for insanic
     - remove interservice jwt for each user
     - add single jwt for service-to-service 
     - inject user information to headers
+- FEAT: inject correlation id to interservice requests
 
 0.4.18 (2018-07-10)
 -------------------

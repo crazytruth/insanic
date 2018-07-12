@@ -37,13 +37,22 @@ DEFAULT_SERVICE_REQUEST_TIMEOUT = 1
 #     return jwt_service_encode_handler(jwt_service_payload_handler(service, user))
 
 
-def user_context():
+def context_user():
     default = dict(AnonymousUser)
     try:
         user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER, default)
     except AttributeError:
         user = default
     return user
+
+
+def context_correlation_id():
+    try:
+        correlation_id = aiotask_context.get(settings.TASK_CONTEXT_CORRELATION_ID, "unknown")
+    except AttributeError:
+        correlation_id = "not set"
+    return correlation_id
+
 
 
 class ServiceRegistry(dict):
@@ -240,13 +249,18 @@ class Service:
 
         lower_headers.update({"date": get_utc_datetime().strftime("%a, %d %b %y %T %z")})
 
+        # inject jwt token to headers
         lower_headers.update(
             {"authorization": f"{settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX']} {self.service_token}"})
 
-        context_user = user_context()
-        lower_headers.update({f"{settings.INTERNAL_REQUEST_USER_HEADER.lower()}": to_header_value(context_user)})
-        return lower_headers
+        # inject user information to request headers
+        user = context_user()
+        lower_headers.update({settings.INTERNAL_REQUEST_USER_HEADER.lower(): to_header_value(user)})
 
+        # inject correlation_id
+        correlation_id = context_correlation_id()
+        lower_headers.update({settings.REQUEST_ID_HEADER_FIELD.lower(): correlation_id})
+        return lower_headers
 
     def _prepare_body(self, headers, payload, files=None):
         if files is None:
