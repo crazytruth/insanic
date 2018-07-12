@@ -11,7 +11,7 @@ from insanic.authentication import BaseAuthentication, JSONWebTokenAuthenticatio
 from insanic.choices import UserLevels
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
-from insanic.models import User
+from insanic.models import User, to_header_value, AnonymousUser
 from insanic.scopes import public_facing
 from insanic.views import InsanicView
 
@@ -225,21 +225,41 @@ class TestServiceJWTAuthentication:
         test_user = User(id=uuid.UUID(test_user_id).hex, level=UserLevels.STAFF,
                          is_authenticated=True)
 
-        token = test_service_token_factory(test_user)
+        token = test_service_token_factory()
         assert token is not None
         assert token.split()[0].lower() == settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'].lower()
 
-        payload = handlers.jwt_service_decode_handler(token.split()[1])
-        assert "user" in payload
-        assert payload['user'] == dict(test_user)
+        # payload = handlers.jwt_service_decode_handler(token.split()[1])
+        # assert "user" in payload
+        # assert payload['user'] == dict(test_user)
 
-    async def test_authenticate_credentials(self, auth, test_service_token_factory):
+    async def test_authenticate_credentials_no_user_header(self, auth, test_service_token_factory):
         test_user_id = 'a6454e643f7f4e8889b7085c466548d4'
         test_user = User(id=uuid.UUID(test_user_id).hex, level=UserLevels.STAFF,
-                         is_authenticated=True)
-        token = test_service_token_factory(test_user)
+                         is_authenticated=1)
+        token = test_service_token_factory()
         payload = handlers.jwt_service_decode_handler(token.split()[1])
 
-        user, service = await auth.authenticate_credentials(object(), payload)
+        class MockRequest:
+            @property
+            def headers(self):
+                return {}
 
+        user, service = await auth.authenticate_credentials(MockRequest(), payload)
+
+        assert dict(user) == dict(AnonymousUser)
+
+    async def test_authenticate_credentials_with_user_header(self, auth, test_service_token_factory):
+        test_user_id = 'a6454e643f7f4e8889b7085c466548d4'
+        test_user = User(id=uuid.UUID(test_user_id).hex, level=UserLevels.STAFF,
+                         is_authenticated=1)
+        token = test_service_token_factory()
+        payload = handlers.jwt_service_decode_handler(token.split()[1])
+
+        class MockRequest:
+            @property
+            def headers(self):
+                return {settings.INTERNAL_REQUEST_USER_HEADER: to_header_value(test_user)}
+
+        user, service = await auth.authenticate_credentials(MockRequest(), payload)
         assert dict(user) == dict(test_user)

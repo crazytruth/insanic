@@ -8,7 +8,8 @@ class User:
     def __init__(self, *, id, level, is_authenticated=False, **kwargs):
         self._is_authenticated = is_authenticated
         self.id = id
-        self.level = level
+
+        self.level = int(level)
 
     @property
     def is_staff(self):
@@ -16,7 +17,7 @@ class User:
 
     @property
     def is_authenticated(self):
-        return self.is_active and self._is_authenticated
+        return int(self.is_active and self._is_authenticated)
 
     @property
     def is_active(self):
@@ -41,8 +42,7 @@ class User:
     def __iter__(self):
         yield ("id", self.id)
         yield ("level", self.level)
-        yield ("is_authenticated", self._is_authenticated)
-
+        yield ("is_authenticated", self.is_authenticated)
 
 class _AnonymousUser(User):
 
@@ -80,3 +80,7 @@ AnonymousUser = _AnonymousUser()
 
 AnonymousRequestService = RequestService(source="", aud="", source_ip="", destination_version="",
                                          is_authenticated=False)
+
+
+def to_header_value(user):
+    return ";".join([f"{k}={v}" for k, v in dict(user).items()])

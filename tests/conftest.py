@@ -102,12 +102,11 @@ def test_service_token_factory():
     class MockService:
         service_name = 'test'
 
-    def factory(user=None):
-        if user is None:
-            user = User(id=uuid.uuid4().hex, level=UserLevels.ACTIVE)
+    def factory():
+
         # source, aud, source_ip, destination_version, is_authenticated):
         service = MockService()
-        payload = handlers.jwt_service_payload_handler(service, dict(user))
+        payload = handlers.jwt_service_payload_handler(service)
         return " ".join(
             [settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_service_encode_handler(payload)])
 

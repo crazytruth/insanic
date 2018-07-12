@@ -16,9 +16,9 @@ from insanic import status
 from insanic.authentication import handlers
 from insanic.conf import settings
 from insanic.exceptions import RequestTimeoutError, APIException
-from insanic.models import User, UserLevels, AnonymousRequestService, AnonymousUser
+from insanic.models import User, UserLevels, AnonymousRequestService, AnonymousUser, to_header_value
 from insanic.permissions import AllowAny
-from insanic.services import ServiceRegistry, Service, service_auth_token
+from insanic.services import ServiceRegistry, Service
 from insanic.services.response import InsanicResponse
 from insanic.views import InsanicView
 
@@ -72,10 +72,10 @@ class TestServiceClass:
         self.service = Service(self.service_name)
 
     async def test_init(self):
-        assert self.service._registry is ServiceRegistry()
+        # assert self.service._registry is ServiceRegistry()
         # assert self.service._session is None
 
-        auth_token = service_auth_token(self.service)
+        auth_token = self.service.service_token
         assert isinstance(auth_token, str)
 
     def test_service_name(self):
@@ -256,6 +256,48 @@ class TestServiceClass:
             self.service.http_dispatch('POST', '/', payload={"a": "b"}, files=files, headers=headers))
         assert final_content_type in response['content-type']
 
+    @pytest.fixture
+    def sanic_test_server(self, loop, insanic_application, test_server, monkeypatch):
+        monkeypatch.setattr(settings._wrapped, "ALLOWED_HOSTS", [], raising=False)
+
+        class MockView(InsanicView):
+            authentication_classes = []
+            permission_classes = [AllowAny]
+
+            async def post(self, request, *args, **kwargs):
+                return json({'data': request.data.keys(),
+                             'files': request.files.keys()}, status=202)
+
+        # insanic_application.listeners["after_server_start"].append(self._force_target_healthy)
+        insanic_application.add_route(MockView.as_view(), '/multi')
+
+        return loop.run_until_complete(test_server(insanic_application, host='0.0.0.0'))
+
+    @pytest.mark.parametrize("payload,files,headers", (
+            ({}, {}, {}),
+            ({"a": "b"}, {}, {}),
+            ({}, {"image": open('insanic.png', 'rb')}, {}),
+            ({"a": "b"}, {"image": open('insanic.png', 'rb')}, {})
+    ))
+    async def test_http_dispatch_files(self, sanic_test_server, payload, files, headers, monkeypatch):
+
+        monkeypatch.setattr(self.service, "host", "localhost")
+        monkeypatch.setattr(self.service, "port", sanic_test_server.port)
+        monkeypatch.setattr(settings, 'GATEWAY_REGISTRATION_ENABLED', False)
+
+        response = await self.service.http_dispatch('POST', '/multi', payload=payload, files=files, headers=headers)
+
+        assert list(payload.keys()) + list(files.keys()) == response.get('data', None), response
+        assert list(files.keys()) == response.get('files', None)
+
+        assert response
+
+
+
+
+
+
+
     @pytest.mark.parametrize("response_code", [k for k in status.REVERSE_STATUS if k >= 400])
     def test_http_dispatch_raise_for_status(self, response_code):
         """
@@ -334,7 +376,7 @@ class TestServiceClass:
             assert h in headers.keys()
 
         assert headers['authorization'].startswith("MSA")
-        assert headers['authorization'].endswith(service_auth_token(self.service))
+        assert headers['authorization'].endswith(self.service.service_token)
         assert len(headers['authorization'].split(' ')) == 2
 
     @pytest.mark.parametrize('payload,files,expected_type', (
@@ -417,7 +459,7 @@ class TestRequestTaskContext:
                                                        test_service_token_factory):
         import aiotask_context
 
-        token = test_service_token_factory(test_user)
+        token = test_service_token_factory()
 
         class TokenView(InsanicView):
 
@@ -434,7 +476,11 @@ class TestRequestTaskContext:
                 return json({"hi": "hello"})
 
         insanic_application.add_route(TokenView.as_view(), '/')
-        request, response = insanic_application.test_client.get('/', headers={"Authorization": token})
+        request, response = insanic_application.test_client.get(
+            '/',
+            headers={
+                "Authorization": token,
+                settings.INTERNAL_REQUEST_USER_HEADER: to_header_value(test_user)})
 
         assert response.status == 200
 
@@ -442,7 +488,7 @@ class TestRequestTaskContext:
                                                        test_service_token_factory):
         import aiotask_context
 
-        token = test_service_token_factory(test_user)
+        token = test_service_token_factory()
 
         class TokenView(InsanicView):
 
@@ -459,7 +505,10 @@ class TestRequestTaskContext:
                 return json({"hi": "hello"})
 
         insanic_application.add_route(TokenView.as_view(), '/')
-        request, response = insanic_application.test_client.get('/', headers={"authorization": token})
+        request, response = insanic_application.test_client.get(
+            '/',
+            headers={"authorization": token,
+                     settings.INTERNAL_REQUEST_USER_HEADER: to_header_value(test_user)})
 
         assert response.status == 200
 
@@ -483,7 +532,10 @@ class TestRequestTaskContext:
                 return json({"hi": "hello"})
 
         insanic_application.add_route(TokenView.as_view(), '/')
-        request, response = insanic_application.test_client.get('/', headers={"Authorization": token})
+        request, response = insanic_application.test_client.get(
+            '/',
+            headers={"Authorization": token,
+                     settings.INTERNAL_REQUEST_USER_HEADER: to_header_value(test_user)})
 
         assert response.status == 200
 
@@ -503,8 +555,8 @@ class TestRequestTaskContext:
                 assert user == dict(request_user)
 
                 payload = handlers.jwt_decode_handler(request.auth)
-                assert "user" in payload
-                assert user == dict(request_user) == payload['user']
+                assert "user" not in payload
+                assert user == dict(request_user)
 
                 return json({"user": user})
 
@@ -518,8 +570,11 @@ class TestRequestTaskContext:
             user = User(id=i, level=UserLevels.STAFF,
                         is_authenticated=True)
 
-            token = test_service_token_factory(user)
-            requests.append(client.get('/', headers={"Authorization": token}))
+            token = test_service_token_factory()
+            requests.append(client.get(
+                '/',
+                headers={"Authorization": token,
+                         settings.INTERNAL_REQUEST_USER_HEADER: to_header_value(user)}))
 
         responses = await asyncio.gather(*requests)
 
@@ -528,7 +583,7 @@ class TestRequestTaskContext:
             assert r.status == 200
 
             resp = await r.json()
-            assert resp['user']['id'] == i
+            assert resp['user']['id'] == str(i)
 
     async def test_task_context_user_multiple_after_authentication(self, insanic_application, monkeypatch,
                                                                    test_client,
@@ -547,7 +602,7 @@ class TestRequestTaskContext:
                 assert context_user is not None
 
                 user_id = payload.pop('user_id')
-                assert context_user == dict(request_user) == dict(User(id=user_id, is_authenticated=True, **payload))
+                assert context_user == dict(request_user)
 
                 service = await request.service
 
@@ -593,7 +648,7 @@ class TestRequestTaskContext:
                 request_user = await request.user
                 payload = handlers.jwt_decode_handler(request.auth)
 
-                token = service_auth_token(UserIPService)
+                token = UserIPService.service_token
                 assert token is not None
 
                 service_payload = jwt.decode(
@@ -603,7 +658,7 @@ class TestRequestTaskContext:
                     algorithms=[settings.JWT_SERVICE_AUTH['JWT_ALGORITHM']]
                 )
 
-                assert service_payload['user'] == dict(request_user) == context_user
+                assert dict(request_user) == context_user
 
                 inject_headers = UserIPService._prepare_headers({})
 
@@ -649,17 +704,10 @@ class TestRequestTaskContext:
                 request_user = await request.user
                 payload = handlers.jwt_decode_handler(request.auth)
 
-                token = service_auth_token(UserIPService)
+                token = UserIPService.service_token
                 assert token is not None
 
-                service_payload = jwt.decode(
-                    token,
-                    settings.SERVICE_TOKEN_KEY,
-                    verify=False,
-                    algorithms=[settings.JWT_SERVICE_AUTH['JWT_ALGORITHM']]
-                )
-
-                assert service_payload['user'] == dict(request_user) == context_user
+                assert dict(request_user) == context_user
 
                 inject_headers = UserIPService._prepare_headers({})
 
@@ -679,8 +727,9 @@ class TestRequestTaskContext:
             user = User(id=i, level=UserLevels.STAFF,
                         is_authenticated=True)
 
-            token = test_service_token_factory(user)
-            requests.append(client.get('/', headers={"Authorization": token}))
+            token = test_service_token_factory()
+            requests.append(client.get('/', headers={"Authorization": token,
+                                                     settings.INTERNAL_REQUEST_USER_HEADER: to_header_value(user)}))
             users.append(user)
 
         responses = await asyncio.gather(*requests)
@@ -690,7 +739,7 @@ class TestRequestTaskContext:
             resp = await r.json()
             assert r.status == 200, resp
 
-            assert resp['user']['id'] == users[i].id
+            assert resp['user']['id'] == str(users[i].id)
 
     async def test_task_context_service_anonymous_http_dispatch_injection(self, insanic_application,
                                                                           test_client,
@@ -709,7 +758,7 @@ class TestRequestTaskContext:
                 request_user = await request.user
                 payload = handlers.jwt_decode_handler(request.auth)
 
-                token = service_auth_token(UserIPService)
+                token = UserIPService.service_token
                 assert token is not None
 
                 service_payload = jwt.decode(
@@ -719,7 +768,7 @@ class TestRequestTaskContext:
                     algorithms=[settings.JWT_SERVICE_AUTH['JWT_ALGORITHM']]
                 )
 
-                assert service_payload['user'] == dict(request_user) == context_user
+                assert dict(request_user) == context_user
 
                 inject_headers = UserIPService._prepare_headers({})
 
@@ -737,8 +786,11 @@ class TestRequestTaskContext:
 
         for i in range(10):
             user = AnonymousUser
-            token = test_service_token_factory(user)
-            requests.append(client.get('/', headers={"Authorization": token}))
+            token = test_service_token_factory()
+            requests.append(client.get(
+                '/',
+                headers={"Authorization": token,
+                         settings.INTERNAL_REQUEST_USER_HEADER: to_header_value(user)}))
             users.append(user)
 
         responses = await asyncio.gather(*requests)
@@ -767,7 +819,7 @@ class TestRequestTaskContext:
                 request_user = await request.user
                 assert request.auth is None
 
-                token = service_auth_token(UserIPService)
+                token = UserIPService.service_token
                 assert token is not None
 
                 service_payload = jwt.decode(
@@ -777,7 +829,7 @@ class TestRequestTaskContext:
                     algorithms=[settings.JWT_SERVICE_AUTH['JWT_ALGORITHM']]
                 )
 
-                assert service_payload['user'] == dict(request_user) == context_user
+                assert dict(request_user) == context_user
 
                 inject_headers = UserIPService._prepare_headers({})
 
@@ -804,4 +856,4 @@ class TestRequestTaskContext:
             resp = await r.json()
             assert r.status == 200, resp
 
-            assert resp['user']['id'] == users[i].id
+            assert resp['user']['id'] == str(users[i].id)

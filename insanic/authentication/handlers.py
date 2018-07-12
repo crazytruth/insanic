@@ -78,13 +78,13 @@ def jwt_service_decode_handler(token):
     )
 
 
-def jwt_service_payload_handler(service, user):
+def jwt_service_payload_handler(service):
     payload = {
         "source": settings.SERVICE_NAME,
         "aud": service.service_name,
         "source_ip": socket.gethostbyname(socket.gethostname()),
         "destination_version": "0.0.1",
-        "user": user
+        # "user": user
     }
     return payload
 

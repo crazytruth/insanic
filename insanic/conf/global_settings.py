@@ -143,9 +143,7 @@ KONG_PLUGIN = {"JSONWebTokenAuthentication": "jwt",
 
 # VAULT_APPROLE_BIND_SECRET = "pull" # value can be pull or push
 REQUEST_ID_HEADER_FIELD = "X-Insanic-Request-ID"
-
-
-
+INTERNAL_REQUEST_USER_HEADER = 'x-insanic-request-user'
 
 
 PACT_BROKER_URL = 'http://pact'

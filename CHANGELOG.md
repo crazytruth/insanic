@@ -5,8 +5,15 @@ Changelog for insanic
 0.4.19 (unreleased)
 -------------------
 
-- Nothing changed yet.
-
+- CHORE: rename datetime util functions that don't represent what they actually do
+- FEAT: add timings to ping api
+- FEAT: add correlation_id to all logs within a context of a request
+- CHORE: unpack exception to error message function to utils 
+- CHORE: refactor requests object to handle formdata and clean up unused methods
+- OPTIMIZATION: interservice communication authorization
+    - remove interservice jwt for each user
+    - add single jwt for service-to-service 
+    - inject user information to headers
 
 0.4.18 (2018-07-10)
 -------------------
