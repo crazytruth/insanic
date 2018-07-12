@@ -1,25 +1,21 @@
 import aiotask_context
-import io
 import time
+import uuid
 
+from cgi import parse_header
 from pprint import pformat
+from urllib.parse import parse_qs
 
-from sanic.request import Request as SanicRequest, RequestParameters
+from sanic.exceptions import InvalidUsage
+from sanic.request import Request as SanicRequest, RequestParameters, File
 
 from insanic import exceptions
 from insanic.conf import settings
 from insanic.functional import empty
+from insanic.log import logger, error_logger
 from insanic.utils import force_str
-from insanic.utils.mediatypes import parse_header, HTTP_HEADER_ENCODING
 
-
-def is_form_media_type(media_type):
-    """
-    Return True if the media type is a valid form media type.
-    """
-    base_media_type, params = parse_header(media_type.encode(HTTP_HEADER_ENCODING))
-    return (base_media_type == 'application/x-www-form-urlencoded' or
-            base_media_type == 'multipart/form-data')
+DEFAULT_HTTP_CONTENT_TYPE = "application/octet-stream"
 
 
 def _hasattr(obj, name):
@@ -42,26 +38,27 @@ class Request(SanicRequest):
         'app', 'headers', 'version', 'method', '_cookies', 'transport',
         'body', 'parsed_json', 'parsed_args', 'parsed_form', 'parsed_files',
         '_ip', '_parsed_url', 'uri_template', 'stream', '_remote_addr',
-        'authenticators', '_data', '_files', '_full_data', '_content_type',
-        '_stream', '_authenticator', '_service_authenticator', '_user', '_auth', '_service_hosts',
-        '_request_time', '_span', '_service', '_service_auth',
+        'authenticators', 'parsed_data',
+        '_stream', '_authenticator', '_service_authenticator', '_user', '_auth',
+        '_request_time', '_span', '_service', '_service_auth', '_id'
     )
 
     def __init__(self, url_bytes, headers, version, method, transport,
                  authenticators=None):
 
         super().__init__(url_bytes, headers, version, method, transport)
-        # self._request = request
+
         self._request_time = int(time.time() * 1000000)
-
-        self._data = empty
-        self._files = empty
-        self._full_data = empty
-        self._content_type = empty
+        self._id = empty
+        self.parsed_data = empty
         self._stream = empty
-        self._service_hosts = empty
-
         self.authenticators = authenticators or ()
+
+    @property
+    def id(self):
+        if self._id is empty:
+            self._id = self.headers.get(settings.REQUEST_ID_HEADER_FIELD, f"{uuid.uuid4()}-{id(self)}")
+        return self._id
 
     @property
     def span(self):
@@ -72,22 +69,11 @@ class Request(SanicRequest):
         self._span = value
 
     @property
-    def content_type(self):
-        meta = self.headers
-        return meta.get('content-type', 'application/json')
-
-    @property
     def query_params(self):
         """
         More semantically correct name for request.GET.
         """
         return self.args
-
-    @property
-    def data(self):
-        if not _hasattr(self, '_full_data'):
-            self._load_data_and_files()
-        return self._full_data
 
     @property
     async def user(self):
@@ -123,7 +109,6 @@ class Request(SanicRequest):
     def service(self, value):
         self._service = value
 
-
     @property
     def auth(self):
         """
@@ -152,61 +137,97 @@ class Request(SanicRequest):
             self._authenticate()
         return self._authenticator
 
-    def _load_data_and_files(self):
-        """
-        Parses the request content into `self.data`.
-        """
-        if not _hasattr(self, '_data'):
-            self._data, self._files = self._parse()
-            if self._files:
-                self._full_data = RequestParameters(self._data.copy())
-                self._full_data.update(self._files)
-            else:
-                self._full_data = self._data
+    @property
+    def data(self):
+        if not _hasattr(self, 'parsed_data'):
+            try:
+                self.parsed_data = self.json
+            except InvalidUsage:
+                self.parsed_data = self.form
+            finally:
+                if self.parsed_files:
+                    for k in self.parsed_files.keys():
+                        v = self.parsed_files.getlist(k)
+                        self.parsed_data.update({k: v})
+        return self.parsed_data
 
-    def _load_stream(self):
-        """
-        Return the content body of the request, as a stream.
-        """
-        meta = self.headers
-        try:
-            content_length = int(
-                meta.get('content-length', 0)
-            )
-        except (ValueError, TypeError):
-            content_length = 0
+    @property
+    def form(self):
+        if self.parsed_form is None:
+            self.parsed_form = RequestParameters()
+            self.parsed_files = RequestParameters()
+            content_type = self.headers.get(
+                'Content-Type', DEFAULT_HTTP_CONTENT_TYPE)
+            content_type, parameters = parse_header(content_type)
+            try:
+                if content_type == 'application/x-www-form-urlencoded':
+                    self.parsed_form = RequestParameters(
+                        parse_qs(self.body.decode('utf-8')))
+                elif content_type == 'multipart/form-data':
+                    # TODO: Stream this instead of reading to/from memory
+                    boundary = parameters['boundary'].encode('utf-8')
+                    self.parsed_form, self.parsed_files = (
+                        parse_multipart_form(self.body, boundary))
+            except Exception:
+                error_logger.exception("Failed when parsing form")
 
-        if content_length == 0:
-            self._stream = None
-        # elif not self._request._read_started:
-        #     self._stream = self._request
-        else:
-            self._stream = io.BytesIO(self.body)
+        return self.parsed_form
 
-    def _supports_form_parsing(self):
-        """
-        Return True if this requests supports parsing form data.
-        """
-        form_media = (
-            'application/x-www-form-urlencoded',
-            'multipart/form-data'
-        )
-        return any([parser.media_type in form_media for parser in self.parsers])
+    # def _load_data_and_files(self):
+    #     """
+    #     Parses the request content into `self.data`.
+    #     """
+    #     if not _hasattr(self, '_data'):
+    #         self._data, self._files = self._parse()
+    #         if self._files:
+    #             self._full_data = RequestParameters(self._data.copy())
+    #             self._full_data.update(self._files)
+    #         else:
+    #             self._full_data = self._data
+    #
+    # def _load_stream(self):
+    #     """
+    #     Return the content body of the request, as a stream.
+    #     """
+    #     meta = self.headers
+    #     try:
+    #         content_length = int(
+    #             meta.get('content-length', 0)
+    #         )
+    #     except (ValueError, TypeError):
+    #         content_length = 0
+    #
+    #     if content_length == 0:
+    #         self._stream = None
+    #     # elif not self._request._read_started:
+    #     #     self._stream = self._request
+    #     else:
+    #         self._stream = io.BytesIO(self.body)
 
-    def _parse(self):
-        """
-        Parse the request content, returning a two-tuple of (data, files)
-
-        May raise an `UnsupportedMediaType`, or `ParseError` exception.
-        """
-        media_type = self.content_type
-
-        if media_type.startswith("application/json"):
-            return self.json, self.files
-        elif media_type.startswith('application/x-www-form-urlencoded') or media_type.startswith('multipart/form-data'):
-            return self.form, self.files
-        else:
-            raise exceptions.UnsupportedMediaType(media_type)
+    # def _supports_form_parsing(self):
+    #     """
+    #     Return True if this requests supports parsing form data.
+    #     """
+    #     form_media = (
+    #         'application/x-www-form-urlencoded',
+    #         'multipart/form-data'
+    #     )
+    #     return any([parser.media_type in form_media for parser in self.parsers])
+    #
+    # def _parse(self):
+    #     """
+    #     Parse the request content, returning a two-tuple of (data, files)
+    #
+    #     May raise an `UnsupportedMediaType`, or `ParseError` exception.
+    #     """
+    #     media_type = self.content_type
+    #
+    #     if media_type.startswith("application/json"):
+    #         return self.json, self.files
+    #     elif media_type.startswith('application/x-www-form-urlencoded') or media_type.startswith('multipart/form-data'):
+    #         return self.form, self.files
+    #     else:
+    #         raise exceptions.UnsupportedMediaType(media_type)
 
     async def _authenticate(self):
         """
@@ -241,7 +262,6 @@ class Request(SanicRequest):
         self.user = AnonymousUser
         self.service = AnonymousRequestService
         self.auth = None
-
 
 def build_request_repr(request, path_override=None, GET_override=None,
                        POST_override=None, COOKIES_override=None,
@@ -293,3 +313,63 @@ def build_request_repr(request, path_override=None, GET_override=None,
                       str(cookies),
                       str(meta),
                       str(query_params)))
+
+
+def parse_multipart_form(body, boundary):
+    """Parse a request body and returns fields and files
+    :param body: bytes request body
+    :param boundary: bytes multipart boundary
+    :return: fields (RequestParameters), files (RequestParameters)
+    """
+    files = RequestParameters()
+    fields = RequestParameters()
+
+    form_parts = body.split(boundary)
+    for form_part in form_parts[1:-1]:
+        file_name = None
+        content_type = 'text/plain'
+        content_charset = 'utf-8'
+        field_name = None
+        line_index = 2
+        line_end_index = 0
+        while not line_end_index == -1:
+            line_end_index = form_part.find(b'\r\n', line_index)
+            form_line = form_part[line_index:line_end_index].decode('utf-8')
+            line_index = line_end_index + 2
+
+            if not form_line:
+                break
+
+            colon_index = form_line.index(':')
+            form_header_field = form_line[0:colon_index].lower()
+            form_header_value, form_parameters = parse_header(
+                form_line[colon_index + 2:])
+
+            if form_header_field == 'content-disposition':
+                file_name = form_parameters.get('filename')
+                field_name = form_parameters.get('name')
+            elif form_header_field == 'content-type':
+                content_type = form_header_value
+                content_charset = form_parameters.get('charset', 'utf-8')
+
+        if field_name:
+            post_data = form_part[line_index:-4]
+            if file_name:
+                form_file = File(type=content_type,
+                                 name=file_name,
+                                 body=post_data)
+                if field_name in files:
+                    files[field_name].append(form_file)
+                else:
+                    files[field_name] = [form_file]
+            else:
+                value = post_data.decode(content_charset)
+                if field_name in fields:
+                    fields[field_name].append(value)
+                else:
+                    fields[field_name] = [value]
+        else:
+            logger.debug('Form-data field does not have a \'name\' parameter \
+                         in the Content-Disposition header')
+
+    return fields, files
