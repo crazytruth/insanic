@@ -68,7 +68,7 @@ class BaseGateway:
         if not hasattr(v, "release"):
             v = v._version
 
-        return ".".join([str(i) for i in v.release[:2]])
+        return ".".join([str(i) for i in v.release[:3]])
 
     def logger_create_message(self, module, message):
         namespace = self.__class__.__name__.upper().replace("GATEWAY", "")
@@ -113,44 +113,45 @@ class BaseGateway:
         else:
             raise RuntimeError("Unable to resolve process name.")
 
-    @http_session_manager
-    async def _register(self, *, session):
+    def _register(self):
         raise NotImplementedError(".register() must be overridden.")  # pragma: no cover
 
-    @http_session_manager
-    async def _deregister(self, *, session):
+    def _deregister(self):
         raise NotImplementedError(".deregister() must be overridden.")  # pragma: no cover
 
-    async def register(self, app):
+    def register(self, app):
         self.app = app
         if self.enabled:
             try:
-                await self._register()
+                self._register()
             except ClientConnectorError:
                 if settings.MMT_ENV in settings.KONG_FAIL_SOFT_ENVIRONMENTS:
                     self.logger_route('info', "Connection to gateway has failed. Soft failing registration.")
                 else:
                     raise
 
-    async def deregister(self):
+    def deregister(self):
+        """
+        deregister is implemented as synchronous because we need to guarantee the clean up from kong.
+        Making this async created problems where remaining tasks wouldn't be awaited for.
+        """
         if self.enabled:
             try:
-                await self._deregister()
+                result = self._deregister()
             except ClientConnectorError:
                 if settings.MMT_ENV in settings.KONG_FAIL_SOFT_ENVIRONMENTS:
                     self.logger_route('info', "Connection to gateway has failed. Soft failing registration.")
                 else:
                     raise
 
-    async def __aenter__(self):
-        if self.session is None or (hasattr(self.session, 'closed') and self.session.closed):
-            self.session = aiohttp.ClientSession()
-            self.is_context_session = True
-
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self.is_context_session:
-            await self.session.close()
-            self.is_context_session = False
-            self.session = None
+    # async def __aenter__(self):
+    #     if self.session is None or (hasattr(self.session, 'closed') and self.session.closed):
+    #         self.session = aiohttp.ClientSession()
+    #         self.is_context_session = True
+    #     return self
+    #
+    # async def __aexit__(self, exc_type, exc_val, exc_tb):
+    #     if self.is_context_session:
+    #         await self.session.close()
+    #         self.is_context_session = False
+    #         self.session = None

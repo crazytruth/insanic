@@ -139,10 +139,9 @@ def test_base_authentication_on_view(insanic_application):
 class TestAuthentication():
 
     @staticmethod
-    async def _deregister_routes(app, loop):
+    def _deregister_routes(app, loop):
         from insanic.registration import gateway
-        async with gateway as gw:
-            await gw.deregister_routes()
+        gateway.deregister_routes()
 
 
     @pytest.fixture(autouse=True)

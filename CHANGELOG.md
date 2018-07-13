@@ -5,6 +5,9 @@ Changelog for insanic
 0.4.19 (unreleased)
 -------------------
 
+- FEAT: brand spankin new status code HTTP_497_SAGOCHIN_NYOSUK!!
+- HUGE REFACTOR: refactor kong gateway object to be synchronous because of integrity issues
+- TWEAKING: each deploy creates new service/routes/upstreams
 - CHORE: rename datetime util functions that don't represent what they actually do
 - FEAT: add timings to ping api
 - FEAT: add correlation_id to all logs within a context of a request
@@ -15,6 +18,7 @@ Changelog for insanic
     - add single jwt for service-to-service 
     - inject user information to headers
 - FEAT: inject correlation id to interservice requests
+
 
 0.4.18 (2018-07-10)
 -------------------

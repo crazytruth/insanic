@@ -30,28 +30,14 @@ class TestBaseGateway:
         self.gateway = BaseGateway()
 
     @pytest.mark.parametrize("method, params", (
-            ("_register", {"session": None}),
-            ("_deregister", {"session": None}),
+            ("_register", {}),
+            ("_deregister", {}),
             ("register", {"app": None}),
             ("deregister", {})))
     async def test_not_implemented_errors(self, method, params):
         with pytest.raises(NotImplementedError):
-            async with self.gateway as gw:
-                test_method = getattr(gw, method)
-                await test_method(**params)
-
-    async def test_context_manager(self):
-        assert self.gateway.session is None
-
-        async with self.gateway as gw:
-            assert gw.session is not None
-            assert self.gateway.session is not None
-            assert isinstance(gw.session, aiohttp.ClientSession)
-
-        assert self.gateway.session is None
-
-
-gw = None
+            test_method = getattr(self.gateway, method)
+            test_method(**params)
 
 class TestKongGateway:
 
@@ -65,8 +51,7 @@ class TestKongGateway:
 
         monkeypatch.setattr(KongGateway, "service_version", session_id, raising=False)
         self.gateway = KongGateway()
-        global gw
-        gw = self.gateway
+
         yield
 
         # @pytest.fixture(autouse=True, scope="module")
@@ -75,7 +60,7 @@ class TestKongGateway:
         #     yield
         #     global gw
 
-        kong_base_url = gw.kong_base_url.with_host('kong.msa.swarm')
+        kong_base_url = self.gateway.kong_base_url.with_host('kong.msa.swarm')
         resp = requests.get(kong_base_url.with_path('/services'))
         body = jsonloads(resp.text)
         service_ids = [r['id'] for r in body.get('data', []) if "test" in r['name']]
@@ -132,7 +117,6 @@ class TestKongGateway:
         assert isinstance(self.gateway.kong_base_url, URL)
         assert URL(self.gateway.kong_base_url)
 
-
     def test_kong_service_name(self, monkeypatch):
         monkeypatch.setattr(settings, "SERVICE_VERSION", "0.0.0", raising=False)
 
@@ -144,24 +128,9 @@ class TestKongGateway:
         assert e == self.gateway.service_name.lower()
         assert mi == self.gateway.service_version.lower()
 
-    # def test_service_spec(self, monkeypatch):
-    #     monkeypatch.setattr(settings._wrapped, "SERVICE_LIST", {}, raising=False)
-    #
-    #     sl = self.gateway.service_spec
-    #
-    #     assert self.gateway._service_spec == sl
-    #
-    #     service_spec = {"a": "b"}
-    #     monkeypatch.setattr(settings._wrapped, "SERVICE_LIST", {"insanic": service_spec}, raising=False)
-    #     self.gateway._service_spec = None
-    #
-    #     sl = self.gateway.service_spec
-    #     assert self.gateway._service_spec == service_spec
-
     @staticmethod
     async def _force_target_healthy(app, loop):
-        async with gateway as gw:
-            await gw.force_target_healthy()
+        gateway.force_target_healthy()
 
     @pytest.fixture
     def sanic_test_server(self, loop, insanic_application, test_server, monkeypatch, test_route):
@@ -191,57 +160,59 @@ class TestKongGateway:
     async def test_routes_with_jwt_auth_and_allow_any(self, sanic_test_server, test_user_token_factory, test_route):
 
         # Test without token
-        gateway.app._port = sanic_test_server.port
+        self.gateway.app = sanic_test_server.app
+        self.gateway.app._port = sanic_test_server.port
 
-        async with gateway as gw:
-            gw.deregister_target()
-            await gw.register_target()
-            await gw.force_target_healthy()
+        self.gateway.force_target_healthy()
 
         test_url = f'http://{settings.KONG_HOST}:18000{test_route}'
 
-        async with gateway.session.get(test_url) as resp:
-            response_json = await resp.json()
-            assert resp.status == 202
-            assert response_json == {'anonymous_header': True, 'user_type': '_AnonymousUser'}
+        resp = requests.get(test_url)
+        assert resp.status_code == 202
+        assert resp.json() == {'anonymous_header': True, 'user_type': '_AnonymousUser'}
 
         # Test with token
         token = test_user_token_factory(level=UserLevels.ACTIVE)
 
-        async with gateway.session.get(test_url, headers={"Authorization": token}) as resp:
-            response_json = await resp.json()
-            assert resp.status == 202
-            assert response_json == {'anonymous_header': False, 'user_type': 'User'}
+        resp = requests.get(test_url, headers={"Authorization": token})
+
+        assert resp.status_code == 202
+        assert resp.json() == {'anonymous_header': False, 'user_type': 'User'}
 
         # Test with banned user
         token = test_user_token_factory(level=UserLevels.BANNED)
 
-        async with gateway.session.get(test_url, headers={"Authorization": token}) as resp:
-            response_json = await resp.json()
-            assert resp.status == 401
+        resp = requests.get(test_url, headers={"Authorization": token})
+        response_json = resp.json()
+        assert resp.status_code == 401
 
-    async def test_routes_with_jwt_auth_and_is_authenticated(self, sanic_test_server, test_user_token_factory,
+    def test_routes_with_jwt_auth_and_is_authenticated(self, sanic_test_server, test_user_token_factory,
                                                              test_route):
         import time
-        gateway.app._port = sanic_test_server.port
+        # self.gateway.app = sanic_test_server.app
+        # self.gateway.app._port = sanic_test_server.port
+        time.sleep(1)
+        gateway.force_target_healthy()
 
         test_url = f'http://{settings.KONG_HOST}:18000{test_route}'
-
+        time.sleep(1)
         # Test without token
-        async with gateway.session.get(test_url) as resp:
-            response_json = await resp.text()
-            assert resp.status == 401
-            # assert response_json == {'anonymous_header': True, 'user_type': '_AnonymousUser'}
+        resp = requests.get(test_url)
+
+        response_json = resp.json()
+        assert resp.status_code == 401, response_json
+        assert response_json == {'anonymous_header': True, 'user_type': '_AnonymousUser'}
 
         # request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}')
         # assert response.status == 401
 
         # Test with token
         token = test_user_token_factory(level=UserLevels.ACTIVE)
-        async with gateway.session.get(test_url, headers={"Authorization": token}) as resp:
-            response_json = await resp.json()
-            assert resp.status == 202
-            assert response_json == {'test': 'success'}
+
+        resp = requests.get(test_url, headers={"Authorization": token})
+        response_json = resp.json()
+        assert resp.status_code == 202
+        assert response_json == {'test': 'success'}
 
             # assert response_json == {'anonymous_header': True, 'user_type': '_AnonymousUser'}
 
@@ -253,13 +224,15 @@ class TestKongGateway:
 
         # Test with banned user
         token = test_user_token_factory(level=UserLevels.BANNED)
+        resp = requests.get(test_url, headers={"Authorization": token})
+        assert resp.status_code == 401
         # request, response = try_multiple(f'http://{settings.KONG_HOST}:18000{route}', 401, {'Authorization': f"{token}"})
         token = test_user_token_factory(level=UserLevels.ACTIVE)
-        async with gateway.session.get(test_url, headers={"Authorization": token}) as resp:
-            response_json = await resp.json()
-            assert resp.status == 401
-            # assert response_json == {'test': 'success'}
-        # request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
+        resp = requests.get(test_url, headers={"Authorization": token})
+        assert resp.status_code == 401
+        # assert response_json == {'test': 'success'}
+
+    # request, response = insanic_application.test_client.get(f'http://{settings.KONG_HOST}:18000{route}',
         #                                                         headers={'Authorization': f"{token}"})
 
         # assert response.status == 401
@@ -268,21 +241,20 @@ class TestKongGateway:
 
         monkeypatch.setattr(self.gateway, "_service_name", session_id[:10])
 
-        async with self.gateway as gw:
-            gw.app = insanic_application
-            await gw.register_service()
-            assert hasattr(self.gateway, "service_id")
-            assert self.gateway.service_id is not None
-            sid = self.gateway.service_id
+        self.gateway.app = insanic_application
+        self.gateway.register_service()
+        assert hasattr(self.gateway, "service_id")
+        assert self.gateway.service_id is not None
+        sid = self.gateway.service_id
 
-            await gw.register_service()
-            assert sid == gw.service_id
+        self.gateway.register_service()
+        assert sid == self.gateway.service_id
 
-            await gw.register_service()
-            assert sid == gw.service_id
+        self.gateway.register_service()
+        assert sid == self.gateway.service_id
 
-            # clean up
-            await gw.deregister_service()
+        # clean up
+        self.gateway.deregister_service()
 
     async def test_upstream_object(self, monkeypatch, insanic_application, session_id):
         monkeypatch.setattr(self.gateway, "_service_name", session_id[:10])
@@ -297,36 +269,35 @@ class TestKongGateway:
 
         monkeypatch.setattr(self.gateway, "_service_name", session_id[:10])
 
-        async with self.gateway as gw:
-            gw.app = insanic_application
-            await gw.register_service()
-            assert hasattr(self.gateway, "service_id")
-            assert self.gateway.service_id is not None
+        self.gateway.app = insanic_application
+        self.gateway.register_service()
+        assert hasattr(self.gateway, "service_id")
+        assert self.gateway.service_id is not None
 
-            # test register upstream
-            await gw.register_upstream()
-            assert hasattr(self.gateway, "upstream_id")
-            assert self.gateway.upstream_id is not None
-            upstream_id = self.gateway.upstream_id
+        # test register upstream
+        self.gateway.register_upstream()
+        assert hasattr(self.gateway, "upstream_id")
+        assert self.gateway.upstream_id is not None
+        upstream_id = self.gateway.upstream_id
 
-            # test register target
-            await gw.register_target()
-            assert hasattr(self.gateway, 'target_id')
-            assert self.gateway.target_id is not None
-            target_id = self.gateway.target_id
+        # test register target
+        self.gateway.register_target()
+        assert hasattr(self.gateway, 'target_id')
+        assert self.gateway.target_id is not None
+        target_id = self.gateway.target_id
 
-            # test register target idempotence
-            await gw.register_target()
-            assert target_id == self.gateway.target_id
+        # test register target idempotence
+        self.gateway.register_target()
+        assert target_id == self.gateway.target_id
 
-            # test upstream idempotence
-            await gw.register_upstream()
-            assert upstream_id == gw.upstream_id == self.gateway.upstream_id
+        # test upstream idempotence
+        self.gateway.register_upstream()
+        assert upstream_id == self.gateway.upstream_id
 
-            # clean up
-            gw.deregister_target()
-            await gw.deregister_upstream()
-            await gw.deregister_service()
+        # clean up
+        self.gateway.deregister_target()
+        self.gateway.deregister_upstream()
+        self.gateway.deregister_service()
 
 
     async def test_register_routes_but_no_routes(self, monkeypatch, insanic_application):
@@ -339,15 +310,15 @@ class TestKongGateway:
         :param kong_get_service_detail_200:
         :return:
         '''
-        async with self.gateway as gw:
-            gw.app = insanic_application
-            await gw.register_service()
-            assert hasattr(self.gateway, "service_id")
-            assert self.gateway.service_id is not None
-            # this will trigger deregister service because there aren't any public routes
-            await gw.register_routes()
 
-            assert self.gateway.service_id is None
+        self.gateway.app = insanic_application
+        self.gateway.register_service()
+        assert hasattr(self.gateway, "service_id")
+        assert self.gateway.service_id is not None
+        # this will trigger deregister service because there aren't any public routes
+        self.gateway.register_routes()
+
+        assert self.gateway.service_id is None
 
     @pytest.mark.parametrize("routes_prefix", [r.replace("public", "prefix") for r in ROUTES])
     @pytest.mark.parametrize("routes_suffix", [r.replace("public", "suffix") for r in ROUTES])
@@ -369,24 +340,24 @@ class TestKongGateway:
         insanic_application.add_route(MockView.as_view(), route)
 
         from insanic.registration.kong import normalize_url_for_kong
-        async with self.gateway as gw:
-            gw.app = insanic_application
-            await gw.register_service()
-            assert hasattr(self.gateway, "service_id")
-            assert self.gateway.service_id is not None
-            await gw.register_routes()
 
-            assert len(gw.routes) == 1
-            assert [normalize_url_for_kong(r) for r in insanic_application.public_routes().keys()] in [r['paths'] for r
-                                                                                                       in
-                                                                                                       gw.routes.values()]
-            assert ["GET"] in [r['methods'] for r in gw.routes.values()]
+        self.gateway.app = insanic_application
+        self.gateway.register_service()
+        assert hasattr(self.gateway, "service_id")
+        assert self.gateway.service_id is not None
+        self.gateway.register_routes()
 
-            # deregistration flow
-            await gw.deregister_routes()
-            assert len(gw.routes) == 0
-            await gw.deregister_service()
-            assert gw.service_id is None
+        assert len(self.gateway.routes) == 1
+        assert [normalize_url_for_kong(r) for r in insanic_application.public_routes().keys()] in [r['paths'] for r
+                                                                                                   in
+                                                                                                   self.gateway.routes.values()]
+        assert ["GET"] in [r['methods'] for r in self.gateway.routes.values()]
+
+        # deregistration flow
+        self.gateway.deregister_routes()
+        assert len(self.gateway.routes) == 0
+        self.gateway.deregister_service()
+        assert self.gateway.service_id is None
 
     @pytest.mark.parametrize("routes_prefix", [r.replace("public", "prefix") for r in ROUTES])
     @pytest.mark.parametrize("routes_suffix", [r.replace("public", "suffix") for r in ROUTES])
@@ -405,39 +376,35 @@ class TestKongGateway:
 
         insanic_application.add_route(MockView.as_view(), route)
 
-        async with self.gateway as gw:
-            gw.app = insanic_application
-            await gw.register_service()
-            assert hasattr(self.gateway, "service_id")
-            assert self.gateway.service_id is not None
-            await gw.register_routes()
+        self.gateway.app = insanic_application
+        self.gateway.register_service()
+        assert hasattr(self.gateway, "service_id")
+        assert self.gateway.service_id is not None
+        self.gateway.register_routes()
 
-            session = gw.session
+        # Create a Kong consumer
+        req_payload = {'username': kong_jwt_test_fixture}
+        resp = requests.post(
+            f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}/consumers/", json=req_payload
+        )
+        result = resp.json()
 
-            # Create a Kong consumer
-            req_payload = {'username': kong_jwt_test_fixture}
-            async with session.post(
-                    f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}/consumers/", json=req_payload
-            ) as resp:
-                result = await resp.json()
+        assert "username" in result
+        assert result['username'] == req_payload['username']
 
-                assert "username" in result
-                assert result['username'] == req_payload['username']
+        consumer_id = result['id']
 
-            consumer_id = result['id']
+        # Create JWT credentials for user
+        resp = requests.post(
+            f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}/consumers/{req_payload['username']}/jwt/",
+        )
+        result = resp.json()
 
-            # Create JWT credentials for user
-            async with session.post(
-                    f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}/consumers/{req_payload['username']}/jwt/",
-                    json={}
-            ) as resp:
-                result = await resp.json()
+        assert result['consumer_id'] == consumer_id
+        assert all(key in result for key in ('created_at', 'id', 'algorithm', 'key', 'secret', 'consumer_id'))
 
-                assert result['consumer_id'] == consumer_id
-                assert all(key in result for key in ('created_at', 'id', 'algorithm', 'key', 'secret', 'consumer_id'))
-
-            await gw.deregister_routes()
-            await gw.deregister_service()
+        self.gateway.deregister_routes()
+        self.gateway.deregister_service()
 
     @pytest.mark.parametrize("routes_prefix", [r.replace("public", "prefix") for r in ROUTES])
     @pytest.mark.parametrize("routes_suffix", [r.replace("public", "suffix") for r in ROUTES])
@@ -459,47 +426,35 @@ class TestKongGateway:
 
         self.gateway.app = insanic_application
 
-        async with self.gateway as gw:
-            await gw.register_service()
-            await gw.register_routes()
+        self.gateway.register_service()
+        self.gateway.register_routes()
 
-            session = gw.session
+        # Get routes id - Only one route should be available.
+        try:
+            route_id = list(self.gateway.routes.keys())[0]
+        except IndexError:
+            pass
 
-            # Get routes id - Only one route should be available.
-            try:
-                route_id = list(gw.routes.keys())[0]
-            except IndexError:
-                pass
+        resp = requests.get(f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}/plugins?route_id={route_id}")
+        result = resp.json()
+        assert resp.status_code == 200
+        assert 'data' in result
+        assert any(d['name'] == 'jwt' for d in result['data'])
 
-            async with session.get(
-                    f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}/plugins?route_id={route_id}"
-            ) as resp:
-                result = await resp.json()
+        self.gateway.deregister_routes()
+        self.gateway.deregister_service()
 
-                # Test if plugins were successfully enabled for this route
-                assert resp.status == 200
-                assert 'data' in result
-                assert any(d['name'] == 'jwt' for d in result['data'])
+        resp = requests.get(f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}/plugins?route_id={route_id}")
+        result = resp.json()
+        assert resp.status_code == 200
+        assert 'total' in result and result['total'] == 0
+        assert 'data' in result and not result['data']
 
-            await gw.deregister_routes()
-            await gw.deregister_service()
-
-            async with session.get(
-                    f"http://{settings.KONG_HOST}:{settings.KONG_ADMIN_PORT}/plugins?route_id={route_id}"
-            ) as resp:
-                result = await resp.json()
-
-                # Test if plugins were successfully disabled for this route
-                assert resp.status == 200
-                assert 'total' in result and result['total'] == 0
-                assert 'data' in result and not result['data']
-
-    async def test_register_routes_without_register_service(self, monkeypatch, insanic_application):
+    async def test_register_routes_without_register_service(self, insanic_application):
 
         with pytest.raises(RuntimeError):
-            async with self.gateway as gw:
-                gw.app = insanic_application
-                await gw.register_routes()
+            self.gateway.app = insanic_application
+            self.gateway.register_routes()
 
     async def test_deregister_routes_but_with_route_leftover_from_last_run(self, monkeypatch, insanic_application):
 
@@ -515,32 +470,29 @@ class TestKongGateway:
 
         insanic_application.add_route(MockView.as_view(), "/hello")
 
-        async with self.gateway as gw:
-            gw.app = insanic_application
-            await gw.register_service()
-            assert hasattr(self.gateway, "service_id")
-            assert self.gateway.service_id is not None
-            await gw.register_routes()
+        self.gateway.app = insanic_application
+        self.gateway.register_service()
+        assert hasattr(self.gateway, "service_id")
+        assert self.gateway.service_id is not None
+        self.gateway.register_routes()
 
-            gw.routes = {}
+        self.gateway.routes = {}
 
-            await gw.deregister_routes()
+        self.gateway.deregister_routes()
 
-            assert gw.routes == {}
+        assert self.gateway.routes == {}
 
     async def test_deregister_routes_with_no_routes(self, insanic_application, caplog):
-        async with self.gateway as gw:
-            gw.app = insanic_application
-            await gw.register_service()
-            await gw.deregister_routes()
 
-            assert caplog.records[-1].message.endswith("This instance did not register any routes.")
+        self.gateway.app = insanic_application
+        self.gateway.register_service()
+        self.gateway.deregister_routes()
+
+        assert caplog.records[-1].message.endswith("This instance did not register any routes.")
 
     async def test_deregister_service_without_register(self, caplog):
-        async with self.gateway as gw:
-            await gw.deregister_service()
-
-            assert caplog.records[-1].message.endswith("This instance did not register a service.")
+        self.gateway.deregister_service()
+        assert caplog.records[-1].message.endswith("This instance did not register a service.")
 
     async def test_full_register_deregister(self, monkeypatch, insanic_application):
 
@@ -556,36 +508,28 @@ class TestKongGateway:
 
         insanic_application.add_route(MockView.as_view(), '/hello')
 
-        async with self.gateway as gw:
-            await gw.register(insanic_application)
-            await gw.deregister()
+        self.gateway.register(insanic_application)
+        self.gateway.deregister()
 
-            # assert clean up
-            kong_base_url = self.gateway.kong_base_url
-            next_url = kong_base_url.with_path('/services')
-            while next_url:
-                resp = requests.get(next_url)
-                body = jsonloads(resp.text)
-                service_ids = []
-                for r in body.get('data', []):
-                    # service_piece = r['name'].split('.')
-                    # app, env, mid = r['name'].split('.')
-                    if "test" in r['name']:
-                        service_ids.append(r['id'])
+        # assert clean up
+        kong_base_url = self.gateway.kong_base_url
+        next_url = kong_base_url.with_path('/services')
+        while next_url:
+            resp = requests.get(next_url)
+            body = jsonloads(resp.text)
+            service_ids = []
+            for r in body.get('data', []):
+                # service_piece = r['name'].split('.')
+                # app, env, mid = r['name'].split('.')
+                if "test" in r['name']:
+                    service_ids.append(r['id'])
 
-                if "next" in body and body['next']:
-                    next_url = kong_base_url.with_path(body['next'])
-                else:
-                    break
+            if "next" in body and body['next']:
+                next_url = kong_base_url.with_path(body['next'])
+            else:
+                break
 
-            # is 1 because we no longer deregister service
-            assert len(service_ids) == 1
-
-    async def test_http_session_manager(self, insanic_application):
-        assert self.gateway.session is None
-        await self.gateway.register(insanic_application)
-        assert self.gateway.session is None
-
+        assert len(service_ids) == 0
 
     @pytest.mark.parametrize(
         'path1, path2, method1, method2, expected',

@@ -1,12 +1,86 @@
-import aiohttp
+import ujson as json
+import urllib.request
+import urllib.parse
+import urllib.error
 
 from yarl import URL
 
 from insanic import status
 from insanic.conf import settings
 from insanic.scopes import get_my_ip
-from insanic.registration.gateway import BaseGateway, http_session_manager, normalize_url_for_kong
+from insanic.registration.gateway import BaseGateway, normalize_url_for_kong
 from .fixtures import UPSTREAM_OBJECT
+
+
+def urlopen(request, data=None):
+    request.add_header("Content-Type", "application/json")
+
+    params = {
+        "url": request
+    }
+    if data is not None:
+        params.update({"data": json.dumps(data).encode()})
+
+    response = urllib.request.urlopen(**params)
+    response_body = response.read().decode()
+
+    if response_body:
+        response_body = json.loads(response_body)
+
+    return response_body
+
+
+class Route(dict):
+
+    def __init__(self, *, methods, id=None, protocols=None, hosts=None,
+                 paths=None, regex_priority=None, strip_path=False,
+                 preserve_host=False, **kwargs):
+        super().__init__()
+        self['methods'] = sorted(methods)
+
+        if protocols is None:
+            protocols = ['http', 'https']
+        self['protocols'] = sorted(protocols)
+
+        if hosts is None:
+            hosts = sorted(settings.ALLOWED_HOSTS)
+        self['hosts'] = hosts
+
+        if not isinstance(paths, (list, set, tuple)):
+            paths = [paths]
+        else:
+            paths = sorted(paths)
+        self['paths'] = paths
+
+        if regex_priority is None:
+            regex_priority = settings.KONG_ROUTE_REGEX_PRIORITY.get(settings.MMT_ENV, 10)
+        self['regex_priority'] = regex_priority
+
+        self['strip_path'] = strip_path
+        self['preserve_host'] = preserve_host
+
+        self['id'] = id
+
+    def update_service_id(self, service_id):
+        self['service'] = {"id": service_id}
+
+    compare_fields = ['methods', 'protocols', 'hosts', 'paths', 'regex_priority', 'strip_path', 'preserve_host']
+
+    def __eq__(self, other):
+
+        try:
+            for k in self.compare_fields:
+                if self[k] != other[k]:
+                    return False
+            else:
+                return True
+        except KeyError:
+            return False
+
+        # return (self.methods, self.protocols, self.hosts, self.paths,
+        #         self.regex_priority, self.strip_path, self.preserve_host) == \
+        #        (other.methods, other.protocols, other.hosts, other.paths,
+        #         other.regex_priority, other.strip_path, other.preserve_host)
 
 
 class KongGateway(BaseGateway):
@@ -53,7 +127,7 @@ class KongGateway(BaseGateway):
         return settings.SERVICE_GLOBAL_HOST_TEMPLATE.format(self.service_name)
 
     @property
-    async def target(self):
+    def target(self):
         return f"{get_my_ip()}:{self.app._port}"
 
     @property
@@ -89,75 +163,101 @@ class KongGateway(BaseGateway):
         else:
             self.registered_instance[self.TARGETS_RESOURCE] = value
 
+    def _register(self):
+        try:
+            self.register_service()
+            self.register_routes()
+            self.register_upstream()
+            self.register_target()
+        except urllib.error.HTTPError:
+            self._deregister()
+            raise
 
+    def _deregister(self):
+        self.deregister_target()
+        self.deregister_upstream()
+        self.deregister_routes()
+        self.deregister_service()
 
-    @http_session_manager
-    async def _register(self, *, session):
-        await self.register_service()
-        await self.register_routes()
-        await self.register_upstream()
-        await self.register_target()
-
-    @http_session_manager
-    async def _deregister(self, *, session):
-        await self.deregister_target()
-        # await self.deregister_upstream()
-        # await self.deregister_routes()
-        # await self.deregister_service()
-
-    @http_session_manager
-    async def register_service(self, *, session):
+    def register_service(self):
         if self.enabled:
+            req = urllib.request.Request(
+                str(self.kong_base_url.with_path(f"/{self.SERVICES_RESOURCE}/{self.kong_service_name}"))
+            )
+
             try:
-                async with session.get(
-                        self.kong_base_url.with_path(f"/{self.SERVICES_RESOURCE}/{self.kong_service_name}")) as resp:
-                    resp.raise_for_status()
-                    kong_service_data = await resp.json()
+                kong_service_data = urlopen(req)
                 success_message = "Already Registered Service {kong_service_name} as {service_id}"
-            except aiohttp.ClientResponseError:
+            except urllib.error.HTTPError as e:
                 service_data = {
                     "name": self.kong_service_name,
                     "protocol": "http",
                     "host": self.kong_service_name,
                     "port": int(self.app._port)
                 }
-
-                async with session.post(self.kong_base_url.with_path(f'/{self.SERVICES_RESOURCE}/'),
-                                        json=service_data) as resp:
-                    kong_service_data = await resp.json()
-                    try:
-                        resp.raise_for_status()
-                        success_message = "Registered service {kong_service_name} as {service_id}"
-                        self.registered_instance[self.SERVICES_RESOURCE] = kong_service_data['id']
-                    except aiohttp.client_exceptions.ClientResponseError:  # pragma: no cover
-                        self.logger_service("critical",
-                                            f"FAILED: registered service {self.kong_service_name}: {kong_service_data}")
-                        raise
+                post_request = urllib.request.Request(
+                    str(self.kong_base_url.with_path(f'/{self.SERVICES_RESOURCE}/')),
+                    method="POST"
+                )
+                try:
+                    kong_service_data = urlopen(post_request, service_data)
+                    success_message = "Registered service {kong_service_name} as {service_id}"
+                except urllib.error.HTTPError as e:
+                    self.logger_service("critical",
+                                        f"FAILED: registered service {self.kong_service_name}: {e.reason}")
+                    raise
 
             self.service_id = kong_service_data['id']
             self.logger_service("debug", success_message.format(kong_service_name=self.kong_service_name,
                                                                 service_id=self.service_id))
 
-    @http_session_manager
-    async def deregister_service(self, *, session):
-        if self.SERVICES_RESOURCE in self.registered_instance:
-            async with session.delete(
-                    self.kong_base_url.with_path(f"/services/{self.service_id}")
-            ) as resp:
-                response = await resp.text()
-                try:
-                    resp.raise_for_status()
-                    self.logger_service("debug", f"Deregistered service {self.service_id}")
-                    # del self.registered_instance[self.SERVICES_RESOURCE]
-                    self.service_id = None
-                except aiohttp.client_exceptions.ClientResponseError:
-                    self.logger_service('critical',
-                                        f"FAILED: deregistering service {self.kong_service_name}: {response}")
-                    raise
+    def _deregister_resource(self, resource_type, resource_id, path):
 
+        req = urllib.request.Request(
+            str(self.kong_base_url.with_path(path)),
+            method='DELETE'
+        )
+
+        try:
+            response = urlopen(req)
+            self.logger("debug", f"Deregistered `{resource_type.lower()}` {resource_id}", resource_type.upper())
+            try:
+                del self.registered_instance[resource_type]
+            except KeyError:
+                pass
+        except urllib.error.HTTPError as e:
+            self.logger("critical", f"Problem occurred when deregistering `{resource_type.lower()}`: {e.reason}",
+                        resource_type.upper())
+
+    def deregister_target(self):
+        if self.TARGETS_RESOURCE in self.registered_instance and self.enabled:
+            self._deregister_resource(
+                self.TARGETS_RESOURCE,
+                self.target_id,
+                f"/{self.UPSTREAMS_RESOURCE}/{self.upstream_id}/{self.TARGETS_RESOURCE}/{self.target_id}"
+            )
         else:
-            self.service_id = None
+            self.logger_target("debug", "This instance did not register a target.")
+
+    def deregister_service(self):
+        if self.SERVICES_RESOURCE in self.registered_instance:
+            self._deregister_resource(
+                self.SERVICES_RESOURCE,
+                self.service_id,
+                f"/services/{self.service_id}"
+            )
+        else:
             self.logger_service("debug", "This instance did not register a service.")
+
+    def deregister_upstream(self):
+        if self.UPSTREAMS_RESOURCE in self.registered_instance:
+            self._deregister_resource(
+                self.UPSTREAMS_RESOURCE,
+                self.upstream_id,
+                f"/{self.UPSTREAMS_RESOURCE}/{self.registered_instance[self.UPSTREAMS_RESOURCE]}"
+            )
+        else:
+            self.logger_upstream("debug", "This instance did not register an upstream.")
 
     @property
     def upstream_object(self):
@@ -167,128 +267,55 @@ class KongGateway(BaseGateway):
         upstream['healthchecks']['active']['healthy']['http_statuses'] = [status.HTTP_200_OK]
         return upstream
 
-    @http_session_manager
-    async def register_upstream(self, *, session):
+    def register_upstream(self):
         if self.enabled and self.service_id is not None:
-            try:
-                async with session.get(
-                        self.kong_base_url.with_path(f"/{self.UPSTREAMS_RESOURCE}/{self.kong_service_name}")) as resp:
-                    resp.raise_for_status()
-                    kong_upstream_data = await resp.json()
-                    message = "Already Registered Upstream {kong_service_name} as {upstream_id}"
-            except aiohttp.ClientResponseError:
-                # object reference
-                # https://getkong.org/docs/0.13.x/admin-api/#endpoint
+            req = urllib.request.Request(
+                str(self.kong_base_url.with_path(f"/{self.UPSTREAMS_RESOURCE}/{self.kong_service_name}")),
+                method='GET'
+            )
 
+            try:
+                kong_upstream_data = urlopen(req)
+                message = "Already Registered Upstream {kong_service_name} as {upstream_id}"
+            except urllib.error.HTTPError:
                 upstream_data = self.upstream_object
-                async with session.post(self.kong_base_url.with_path(f'/{self.UPSTREAMS_RESOURCE}/'),
-                                        json=upstream_data) as resp:
-                    kong_upstream_data = await resp.json()
-                    try:
-                        resp.raise_for_status()
-                        message = "Registered upstream {kong_service_name} as {upstream_id}"
-                        self.registered_instance[self.UPSTREAMS_RESOURCE] = kong_upstream_data['id']
-                    except aiohttp.client_exceptions.ClientResponseError:  # pragma: no cover
-                        self.logger_upstream("critical",
-                                             f"FAILED: registering upstream {self.kong_service_name}: {kong_upstream_data}")
-                        raise
+
+                post_request = urllib.request.Request(
+                    str(self.kong_base_url.with_path(f'/{self.UPSTREAMS_RESOURCE}/')),
+                    method='POST',
+                )
+                try:
+                    kong_upstream_data = urlopen(post_request, upstream_data)
+                    message = "Registered upstream {kong_service_name} as {upstream_id}"
+                    self.registered_instance[self.UPSTREAMS_RESOURCE] = kong_upstream_data['id']
+                except urllib.error.HTTPError:
+                    self.logger_upstream("critical",
+                                         f"FAILED: registering upstream {self.kong_service_name}: {kong_upstream_data}")
+                    raise
 
             self.upstream_id = kong_upstream_data['id']
             self.logger_upstream("debug",
-                                 message.format(kong_service_name=self.kong_service_name, upstream_id=self.upstream_id))
+                                 message.format(kong_service_name=self.kong_service_name,
+                                                upstream_id=self.upstream_id))
 
-    @http_session_manager
-    async def deregister_upstream(self, *, session):
-        if self.UPSTREAMS_RESOURCE in self.registered_instance:
-            async with session.delete(
-                    self.kong_base_url.with_path(
-                        f"/{self.UPSTREAMS_RESOURCE}/{self.registered_instance[self.UPSTREAMS_RESOURCE]}")
-            ) as resp:
-                resp.raise_for_status()
-                self.logger_upstream("debug",
-                                     f"Deregistered upstream {self.registered_instance[self.UPSTREAMS_RESOURCE]}")
-                self.upstream_id = None
-        else:
-            self.upstream_id = None
-            self.logger_upstream("debug", "This instance did not register an upstream.")
-
-    @http_session_manager
-    async def register_target(self, *, session):
-        if self.enabled and self.upstream_id is not None:
-
-            next_url = self.kong_base_url.with_path(
-                f"/{self.UPSTREAMS_RESOURCE}/{self.upstream_id}/{self.TARGETS_RESOURCE}/")
-
-            targets = []
-            while next_url is not None:
-                async with session.get(next_url) as resp:
-                    target_data = await resp.json()
-                    if len(target_data['data']) is 0 or len(targets) is target_data['total']:
-                        break
-                    targets.extend(target_data['data'])
-                    next_url = next_url.with_query({"offset": len(targets)})
-
-            #     search for current ip
-            target_id = None
-            target = await self.target
-            for t in targets:
-                if t['target'] == target:
-                    target_id = t['id']
-                    message = "Already Registered Target {target} as {target_id} for {service_host}"
-                    break
-            else:
-                target_object = {
-                    "target": target
-                }
-                async with session.post(self.kong_base_url.with_path(
-                        f"/{self.UPSTREAMS_RESOURCE}/{self.upstream_id}/{self.TARGETS_RESOURCE}"),
-                        data=target_object) as resp:
-                    kong_target_response = await resp.json()
-                    try:
-                        resp.raise_for_status()
-                        target_id = kong_target_response['id']
-                        message = "Registered Target {target} as {target_id} for {service_host}"
-                    except aiohttp.client_exceptions.ClientResponseError:  # pragma: no cover
-                        self.logger_target("critical",
-                                           f"FAILED: registering target {target}: {kong_target_response}")
-                        raise
-
-            self.target_id = target_id
-            self.logger_target("debug",
-                               message.format(target=target, target_id=self.target_id,
-                                              service_host=self.kong_service_name))
-
-    @http_session_manager
-    async def deregister_target(self, *, session):
-        if self.TARGETS_RESOURCE in self.registered_instance:
-            async with session.delete(
-                    self.kong_base_url.with_path(
-                        f"/{self.UPSTREAMS_RESOURCE}/{self.upstream_id}/{self.TARGETS_RESOURCE}/{self.registered_instance[self.TARGETS_RESOURCE]}"
-                    )
-            ) as resp:
-                resp.raise_for_status()
-                self.logger_target("debug", f"Deregistered target {self.registered_instance[self.TARGETS_RESOURCE]}")
-                self.target_id = None
-        else:
-            self.target_id = None
-            self.logger_target("debug", "This instance did not register a target.")
-
-    @http_session_manager
-    async def force_target_healthy(self, *, session):
+    def force_target_healthy(self):
         if self.target_id and self.upstream_id:
-            async with session.post(
-                    self.kong_base_url.with_path(
-                        f"/{self.UPSTREAMS_RESOURCE}/{self.upstream_id}/{self.TARGETS_RESOURCE}/{self.target_id}/healthy"
-                    ),
-                    json={},
+            req = urllib.request.Request(
+                str(self.kong_base_url.with_path(
+                    f"/{self.UPSTREAMS_RESOURCE}/{self.upstream_id}/{self.TARGETS_RESOURCE}/{self.target_id}/healthy"
+                )),
+                method='POST'
+            )
 
-            ) as resp:
-                kong_target_response = await resp.text()
-                try:
-                    resp.raise_for_status()
-                    self.logger_target("debug", f"Forced healthy: {self.target_id}")
-                except aiohttp.client_exceptions.ClientResponseError:
-                    self.logger_target("debug", f"Failed to force healthy {self.target_id}: {kong_target_response}")
+            try:
+                kong_target_response = urlopen(req, {})
+                self.logger_target("debug", f"Forced healthy: {self.target_id}")
+            except urllib.error.HTTPError as e:
+                kong_target_response = e.read().decode()
+                self.logger_target("debug", f"Failed to force healthy {self.target_id}: {kong_target_response}")
+        else:
+            self.logger_target("debug", f"Unable to force healthy because need both target and upstream_id: "
+                                        f"target: {self.target_id} upstream_id: {self.upstream_id}")
 
     def change_detected(self, route1, route2, compare_fields):
         """
@@ -327,9 +354,85 @@ class KongGateway(BaseGateway):
             "regex_priority": settings.KONG_ROUTE_REGEX_PRIORITY.get(settings.MMT_ENV, 10)
         }
 
+    def _list_resources(self, base_url):
 
-    @http_session_manager
-    async def register_routes(self, *, session):
+        next_url = base_url
+
+        while next_url is not None:
+            request = urllib.request.Request(
+                next_url,
+                method='GET'
+            )
+            response = urlopen(request)
+            for r in response.get('data', []):
+                yield r
+
+            offset = response.get('offset', None)
+            if offset is None:
+                next_url = None
+            else:
+                next_url = base_url.with_query({"offset": offset})
+
+    def register_target(self):
+        if self.enabled and self.upstream_id is not None:
+
+            upstream_targets_url = self.kong_base_url.with_path(
+                f"/{self.UPSTREAMS_RESOURCE}/{self.upstream_id}/{self.TARGETS_RESOURCE}/")
+
+            targets = self._list_resources(upstream_targets_url)
+
+            #     search for current ip
+            target = self.target
+            for t in targets:
+                if t['target'] == target:
+                    target_id = t['id']
+                    message = "Already Registered Target {target} as {target_id} for {service_host}"
+                    break
+            else:
+                target_object = {
+                    "target": target
+                }
+                target_post_request = urllib.request.Request(
+                    str(self.kong_base_url.with_path(
+                        f"/{self.UPSTREAMS_RESOURCE}/{self.upstream_id}/{self.TARGETS_RESOURCE}")),
+                    method="POST"
+                )
+
+                try:
+                    kong_target_response = urlopen(target_post_request, target_object)
+                    target_id = kong_target_response['id']
+                    message = "Registered Target {target} as {target_id} for {service_host}"
+                except urllib.error.HTTPError:
+                    self.logger_target("critical",
+                                       f"FAILED: registering target {target}: {kong_target_response}")
+                    raise
+
+            self.target_id = target_id
+            self.logger_target("debug",
+                               message.format(target=target, target_id=self.target_id,
+                                              service_host=self.kong_service_name))
+
+    def remove_duplicate_route(self, route):
+        """
+        removes duplicate routes
+
+        :param route:
+        :type route: dict with route data
+        :return:
+        """
+        delete_request = urllib.request.Request(
+            str(self.kong_base_url.with_path(
+                f"/{self.SERVICES_RESOURCE}/{self.service_id}/{self.ROUTES_RESOURCE}/{route['id']}"),
+            ),
+            method="DELETE"
+        )
+        try:
+            urlopen(delete_request)
+            self.logger_route("debug", f"Duplicate route deleted: {route['id']}")
+        except urllib.error.HTTPError:
+            self.logger_route("critical", f"Failed to delete duplicate route : {route['id']}")
+
+    def register_routes(self):
         '''
         register routes one by one. if public_route gathered by app and routes registered in kong differs,
         sync public_routes gathered by app
@@ -346,162 +449,166 @@ class KongGateway(BaseGateway):
 
                 list_service_routes_url = self.kong_base_url. \
                     with_path(f"/{self.SERVICES_RESOURCE}/{self.service_id}/{self.ROUTES_RESOURCE}")
-                async with session.get(list_service_routes_url) as resp:
-                    response = await resp.json()
-                    resp.raise_for_status()
-
-                registered_routes = {p: r for r in response.get('data', []) for p in r.get('paths', [])}
+                routes = self._list_resources(list_service_routes_url)
+                registered_routes = []
+                for r in routes:
+                    if r not in registered_routes:
+                        registered_routes.append(r)
+                    else:
+                        self.remove_duplicate_route(r)
 
                 for url, route_info in public_routes.items():
                     path = normalize_url_for_kong(url)
-                    route_data = self._route_object(path, route_info['public_methods'])
-                    registered_route = registered_routes.get(path, {})
+                    route_data = Route(paths=path, methods=route_info['public_methods'])
 
-                    if self.change_detected(route_data, registered_route,
-                                            self.route_compare_fields):
-
-                        async with session.post(self.kong_base_url.with_path(f'/{self.ROUTES_RESOURCE}/'),
-                                                json=route_data) as resp:
-                            route_response = await resp.json()
-                            try:
-                                resp.raise_for_status()
-                                await self.enable_plugins(session, route_info, route_response, route_data)
-                            except aiohttp.ClientResponseError:
-                                self.logger_route("critical",
-                                                  f"FAILED registering route {route_data['paths']} "
-                                                  f"on {self.kong_service_name}: {route_response}")
-                                raise
-                            else:
-                                self.routes.update({route_response['id']: route_response})
-                                if self.ROUTES_RESOURCE not in self.registered_instance:
-                                    self.registered_instance[self.ROUTES_RESOURCE] = []
-                                self.registered_instance[self.ROUTES_RESOURCE].append(route_response['id'])
-                                self.logger_route("debug",
-                                                  f"Registered route {route_response['paths']} as "
-                                                  f"{route_response['id']} on {self.kong_service_name}")
+                    for rr in registered_routes:
+                        if rr == route_data:
+                            message = f"Already Registered Route {path} as {route_data['id']} on {self.kong_service_name}."
+                            self.routes.update({route_data['id']: route_data})
+                            self.logger_route("debug", message)
+                            break
                     else:
-                        message = f"Already Registered Route {path} as {registered_route['id']} on {self.kong_service_name}."
-                        self.routes.update({registered_route['id']: registered_route})
-                        self.logger_route("debug", message)
+                        route_data.update_service_id(self.service_id)
+                        post_request = urllib.request.Request(
+                            str(self.kong_base_url.with_path(f'/{self.ROUTES_RESOURCE}/')),
+                            method='POST'
+                        )
+
+                        try:
+                            route_response = urlopen(post_request, route_data)
+                            self.enable_plugins(route_info, route_response, route_data)
+                        except urllib.error.HTTPError as e:
+                            resp = e.read().decode()
+                            self.logger_route("critical",
+                                              f"FAILED registering route {route_data['paths']} "
+                                              f"on {self.kong_service_name}: {resp}")
+                            raise
+                        else:
+                            self.routes.update({route_response['id']: route_response})
+                            if self.ROUTES_RESOURCE not in self.registered_instance:
+                                self.registered_instance[self.ROUTES_RESOURCE] = []
+                            self.registered_instance[self.ROUTES_RESOURCE].append(route_response['id'])
+                            self.logger_route("debug",
+                                              f"Registered route {route_response['paths']} as "
+                                              f"{route_response['id']} on {self.kong_service_name}")
             else:
                 self.logger_route("debug", "No Public routes found.")
-                await self.deregister_service(session=session)
+                self.deregister_service()
         else:
             raise RuntimeError(
                 self.logger_create_message("routes", "Need to register service before registering routes!"))
 
-    @http_session_manager
-    async def deregister_routes(self, *, session):
+    def deregister_routes(self):
 
         # asyncio gather seems unstable
         if self.ROUTES_RESOURCE in self.registered_instance:
 
             routes = self.registered_instance[self.ROUTES_RESOURCE][:]
             for r in routes:
-                await self.disable_plugins(session, r)
-                async with session.delete(self.kong_base_url.with_path(f'/routes/{r}')) as resp:
+                self.disable_plugins(r)
+
+                delete_request = urllib.request.Request(
+                    str(self.kong_base_url.with_path(f'/routes/{r}')),
+                    method='DELETE'
+                )
+
+                try:
+                    urlopen(delete_request)
+                except urllib.error.HTTPError as e:
+                    resp = e.read().decode()
+                    self.logger_route("critical",
+                                      f"FAILED deregistering route {r} "
+                                      f"on {self.kong_service_name}: {resp}")
+                    continue
+                else:
                     try:
-                        resp.raise_for_status()
-                    except aiohttp.ClientResponseError:
-                        route_response = await resp.json()
-                        self.logger_route("critical",
-                                          f"FAILED deregistering route {r} "
-                                          f"on {self.kong_service_name}: {route_response}")
-                        continue
-                    else:
-                        try:
-                            self.registered_instance[self.ROUTES_RESOURCE].remove(r)
-                            del self.routes[r]
-                        except KeyError:
-                            pass
-                        self.logger_route("debug",
-                                          f"Deregistered route {r} on {self.kong_service_name}")
+                        self.registered_instance[self.ROUTES_RESOURCE].remove(r)
+                        del self.routes[r]
+                    except KeyError:
+                        pass
+                    self.logger_route("debug",
+                                      f"Deregistered route {r} on {self.kong_service_name}")
         else:
             self.logger_route('debug', "This instance did not register any routes.")
 
-    async def enable_plugins(self, session, route_info, route_resp, route_data):
+    def enable_plugins(self, route_info, route_resp, route_data):
         # attach plugins
         for plugin in route_info['plugins']:
+            payload = {"name": plugin}
+
             # If 'jwt' plugin should be enabled, then should provide anonymous consumer id.
             if plugin == 'jwt':
-                async with session.get(self.kong_base_url.with_path(f"/{self.CONSUMERS_RESOURCE}/anonymous/")) as resp:
-                    # If anonymous consumer does not exist, make one.
-                    if resp.status == 404:
-                        async with session.post(self.kong_base_url.with_path(f"/{self.CONSUMERS_RESOURCE}/"),
-                                                json={'username': 'anonymous'}) as create_resp:
-                            # overwrite get response
-                            resp = create_resp
-                            result = await resp.json()
-
-                            try:
-                                resp.raise_for_status()
-                            except aiohttp.ClientResponseError:
-                                self.logger_route("critical", f"FAILED creating anonymous consumer "
-                                                              f"by {self.kong_service_name}")
-                            else:
-                                self.logger_route("info",
-                                                  f"Consumer {result['id']} was created as anonymous user "
-                                                  f"by {self.kong_service_name}")
-
-                    result = await resp.json()
-                    payload = {'name': 'jwt',
-                               'config.anonymous': result['id'],
-                               'config.claims_to_verify': 'exp'}
-
-                    # Error check if there was an error on request to enable jwt plugin
-                    try:
-                        resp.raise_for_status()
-                    except aiohttp.ClientResponseError:
-                        self.logger_route("critical",
-                                          f"FAILED "
-                                          f"getting anonymous user with status_code: {resp.status} "
-                                          f"on {self.kong_service_name}")
-                        raise
-
-            else:
-                payload = {'name': plugin}
-
-            async with session.post(self.kong_base_url.with_path(
-                    f"/{self.ROUTES_RESOURCE}/{route_resp['id']}/{self.PLUGINS_RESOURCE}/"), json=payload) as resp:
-                await resp.json()
+                get_request = urllib.request.Request(
+                    str(self.kong_base_url.with_path(f"/{self.CONSUMERS_RESOURCE}/anonymous/")),
+                    method='GET'
+                )
 
                 try:
-                    resp.raise_for_status()
-                except aiohttp.ClientResponseError:
-                    self.logger_route("critical",
-                                      f"FAILED "
-                                      f"enabling {plugin} plugin for route {route_data['paths']} "
-                                      f"on {self.kong_service_name}: {route_resp['id']}")
-                    raise
-                else:
-                    self.logger_route("debug",
-                                      f"Enabled {plugin} plugin for route {route_resp['paths']}"
-                                      f" as {route_resp['id']} on {self.kong_service_name}")
+                    response = urlopen(get_request)
+                except urllib.error.HTTPError as e:
+                    if e.code == 404:
+                        post_request = urllib.request.Request(
+                            str(self.kong_base_url.with_path(f"/{self.CONSUMERS_RESOURCE}/")),
+                            data={'username': 'anonymous'}
+                        )
 
-    async def disable_plugins(self, session, route_id):
-        plugins = []
-        next_url = self.kong_base_url.with_path(f"/plugins").with_query({'route_id': route_id})
-
-        # Get plugins which are enabled for this route
-        while next_url is not None:
-            async with session.get(next_url) as resp:
-                # If no plugins enabled for this route, just skip
-                if resp.status == 404:
-                    return
-                else:
-                    body = await resp.json()
-                    plugins.extend([r['id'] for r in body.get('data', [])])
-                    next_url = body.get('next', None)
-
-            # Delete plugins
-            if plugins:
-                for p in plugins:
-                    async with session.delete(self.kong_base_url.with_path(f"/plugins/{p}")) as delete_resp:
                         try:
-                            delete_resp.raise_for_status()
-                        except aiohttp.ClientResponseError:
-                            self.logger_route("critical", f"FAILED disabling plugin: {p} on {self.kong_service_name} "
-                                                          f"with status_code: {delete_resp.status}")
+                            response = urlopen(post_request)
+                        except urllib.error.HTTPError as e:
+                            resp = e.read().decode()
+                            self.logger_route("critical", f"FAILED creating anonymous consumer: {resp}")
+                            raise
+                        else:
+                            self.logger_route("info",
+                                              f"Consumer {post_request['id']} was created as anonymous user "
+                                              f"by {self.kong_service_name}")
+                    else:
+                        resp = e.read().decode()
+                        self.logger_route("critical", f"FAILED creating anonymous consumer: {resp}")
+                        raise
 
+                payload.update({
+                    'config.anonymous': response['id'],
+                    'config.claims_to_verify': 'exp'
+                })
+
+            plugin_post_request = urllib.request.Request(
+                str(self.kong_base_url.with_path(
+                    f"/{self.ROUTES_RESOURCE}/{route_resp['id']}/{self.PLUGINS_RESOURCE}/")),
+                method="POST"
+            )
+
+            try:
+                urlopen(plugin_post_request, payload)
+            except urllib.error.HTTPError:
+                self.logger_route("critical",
+                                  f"FAILED "
+                                  f"enabling {plugin} plugin for route {route_data['paths']} "
+                                  f"on {self.kong_service_name}: {route_resp['id']}")
+                raise
+            else:
+                self.logger_route("debug",
+                                  f"Enabled {plugin} plugin for route {route_resp['paths']}"
+                                  f" as {route_resp['id']} on {self.kong_service_name}")
+
+    def disable_plugins(self, route_id):
+        plugins = []
+        base_url = self.kong_base_url.with_path(f"/plugins").with_query({'route_id': route_id})
+
+        plugins = self._list_resources(base_url)
+
+        for p in plugins:
+            delete_request = urllib.request.Request(
+                str(self.kong_base_url.with_path(f"/plugins/{p['id']}")),
+                method='DELETE'
+            )
+            try:
+                urlopen(delete_request)
+            except urllib.error.HTTPError as e:
+                resp = e.read().decode()
+                self.logger_route("critical", f"FAILED disabling plugin: {p} on {self.kong_service_name} "
+                                              f"with status_code {e.code}: {resp}")
+            else:
+                self.logger_route("debug", f"Plugin disabled: {p['name']} on {self.kong_service_name}")
 
 gateway = KongGateway()
