@@ -2,6 +2,7 @@ import math
 from insanic.errors import GlobalErrorCodes
 from insanic import status
 
+from insanic.utils import _unpack_enum_error_message
 
 class ImproperlyConfigured(Exception):
     """Insanic is somehow improperly configured"""
@@ -42,6 +43,9 @@ class APIException(Exception):
     def __repr__(self):
         self.__str__()
 
+    def __dict__(self):
+        return {"description": self.description, "message": self.message,
+                "error_code": _unpack_enum_error_message(self.error_code)}
 
 class ParseError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
