@@ -113,6 +113,8 @@ class Insanic(Sanic):
         except ValueError:
             workers = workers
 
+        settings.WORKERS = workers
+
         super().run(host, port, debug, ssl, sock, workers, protocol,
                     backlog, stop_event, register_sys_signals,
                     access_log)
