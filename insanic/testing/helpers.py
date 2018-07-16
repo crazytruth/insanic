@@ -178,10 +178,10 @@ def test_api_endpoint(insanic_application, test_user_token_factory, test_service
     request_headers.update({"accept": "application/json"})
 
     if "Authorization" in request_headers.keys() and request_headers.get("Authorization") == _TokenType('user'):
-        user, token = test_user_token_factory(email="test@mmt.com", level=user_level, return_with_user=True)
+        user, token = test_user_token_factory(level=user_level, return_with_user=True)
         request_headers.update({"Authorization": token, 'x-consumer-username': user.id})
     elif "Authorization" in request_headers.keys() and request_headers.get("Authorization") == _TokenType('service'):
-        user, token = test_user_token_factory(email="test@mmt.com", level=user_level, return_with_user=True)
+        user, token = test_user_token_factory(level=user_level, return_with_user=True)
 
         request_headers.update({"Authorization": test_service_token_factory(user)})
     elif "Authorization" not in request_headers.keys():

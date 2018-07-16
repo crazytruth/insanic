@@ -157,18 +157,20 @@ class TestKongGateway:
     def test_route(self, function_session_id):
         return f"/test/{function_session_id}/"
 
-    async def test_routes_with_jwt_auth_and_allow_any(self, sanic_test_server, test_user_token_factory, test_route):
+    def test_routes_with_jwt_auth_and_allow_any(self, sanic_test_server, test_user_token_factory, test_route):
 
         # Test without token
         self.gateway.app = sanic_test_server.app
         self.gateway.app._port = sanic_test_server.port
 
         self.gateway.force_target_healthy()
+        import time
+        time.sleep(5)
 
         test_url = f'http://{settings.KONG_HOST}:18000{test_route}'
 
         resp = requests.get(test_url)
-        assert resp.status_code == 202
+        assert resp.status_code == 202, resp.json()
         assert resp.json() == {'anonymous_header': True, 'user_type': '_AnonymousUser'}
 
         # Test with token
