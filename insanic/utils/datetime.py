@@ -122,7 +122,7 @@ def timestamp_to_iso(timestamp=None, units=None, units_hint=None):
                       "They do exactly the same thing but the change is to keep consistency.")
         units = units_hint
 
-    return utc_to_datetime(timestamp, units).isoformat(timespec='milliseconds')
+    return timestamp_to_datetime(timestamp, units).isoformat(timespec='milliseconds')
 
 def iso_to_datetime(datetime_string):
     """
