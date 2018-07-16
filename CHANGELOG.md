@@ -2,6 +2,12 @@ Changelog for insanic
 =====================
 
 
+0.5.1 (unreleased)
+------------------
+
+- Nothing changed yet.
+
+
 0.5.0 (2018-07-16)
 ------------------
 
