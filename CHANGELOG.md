@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.4.19 (unreleased)
+0.5.0 (unreleased)
 -------------------
 
 - FEAT: brand spankin new status code HTTP_497_SAGOCHIN_NYOSUK!!
