@@ -88,11 +88,11 @@ class _UserTokenFactory:
     def __init__(self):
         self.created_test_user_ids = set()
 
-    def user_token_factory(self, id=None, *, email, level, return_with_user=False):
+    def user_token_factory(self, id=None, *, level, return_with_user=False):
         if id is None:
             id = uuid.uuid4()
 
-        user = User(id=id.hex, email=email, level=level, is_authenticated=True)
+        user = User(id=id.hex, level=level, is_authenticated=True)
         self.created_test_user_ids.add(user.id)
         # Create test consumer
         requests.post(gateway.kong_base_url.with_path(f'/consumers/'), json={'username': user.id})
