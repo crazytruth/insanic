@@ -143,11 +143,11 @@ def test_service_token_factory():
 
     def factory(user=None):
         if user is None:
-            user = User(id=uuid.uuid4().hex, email='service@token.factory', level=UserLevels.ACTIVE,
+            user = User(id=uuid.uuid4().hex, level=UserLevels.ACTIVE,
                         is_authenticated=True)
         # source, aud, source_ip, destination_version, is_authenticated):
         service = MockService()
-        payload = handlers.jwt_service_payload_handler(service, dict(user))
+        payload = handlers.jwt_service_payload_handler(service)
         return " ".join(
             [settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_service_encode_handler(payload)])
 
@@ -156,12 +156,12 @@ def test_service_token_factory():
 
 @pytest.fixture(scope='session')
 def test_user(test_user_token_factory):
-    return test_user_token_factory(email="user@mmt.com", level=UserLevels.ACTIVE)
+    return test_user_token_factory(level=UserLevels.ACTIVE)
 
 
 @pytest.fixture(scope='session')
 def test_staff_user(test_user_token_factory):
-    return test_user_token_factory(email="staff@mmt.com", level=UserLevels.STAFF)
+    return test_user_token_factory(level=UserLevels.STAFF)
 
 
 @pytest.fixture(scope="session")
