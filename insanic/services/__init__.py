@@ -288,8 +288,7 @@ class Service:
 
         return data
 
-    @classmethod
-    async def _dispatch_fetch(cls, method, url, headers, data, service_name, **kwargs):
+    async def _dispatch_fetch(self, method, url, headers, data, **kwargs):
 
         request_params = {
             "method": method,
@@ -302,10 +301,10 @@ class Service:
         if timeout:
             request_params.update({"timeout": timeout})
 
-        request_params.update({"trace_request_ctx": {"name": tracing_name(service_name)}})
+        request_params.update({"trace_request_ctx": {"name": tracing_name(self.service_name)}})
 
-        async with cls.semaphore():
-            async with cls.session().request(**request_params) as resp:
+        async with self.semaphore():
+            async with self.session().request(**request_params) as resp:
                 await resp.read()
                 return resp
 
@@ -334,8 +333,7 @@ class Service:
         try:
             _response_obj = await self._dispatch_fetch(method, url, headers, data,
                                                        skip_breaker=skip_breaker,
-                                                       request_timeout=request_timeout,
-                                                       service_name=self.service_name)
+                                                       request_timeout=request_timeout)
 
             if propagate_error:
                 _response_obj.raise_for_status()

@@ -197,11 +197,11 @@ class TestKongGateway:
         gateway.force_target_healthy()
 
         test_url = f'http://{settings.KONG_HOST}:18000{test_route}'
-        time.sleep(1)
+        time.sleep(6)
         # Test without token
         resp = requests.get(test_url)
 
-        response_json = resp.json()
+        response_json = resp.text
         assert resp.status_code == 401, response_json
         assert response_json == {'anonymous_header': True, 'user_type': '_AnonymousUser'}
 
@@ -212,7 +212,7 @@ class TestKongGateway:
         token = test_user_token_factory(level=UserLevels.ACTIVE)
 
         resp = requests.get(test_url, headers={"Authorization": token})
-        response_json = resp.json()
+        response_json = resp.text
         assert resp.status_code == 202
         assert response_json == {'test': 'success'}
 
