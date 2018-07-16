@@ -4,6 +4,7 @@ import sys
 import json
 import uuid
 import aiohttp
+from functools import partial
 
 from enum import Enum
 from collections import namedtuple, OrderedDict
@@ -152,7 +153,6 @@ class BaseMockService:
 MockService = BaseMockService()
 
 
-
 class DunnoValue:
     def __init__(self, expected_type):
         self.expected_type = expected_type
@@ -192,17 +192,17 @@ class TestAPIEndpoint:
             response_body = json.loads(response.text)
         except ValueError:
             pass
-        self._assert_reponse_body(response, response_body, expected_response_body, expected_response_status)
+        self._assert_response_body(response, response_body, expected_response_body, expected_response_status)
 
     def _update_headers(self, test_user_token_factory, test_service_token_factory, request_headers, user_level):
         request_headers.update({"accept": "application/json"})
 
         if "Authorization" in request_headers.keys() and request_headers.get("Authorization") == _TokenType('user'):
-            user, token = test_user_token_factory(email="test@mmt.com", level=user_level, return_with_user=True)
+            user, token = test_user_token_factory(level=user_level, return_with_user=True)
             request_headers.update({"Authorization": token, 'x-consumer-username': user.id})
         elif "Authorization" in request_headers.keys() and request_headers.get("Authorization") == _TokenType(
                 'service'):
-            user, token = test_user_token_factory(email="test@mmt.com", level=user_level, return_with_user=True)
+            user, token = test_user_token_factory(level=user_level, return_with_user=True)
 
             request_headers.update({"Authorization": test_service_token_factory(user)})
         elif "Authorization" not in request_headers.keys():
@@ -219,7 +219,7 @@ class TestAPIEndpoint:
     def _assert_response_status(self, expected_response_status, response):
         assert expected_response_status == response.status, response.text
 
-    def _assert_reponse_body(self, response, response_body, expected_response_body, expected_response_status):
+    def _assert_response_body(self, response, response_body, expected_response_body, expected_response_status):
         response_status_category = int(expected_response_status / 100)
         assertion_message = f"\nExpected: {expected_response_body}\n\nReturned: {response_body}"
 
@@ -253,6 +253,9 @@ class TestAPIEndpoint:
         elif response_status_category == 5:
             raise RuntimeError("We got a 500 level status code, something isn't right.")
 
+
+test_api_endpoint = partial(TestAPIEndpoint.test_api_endpoint, self=TestAPIEndpoint())
+test_api_endpoint.__name__ = "test_api_endpoint"
 
 TestParams = namedtuple('TestParams', ['method', 'endpoint', 'request_headers', 'request_body',
                                        'expected_response_status', 'expected_response_body', 'user_level'])
