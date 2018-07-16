@@ -2,8 +2,8 @@ Changelog for insanic
 =====================
 
 
-0.5.0 (unreleased)
--------------------
+0.5.0 (2018-07-16)
+------------------
 
 - FEAT: brand spankin new status code HTTP_497_SAGOCHIN_NYOSUK!!
 - HUGE REFACTOR: refactor kong gateway object to be synchronous because of integrity issues
