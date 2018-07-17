@@ -181,7 +181,7 @@ class TestKongGateway:
         test_url = f'http://{settings.KONG_HOST}:18000{test_route}'
 
         resp = requests.get(test_url)
-        assert resp.status_code == 202, resp.json()
+        assert resp.status_code == 202, resp.text
         assert resp.json() == {'anonymous_header': True, 'user_type': '_AnonymousUser'}
 
         # Test with token
