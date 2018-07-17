@@ -120,15 +120,24 @@ class KongGateway(BaseGateway):
 
     @property
     def kong_service_name(self):
-        return f"{self.environment.lower()}-{self.service_name.lower()}-{self.service_version}"
+        return f"{self.environment.lower()}-{self.service_name.lower()}"
 
     @property
-    def service_host(self):
-        return settings.SERVICE_GLOBAL_HOST_TEMPLATE.format(self.service_name)
+    def kong_service_host(self):
+        return f"{self.kong_service_name}-{self.service_version}"
 
     @property
     def target(self):
         return f"{get_my_ip()}:{self.app._port}"
+
+    @property
+    def service(self):
+        return self._service
+
+    @service.setter
+    def service(self, value):
+        self._service = value
+        self.service_id = value['id']
 
     @property
     def service_id(self):
@@ -165,19 +174,31 @@ class KongGateway(BaseGateway):
 
     def _register(self):
         try:
-            self.register_service()
-            self.register_routes()
             self.register_upstream()
             self.register_target()
+            self.register_service()
+            self.register_routes()
+
+            self.update_service_host()
+
         except urllib.error.HTTPError:
             self._deregister()
             raise
 
     def _deregister(self):
         self.deregister_target()
-        self.deregister_upstream()
-        self.deregister_routes()
-        self.deregister_service()
+        # self.deregister_upstream()
+        # self.deregister_routes()
+        # self.deregister_service()
+
+    @property
+    def service_data(self):
+        return {
+            "name": self.kong_service_name,
+            "protocol": "http",
+            "host": self.kong_service_host,
+            "port": int(self.app._port)
+        }
 
     def register_service(self):
         if self.enabled:
@@ -189,12 +210,7 @@ class KongGateway(BaseGateway):
                 kong_service_data = urlopen(req)
                 success_message = "Already Registered Service {kong_service_name} as {service_id}"
             except urllib.error.HTTPError as e:
-                service_data = {
-                    "name": self.kong_service_name,
-                    "protocol": "http",
-                    "host": self.kong_service_name,
-                    "port": int(self.app._port)
-                }
+                service_data = self.service_data.copy()
                 post_request = urllib.request.Request(
                     str(self.kong_base_url.with_path(f'/{self.SERVICES_RESOURCE}/')),
                     method="POST"
@@ -207,9 +223,49 @@ class KongGateway(BaseGateway):
                                         f"FAILED: registered service {self.kong_service_name}: {e.reason}")
                     raise
 
-            self.service_id = kong_service_data['id']
+            self.service = kong_service_data
             self.logger_service("debug", success_message.format(kong_service_name=self.kong_service_name,
                                                                 service_id=self.service_id))
+
+    def update_service_host(self):
+        if self.enabled:
+            if self.service['host'] != self.kong_service_host:
+                healthy_base_url = self.kong_base_url.with_path(
+                    f"/{self.UPSTREAMS_RESOURCE}/{self.upstream_id}/health/")
+
+                for _ in range(3):
+                    for d in self._list_resources(healthy_base_url):
+                        if d['health'] == "HEALTHY":
+                            break
+                    else:
+                        import time
+                        time.sleep(5)
+                        continue
+                    break
+                else:
+                    msg = f"FAILED: update service {self.kong_service_name} because no healthy nodes."
+                    self.logger_service("critical", msg)
+                    raise EnvironmentError(msg)
+
+                patch_req = urllib.request.Request(
+                    str(self.kong_base_url.with_path(f"/{self.SERVICES_RESOURCE}/{self.kong_service_name}")),
+                    method='PATCH'
+                )
+
+                try:
+                    service_data = self.service_data
+                    kong_service_data = urlopen(patch_req, service_data)
+                except urllib.error.HTTPError as e:
+                    self.logger_service("critical",
+                                        f"FAILED: update service {self.kong_service_name}: {e.reason}")
+                    raise
+                else:
+                    self.logger_service("debug",
+                                        "Updated service {kong_service_name} to {service_data}".format(
+                                            kong_service_name=self.kong_service_name,
+                                            service_data=kong_service_data))
+
+
 
     def _deregister_resource(self, resource_type, resource_id, path):
 
@@ -220,7 +276,7 @@ class KongGateway(BaseGateway):
 
         try:
             response = urlopen(req)
-            self.logger("debug", f"Deregistered `{resource_type.lower()}` {resource_id}", resource_type.upper())
+            self.logger("debug", f"Deregistered `{resource_type.lower()}`: {resource_id}")
             try:
                 del self.registered_instance[resource_type]
             except KeyError:
@@ -262,21 +318,21 @@ class KongGateway(BaseGateway):
     @property
     def upstream_object(self):
         upstream = UPSTREAM_OBJECT.copy()
-        upstream['name'] = self.kong_service_name
+        upstream['name'] = self.kong_service_host
         upstream['healthchecks']['active']['http_path'] = f"/{settings.SERVICE_NAME}/health/"
         upstream['healthchecks']['active']['healthy']['http_statuses'] = [status.HTTP_200_OK]
         return upstream
 
     def register_upstream(self):
-        if self.enabled and self.service_id is not None:
+        if self.enabled:
             req = urllib.request.Request(
-                str(self.kong_base_url.with_path(f"/{self.UPSTREAMS_RESOURCE}/{self.kong_service_name}")),
+                str(self.kong_base_url.with_path(f"/{self.UPSTREAMS_RESOURCE}/{self.kong_service_host}")),
                 method='GET'
             )
 
             try:
                 kong_upstream_data = urlopen(req)
-                message = "Already Registered Upstream {kong_service_name} as {upstream_id}"
+                message = "Already Registered Upstream {kong_service_host} as {upstream_id}"
             except urllib.error.HTTPError:
                 upstream_data = self.upstream_object
 
@@ -286,16 +342,17 @@ class KongGateway(BaseGateway):
                 )
                 try:
                     kong_upstream_data = urlopen(post_request, upstream_data)
-                    message = "Registered upstream {kong_service_name} as {upstream_id}"
+                    message = "Registered upstream {kong_service_host} as {upstream_id}"
                     self.registered_instance[self.UPSTREAMS_RESOURCE] = kong_upstream_data['id']
-                except urllib.error.HTTPError:
+                except urllib.error.HTTPError as e:
+                    kong_upstream_data = e.read().decode()
                     self.logger_upstream("critical",
-                                         f"FAILED: registering upstream {self.kong_service_name}: {kong_upstream_data}")
+                                         f"FAILED: registering upstream {self.kong_service_host}: {kong_upstream_data}")
                     raise
 
             self.upstream_id = kong_upstream_data['id']
             self.logger_upstream("debug",
-                                 message.format(kong_service_name=self.kong_service_name,
+                                 message.format(kong_service_host=self.kong_service_host,
                                                 upstream_id=self.upstream_id))
 
     def force_target_healthy(self):
@@ -410,7 +467,7 @@ class KongGateway(BaseGateway):
             self.target_id = target_id
             self.logger_target("debug",
                                message.format(target=target, target_id=self.target_id,
-                                              service_host=self.kong_service_name))
+                                              service_host=self.kong_service_host))
 
     def remove_duplicate_route(self, route):
         """
