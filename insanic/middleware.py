@@ -44,7 +44,3 @@ async def response_userip_middleware(request, response):
                     }))
             except:
                 pass
-            # else:
-            #     # If userip service is called, It attaches userip key in its header.
-            #     if settings.MMT_ENV == "test":
-            #         response.headers["userip"] = "fired"
