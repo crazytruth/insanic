@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.5.2 (unreleased)
+0.5.2 (2018-07-17)
 ------------------
 
 - REVERT: allow service jwt backwards compatibility
