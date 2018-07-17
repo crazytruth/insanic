@@ -5,7 +5,7 @@ Changelog for insanic
 0.5.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: plugin tests with service tokens by inject user 
 
 
 0.5.0 (2018-07-16)

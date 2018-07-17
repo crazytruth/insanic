@@ -26,7 +26,7 @@ async def after_server_start_connect_database(app, loop=None, **kwargs):
 
 
 def after_server_start_register_service(app, loop, **kwargs):
-    gateway.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ttl_dns_cache=300))
+    # gateway.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ttl_dns_cache=300))
     gateway.register(app)
 
 

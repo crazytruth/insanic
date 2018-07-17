@@ -2,7 +2,6 @@ import aiohttp
 import aiotask_context
 import asyncio
 import io
-import warnings
 
 from asyncio import get_event_loop
 from inspect import isawaitable
@@ -19,7 +18,6 @@ from insanic.models import AnonymousUser, to_header_value
 from insanic.services.response import InsanicResponse
 from insanic.scopes import is_docker
 from insanic.tracing.clients import aws_xray_trace_config
-from insanic.tracing.decorators import capture_async, capture
 from insanic.tracing.utils import tracing_name
 from insanic.utils import try_json_decode
 from insanic.utils.datetime import get_utc_datetime
