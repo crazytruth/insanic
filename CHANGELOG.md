@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.5.1 (unreleased)
+0.5.1 (2018-07-17)
 ------------------
 
 - FEAT: add client_ip property in request class to indentify the originating IP address of a client connection with header field x-forwarded-for
