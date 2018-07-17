@@ -11,10 +11,12 @@ from collections import namedtuple, OrderedDict
 from setuptools.command.test import test as TestCommand
 from yarl import URL
 
+from insanic.conf import settings
 from insanic.choices import UserLevels
 from insanic.errors import GlobalErrorCodes
 from insanic.exceptions import APIException
 from insanic.handlers import _unpack_enum_error_message
+from insanic.models import to_header_value
 
 DEFAULT_USER_LEVEL = UserLevels.ACTIVE
 
@@ -205,6 +207,7 @@ class TestAPIEndpoint:
             user, token = test_user_token_factory(level=user_level, return_with_user=True)
 
             request_headers.update({"Authorization": test_service_token_factory(user)})
+            request_headers.update({settings.INTERNAL_REQUEST_USER_HEADER.lower(): to_header_value(user)})
         elif "Authorization" not in request_headers.keys():
             request_headers.update({'x-anonymous-consumer': 'true'})
 
