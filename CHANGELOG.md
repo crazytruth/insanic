@@ -5,7 +5,7 @@ Changelog for insanic
 0.5.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- REFACTOR: redo how kong registers services and targets
 
 
 0.5.2 (2018-07-17)

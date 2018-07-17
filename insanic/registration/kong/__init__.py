@@ -520,7 +520,7 @@ class KongGateway(BaseGateway):
 
                     for rr in registered_routes:
                         if rr == route_data:
-                            message = f"Already Registered Route {path} as {route_data['id']} on {self.kong_service_name}."
+                            message = f"Already Registered Route {path} as {rr['id']} on {self.kong_service_name}."
                             self.routes.update({route_data['id']: route_data})
                             self.logger_route("debug", message)
                             break
