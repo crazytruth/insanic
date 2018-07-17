@@ -20,13 +20,15 @@ async def after_server_stop_clean_up(app, loop, **kwargs):
             if service._session is not None:
                 service_sessions.append(service._session.close())
     await asyncio.gather(*service_sessions)
+    await gateway.session.close()
 
 async def after_server_start_connect_database(app, loop=None, **kwargs):
     _connections.loop = loop
 
 
 def after_server_start_register_service(app, loop, **kwargs):
-    # gateway.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ttl_dns_cache=300))
+    # need to leave session because we need this in hardjwt to get consumer
+    gateway.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ttl_dns_cache=300))
     gateway.register(app)
 
 
