@@ -175,11 +175,7 @@ class Request(SanicRequest):
 
     @property
     def client_ip(self):
-        client_ips = self.headers.get('x-forwarded-for')
-        if client_ips:
-            return client_ips.split(",")[0]
-
-        return None
+        return self.headers.get('x-forwarded-for').split(",")[0] if self.headers.get('x-forwarded-for') else None
 
     # def _load_data_and_files(self):
     #     """
