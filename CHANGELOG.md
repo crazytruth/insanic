@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.5.4 (unreleased)
+0.5.4 (2018-07-17)
 ------------------
 
 - FIX: remove content-length header on 204
