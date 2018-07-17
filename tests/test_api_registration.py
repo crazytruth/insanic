@@ -117,16 +117,27 @@ class TestKongGateway:
         assert isinstance(self.gateway.kong_base_url, URL)
         assert URL(self.gateway.kong_base_url)
 
+    def test_kong_service_host(self, monkeypatch):
+        monkeypatch.setattr(settings, "SERVICE_VERSION", "0.0.0", raising=False)
+
+        ksh = self.gateway.kong_service_host
+
+        sn, e, mi = ksh.split('-')
+
+        assert sn == self.gateway.environment.lower()
+        assert e == self.gateway.service_name.lower()
+        assert mi == self.gateway.service_version.lower()
+
     def test_kong_service_name(self, monkeypatch):
         monkeypatch.setattr(settings, "SERVICE_VERSION", "0.0.0", raising=False)
 
         ksn = self.gateway.kong_service_name
 
-        sn, e, mi = ksn.split('-')
+        sn, e = ksn.split('-')
 
         assert sn == self.gateway.environment.lower()
         assert e == self.gateway.service_name.lower()
-        assert mi == self.gateway.service_version.lower()
+
 
     @staticmethod
     async def _force_target_healthy(app, loop):
@@ -263,7 +274,7 @@ class TestKongGateway:
 
         upstream_object = self.gateway.upstream_object
 
-        assert upstream_object['name'] == self.gateway.kong_service_name
+        assert upstream_object['name'] == self.gateway.kong_service_host
         assert upstream_object['healthchecks']['active']['http_path'].endswith('/health/')
         assert upstream_object['healthchecks']['active']['healthy']['http_statuses'] == [200]
 
@@ -531,7 +542,7 @@ class TestKongGateway:
             else:
                 break
 
-        assert len(service_ids) == 0
+        assert len(service_ids) == 1
 
     @pytest.mark.parametrize(
         'path1, path2, method1, method2, expected',
