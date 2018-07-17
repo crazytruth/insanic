@@ -10,13 +10,14 @@ import pytest
 
 
 
-@pytest.mark.parametrize("service_name, has_token, has_service_token, expected",[
-    ("test", True, False, 'fired'), # Successful scenario
-    ("userip", True, False, None),  # Failed scenario : userip calls itself
-    ("test", True, True, None),     # Failed scenario : the request is from a service
-    ("test", False, True, None),    # Failed scenario : user is not authenticated user
+@pytest.mark.parametrize("service_name, has_token, has_service_token, has_x_forwarded_for, expected",[
+    ("test", True, False, True, 'fired'), # Successful scenario
+    ("userip", True, False, True, None),  # Failed scenario : userip calls itself
+    ("test", True, True, True, None),     # Failed scenario : the request is from a service
+    ("test", False, True, True, None),    # Failed scenario : user is not authenticated user
+    ("test", True, False, False, None)    # Failed scenario : x-fowarded-for does not exist in the headers
 ])
-def test_userip_middleware(service_name, has_token, has_service_token, expected,
+def test_userip_middleware(service_name, has_token, has_service_token, has_x_forwarded_for, expected,
                          test_user_token_factory, test_service_token_factory, monkeypatch):
 
     MockService.register_mock_dispatch('POST', "/api/v1/ip", {}, 201)
@@ -31,6 +32,9 @@ def test_userip_middleware(service_name, has_token, has_service_token, expected,
     if has_service_token:
         service_token = test_service_token_factory()
         headers.update({"Authorization": service_token})
+
+    if has_x_forwarded_for:
+        headers.update({"x-forwarded-for": '59.10.109.21, 52.78.247.162, 20.2.131.209'})
 
     class TestView(InsanicView):
         permission_classes = []

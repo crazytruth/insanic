@@ -173,6 +173,10 @@ class Request(SanicRequest):
 
         return self.parsed_form
 
+    @property
+    def client_ip(self):
+        return self.headers.get('x-forwarded-for').split(",")[0] if self.headers.get('x-forwarded-for') else None
+
     # def _load_data_and_files(self):
     #     """
     #     Parses the request content into `self.data`.

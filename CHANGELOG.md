@@ -5,6 +5,7 @@ Changelog for insanic
 0.5.1 (unreleased)
 ------------------
 
+- FEAT: add client_ip property in request class to indentify the originating IP address of a client connection with header field x-forwarded-for
 - FIX: plugin tests with service tokens by inject user 
 
 
