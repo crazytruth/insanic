@@ -165,12 +165,17 @@ class ServiceJWTAuthentication(BaseJSONWebTokenAuthentication):
         return handlers.jwt_service_decode_handler(token)
 
     async def authenticate_credentials(self, request, payload):
-        user_params = {"id": "", "level": -1}
 
-        for f in request.headers.get(settings.INTERNAL_REQUEST_USER_HEADER, '').split(';'):
-            if f:
-                k, v = f.split('=')
-                user_params.update({k: v})
+        if 'user' in payload:
+            # to make backwards compatible with insanic version <0.5.0
+            user_params = payload.pop('user', None)
+        else:
+            user_params = {"id": "", "level": -1}
+
+            for f in request.headers.get(settings.INTERNAL_REQUEST_USER_HEADER, '').split(';'):
+                if f:
+                    k, v = f.split('=')
+                    user_params.update({k: v})
 
         user = User(**user_params)
 
