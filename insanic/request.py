@@ -175,63 +175,7 @@ class Request(SanicRequest):
 
     @property
     def client_ip(self):
-        return self.headers.get('x-forwarded-for').split(",")[0] if self.headers.get('x-forwarded-for') else None
-
-    # def _load_data_and_files(self):
-    #     """
-    #     Parses the request content into `self.data`.
-    #     """
-    #     if not _hasattr(self, '_data'):
-    #         self._data, self._files = self._parse()
-    #         if self._files:
-    #             self._full_data = RequestParameters(self._data.copy())
-    #             self._full_data.update(self._files)
-    #         else:
-    #             self._full_data = self._data
-    #
-    # def _load_stream(self):
-    #     """
-    #     Return the content body of the request, as a stream.
-    #     """
-    #     meta = self.headers
-    #     try:
-    #         content_length = int(
-    #             meta.get('content-length', 0)
-    #         )
-    #     except (ValueError, TypeError):
-    #         content_length = 0
-    #
-    #     if content_length == 0:
-    #         self._stream = None
-    #     # elif not self._request._read_started:
-    #     #     self._stream = self._request
-    #     else:
-    #         self._stream = io.BytesIO(self.body)
-
-    # def _supports_form_parsing(self):
-    #     """
-    #     Return True if this requests supports parsing form data.
-    #     """
-    #     form_media = (
-    #         'application/x-www-form-urlencoded',
-    #         'multipart/form-data'
-    #     )
-    #     return any([parser.media_type in form_media for parser in self.parsers])
-    #
-    # def _parse(self):
-    #     """
-    #     Parse the request content, returning a two-tuple of (data, files)
-    #
-    #     May raise an `UnsupportedMediaType`, or `ParseError` exception.
-    #     """
-    #     media_type = self.content_type
-    #
-    #     if media_type.startswith("application/json"):
-    #         return self.json, self.files
-    #     elif media_type.startswith('application/x-www-form-urlencoded') or media_type.startswith('multipart/form-data'):
-    #         return self.form, self.files
-    #     else:
-    #         raise exceptions.UnsupportedMediaType(media_type)
+        return self.headers.get('x-forwarded-for', '').split(",")[0] if self.headers.get('x-forwarded-for') else None
 
     async def _authenticate(self):
         """
