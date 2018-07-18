@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.5.5 (unreleased)
+0.5.5 (2018-07-18)
 ------------------
 
 - CHORE: refactor content-length headers for responses.
