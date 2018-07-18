@@ -19,7 +19,15 @@ class InsanicHTTPResponse(HTTPResponse):
         if keep_alive and keep_alive_timeout is not None:
             timeout_header = b'Keep-Alive: %d\r\n' % keep_alive_timeout
 
-        if self.status is not 204:
+        if 100 <= self.status < 200 or self.status is 204:
+            # Per section 3.3.2 of RFC 7230, "a server MUST NOT send a Content-Length header field
+            # in any response with a status code of 1xx (Informational) or 204 (No Content)."
+            try:
+                del self.headers['Content-Length']
+            except KeyError:
+                pass
+        else:
+
             self.headers['Content-Length'] = self.headers.get(
                 'Content-Length', len(self.body))
             self.headers['Content-Type'] = self.headers.get(
@@ -47,11 +55,13 @@ class InsanicHTTPResponse(HTTPResponse):
                )
 
 
-def json(body, status=200, headers=None,
-         content_type="application/json", dumps=json_dumps,
-         **kwargs):
+def json_response(body, status=200, headers=None,
+                  content_type="application/json", dumps=json_dumps,
+                  **kwargs):
     """
     Returns response object with body in json format.
+    This had to be overridden because bug with status 204, where content-length
+    should not be sent
 
     :param body: Response data to be serialized.
     :param status: Response code.
