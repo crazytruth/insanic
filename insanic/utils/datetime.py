@@ -43,8 +43,8 @@ def utc_milliseconds_to_datetime(timestamp):
 
 
 def utc_to_iso(timestamp=None, units_hint=None):
-    warnings.warn("`utc_milliseconds_to_datetime` has been deprecated because the "
-                  "function name is misleading. Use `timestamp_milliseconds_to_datetime`")
+    warnings.warn("`utc_to_iso` has been deprecated because the "
+                  "function name is misleading. Use `timestamp_to_iso`")
     return timestamp_to_iso(timestamp, units_hint)
 
 
