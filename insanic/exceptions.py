@@ -38,7 +38,7 @@ class APIException(Exception):
         super().__init__(description, self.status_code)
 
     def __str__(self):
-        return self.description
+        return str(self.description)
 
     def __repr__(self):
         return self.__str__()
