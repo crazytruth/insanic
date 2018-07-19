@@ -41,7 +41,7 @@ class APIException(Exception):
         return self.description
 
     def __repr__(self):
-        self.__str__()
+        return self.__str__()
 
     def __dict__(self):
         return {"description": self.description, "message": self.message,
