@@ -98,15 +98,17 @@ class Insanic(Sanic):
             else:
                 error_logger.info(f"[INFUSE] proceeding without infuse. {e.msg}")
 
-    def run(self, host=None, port=None, debug=False, ssl=None,
-            sock=None, workers=1, protocol=None,
-            backlog=100, stop_event=None, register_sys_signals=True,
-            access_log=True):
+    def _helper(self, host=None, port=None, debug=False,
+                ssl=None, sock=None, workers=1, loop=None,
+                protocol=InsanicHttpProtocol, backlog=100, stop_event=None,
+                register_sys_signals=True, run_async=False, access_log=True):
 
-        if protocol is None:
-            protocol = InsanicHttpProtocol
+        protocol = InsanicHttpProtocol
 
-        self._port = int(port)
+        try:
+            self._port = int(port)
+        except TypeError:
+            self._port = 8000
 
         try:
             workers = int(os.environ.get('INSANIC_WORKERS', workers))
@@ -115,9 +117,10 @@ class Insanic(Sanic):
 
         settings.WORKERS = workers
 
-        super().run(host, port, debug, ssl, sock, workers, protocol,
-                    backlog, stop_event, register_sys_signals,
-                    access_log)
+        server_settings = super()._helper(host, port, debug, ssl, sock, workers, loop,
+                                          protocol, backlog, stop_event,
+                                          register_sys_signals, run_async, access_log)
+        return server_settings
 
     def public_routes(self):
         if self._public_routes is empty:
