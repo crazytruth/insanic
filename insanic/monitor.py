@@ -2,12 +2,13 @@ import asyncio
 import time
 
 from sanic import Blueprint
-from sanic.response import json, text
+from sanic.response import json
 
 from insanic import __version__
 from insanic.conf import settings
 from insanic.exceptions import APIException
 from insanic.loading import get_service
+from insanic.scopes import get_my_ip
 from insanic.status import HTTP_200_OK
 
 blueprint_monitor = Blueprint('monitor', strict_slashes=True)
@@ -74,4 +75,5 @@ def health_check(request):
         "service_version": settings.SERVICE_VERSION,
         "status": "OK",
         "insanic_version": __version__,
+        "ip": get_my_ip()
     }, status=HTTP_200_OK)

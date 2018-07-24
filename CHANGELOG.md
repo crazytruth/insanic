@@ -6,6 +6,7 @@ Changelog for insanic
 ------------------
 
 - EDGE: support for gunicorn 
+- FEAT: ip in service health
 
 
 0.5.5 (2018-07-18)
