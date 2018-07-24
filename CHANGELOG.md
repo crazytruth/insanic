@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.5.6 (unreleased)
+0.5.6 (2018-07-24)
 ------------------
 
 - EDGE: support for gunicorn 
