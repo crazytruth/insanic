@@ -1,7 +1,7 @@
-import aiohttp
 import aiotask_context
 import asyncio
 import io
+import aiohttp
 
 from asyncio import get_event_loop
 from inspect import isawaitable
@@ -18,21 +18,11 @@ from insanic.models import AnonymousUser, to_header_value
 from insanic.services.response import InsanicResponse
 from insanic.scopes import is_docker
 from insanic.tracing.clients import aws_xray_trace_config
-from insanic.tracing.utils import tracing_name
 from insanic.utils import try_json_decode
 from insanic.utils.datetime import get_utc_datetime
 
 
 DEFAULT_SERVICE_REQUEST_TIMEOUT = 1
-
-
-# def service_auth_token(service):
-#     default = dict(AnonymousUser)
-#     try:
-#         user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER, default)
-#     except AttributeError:
-#         user = default
-#     return jwt_service_encode_handler(jwt_service_payload_handler(service, user))
 
 
 def context_user():
@@ -115,7 +105,7 @@ class Service:
 
     @cached_property_with_ttl(ttl=60)
     def host(self):
-        # return "localhost"
+
         _host = settings.SERVICE_GLOBAL_HOST_TEMPLATE.format(self.service_name)
         if hasattr(settings, "SWARM_SERVICE_LIST"):
             _host = settings.SWARM_SERVICE_LIST.get(self.service_name, {}).get('host', _host)
@@ -155,7 +145,7 @@ class Service:
             cls._session = aiohttp.ClientSession(loop=get_event_loop(),
                                                  connector=aiohttp.TCPConnector(limit=100,
                                                                                 keepalive_timeout=15,
-                                                                                limit_per_host=20,
+                                                                                limit_per_host=10,
                                                                                 ttl_dns_cache=10),
                                                  response_class=InsanicResponse,
                                                  read_timeout=DEFAULT_SERVICE_REQUEST_TIMEOUT,
@@ -298,8 +288,6 @@ class Service:
         timeout = kwargs.pop('request_timeout', None)
         if timeout:
             request_params.update({"timeout": timeout})
-
-        request_params.update({"trace_request_ctx": {"name": tracing_name(self.service_name)}})
 
         async with self.semaphore():
             async with self.session().request(**request_params) as resp:
