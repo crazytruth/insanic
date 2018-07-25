@@ -128,7 +128,7 @@ class KongGateway(BaseGateway):
 
     @property
     def target(self):
-        return f"{get_my_ip()}:{self.app._port}"
+        return f"{get_my_ip()}:{settings.SERVICE_PORT}"
 
     @property
     def service(self):
@@ -197,7 +197,7 @@ class KongGateway(BaseGateway):
             "name": self.kong_service_name,
             "protocol": "http",
             "host": self.kong_service_host,
-            "port": int(self.app._port)
+            "port": int(settings.SERVICE_PORT)
         }
 
     def register_service(self):

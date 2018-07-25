@@ -103,12 +103,8 @@ class Insanic(Sanic):
                 protocol=InsanicHttpProtocol, backlog=100, stop_event=None,
                 register_sys_signals=True, run_async=False, access_log=True):
 
-        protocol = InsanicHttpProtocol
-
-        try:
-            self._port = int(port)
-        except TypeError:
-            self._port = 8000
+        if port:
+            settings.SERVICE_PORT = port
 
         try:
             workers = int(os.environ.get('INSANIC_WORKERS', workers))

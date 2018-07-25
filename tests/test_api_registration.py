@@ -172,7 +172,8 @@ class TestKongGateway:
 
         # Test without token
         self.gateway.app = sanic_test_server.app
-        self.gateway.app._port = sanic_test_server.port
+        # self.gateway.app._port = sanic_test_server.port
+        settings.SERVICE_PORT = sanic_test_server.port
 
         self.gateway.force_target_healthy()
         import time
