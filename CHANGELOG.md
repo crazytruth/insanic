@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.5.7 (unreleased)
+0.5.7 (2018-07-25)
 ------------------
 
 - CHORE: port into settings
