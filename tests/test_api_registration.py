@@ -168,12 +168,13 @@ class TestKongGateway:
     def test_route(self, function_session_id):
         return f"/test/{function_session_id}/"
 
-    def test_routes_with_jwt_auth_and_allow_any(self, sanic_test_server, test_user_token_factory, test_route):
+    def test_routes_with_jwt_auth_and_allow_any(self, monkeypatch, sanic_test_server, test_user_token_factory,
+                                                test_route):
 
         # Test without token
         self.gateway.app = sanic_test_server.app
         # self.gateway.app._port = sanic_test_server.port
-        settings.SERVICE_PORT = sanic_test_server.port
+        monkeypatch.setattr(settings, 'SERVICE_PORT', sanic_test_server.port)
 
         self.gateway.force_target_healthy()
         import time

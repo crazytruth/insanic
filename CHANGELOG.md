@@ -5,7 +5,8 @@ Changelog for insanic
 0.5.7 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- CHORE: port into settings
+- FIX: gunicorn port settings
 
 
 0.5.6 (2018-07-24)
