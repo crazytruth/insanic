@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.5.8 (unreleased)
+0.5.8 (2018-08-01)
 ------------------
 
 - REFACTOR: remove env dependent logic
