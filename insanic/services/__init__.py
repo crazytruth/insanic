@@ -18,6 +18,7 @@ from insanic.models import AnonymousUser, to_header_value
 from insanic.services.response import InsanicResponse
 from insanic.scopes import is_docker
 from insanic.tracing.clients import aws_xray_trace_config
+from insanic.tracing.utils import tracing_name
 from insanic.utils import try_json_decode
 from insanic.utils.datetime import get_utc_datetime
 
@@ -288,6 +289,8 @@ class Service:
         timeout = kwargs.pop('request_timeout', None)
         if timeout:
             request_params.update({"timeout": timeout})
+
+        request_params.update({"trace_request_ctx": {"name": tracing_name(self.service_name)}})
 
         async with self.semaphore():
             async with self.session().request(**request_params) as resp:
