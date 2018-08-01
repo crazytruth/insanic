@@ -92,8 +92,8 @@ class Insanic(Sanic):
             Infuse.init_app(self)
             logger.info("[INFUSE] hooked and good to go!")
         except (ImportError, ModuleNotFoundError) as e:
-            if self.config.get("MMT_ENV") == "production":
-                error_logger.critical("[INFUSE] Infuse is required for production deployment.")
+            if self.config.get("INFUSE_FAIL_TYPE") == "hard":
+                error_logger.critical("[INFUSE] Infuse is required for this environment.")
                 raise
             else:
                 error_logger.info(f"[INFUSE] proceeding without infuse. {e.msg}")

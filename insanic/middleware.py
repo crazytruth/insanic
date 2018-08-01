@@ -18,7 +18,7 @@ async def response_userip_middleware(request, response):
         service = await request.service
         service_name = settings.SERVICE_NAME
     except Exception:
-        if settings.MMT_ENV == "production":
+        if settings.LOG_IP_FAIL_TYPE == "soft":
             pass
         else:
             raise

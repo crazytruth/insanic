@@ -19,6 +19,11 @@ SERVICE_GLOBAL_PORT = "8000"
 REQUIRED_SERVICE_CONNECTIONS = ["userip", "user"]
 ALLOWED_HOSTS = []
 
+LOG_IP_FAIL_TYPE = "hard"
+
+INFUSE_FAIL_TYPE = "soft"
+
+
 INSANIC_CACHES = {
     "insanic": {
         "ENGINE": "aioredis",
