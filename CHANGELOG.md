@@ -5,7 +5,7 @@ Changelog for insanic
 0.5.8 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- REFACTOR: remove env dependent logic
 
 
 0.5.7 (2018-07-25)
