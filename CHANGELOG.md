@@ -7,6 +7,7 @@ Changelog for insanic
 
 - REFACTOR: remove env dependent logic
 - REVERT: tracing context on dispatch fetch
+- ENHANCEMENT: deregister upstream and target on no public routes
 
 0.5.7 (2018-07-25)
 ------------------
