@@ -552,7 +552,7 @@ class KongGateway(BaseGateway):
                 self.logger_route("debug", "No Public routes found.")
                 self.deregister_service()
                 self.deregister_target()
-                self.deregister_upstream()
+
         else:
             raise RuntimeError(
                 self.logger_create_message("routes", "Need to register service before registering routes!"))
