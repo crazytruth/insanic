@@ -122,8 +122,7 @@ class Insanic(Sanic):
         """
 
         if protocol is None:
-            protocol = (WebSocketProtocol if self.websocket_enabled
-                        else InsanicHttpProtocol)
+            protocol = InsanicHttpProtocol
 
         super().run(host, port, debug, ssl, sock, workers, protocol, backlog,
                     stop_event, register_sys_signals, access_log)
