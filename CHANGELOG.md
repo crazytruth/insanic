@@ -5,7 +5,7 @@ Changelog for insanic
 0.5.9 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: insanic protocol override
 
 
 0.5.8 (2018-08-01)

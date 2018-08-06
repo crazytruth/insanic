@@ -2,6 +2,7 @@ import os
 import string
 
 from sanic import Sanic
+from sanic.app import WebSocketProtocol
 from sanic.views import CompositionView
 from sanic_useragent import SanicUserAgent
 
@@ -97,6 +98,36 @@ class Insanic(Sanic):
                 raise
             else:
                 error_logger.info(f"[INFUSE] proceeding without infuse. {e.msg}")
+
+    def run(self, host=None, port=None, debug=False, ssl=None,
+            sock=None, workers=1, protocol=None,
+            backlog=100, stop_event=None, register_sys_signals=True,
+            access_log=True):
+        """Run the HTTP Server and listen until keyboard interrupt or term
+        signal. On termination, drain connections before closing.
+
+        :param host: Address to host on
+        :param port: Port to host on
+        :param debug: Enables debug output (slows server)
+        :param ssl: SSLContext, or location of certificate and key
+                            for SSL encryption of worker(s)
+        :param sock: Socket for the server to accept connections from
+        :param workers: Number of processes
+                            received before it is respected
+        :param backlog:
+        :param stop_event:
+        :param register_sys_signals:
+        :param protocol: Subclass of asyncio protocol class
+        :return: Nothing
+        """
+
+        if protocol is None:
+            protocol = (WebSocketProtocol if self.websocket_enabled
+                        else InsanicHttpProtocol)
+
+        super().run(host, port, debug, ssl, sock, workers, protocol, backlog,
+                    stop_event, register_sys_signals, access_log)
+
 
     def _helper(self, host=None, port=None, debug=False,
                 ssl=None, sock=None, workers=1, loop=None,
