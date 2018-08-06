@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.5.9 (unreleased)
+0.5.9 (2018-08-06)
 ------------------
 
 - FIX: insanic protocol override
