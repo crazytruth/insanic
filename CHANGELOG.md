@@ -5,7 +5,7 @@ Changelog for insanic
 0.5.10 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- CHORE: get my ip by hostname and get ip with socket's own address when ip by hostname is empty or localhost address
 
 
 0.5.9 (2018-08-06)
