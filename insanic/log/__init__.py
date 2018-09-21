@@ -67,7 +67,7 @@ def get_logging_config():
                            "environment": "%(environment)s", "insanic_version": "%(insanic_version)s",
                            "service_version": "%(service_version)s", "trace_id": "%(ot_trace_id)s",
                            "span_id": "%(ot_span_id)s",
-                           "sampled": "%(ot_sampled)s", "request_duration": "%(ot_duration)s",
+                           "sampled": "%(ot_sampled)s", "request_duration": "%(request_duration)s",
                            "parent_id": "%(ot_parent_id)s", "correlation_id": "%(correlation_id)s",
                            "exc_text": "%(exc_text)s", "request_service": "%(request_service)s"},
                 'datefmt': '%Y-%m-%dT%H:%M:%S.%%(msecs)d%z'
@@ -88,5 +88,7 @@ def get_logging_config():
 
 
 logger = logging.getLogger('root')
+grpc_logger = logging.getLogger('root.grpc')
 error_logger = logging.getLogger('sanic.error')
 access_logger = logging.getLogger('sanic.access')
+grpc_access_logger = logging.getLogger('sanic.access.grpc')

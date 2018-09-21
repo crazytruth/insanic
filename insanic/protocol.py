@@ -1,3 +1,5 @@
+import time
+
 from sanic.server import HttpProtocol
 
 from insanic.log import access_logger
@@ -7,14 +9,15 @@ class InsanicHttpProtocol(HttpProtocol):
 
     def log_response(self, response):
         if self.access_log:
-            if self.request.url.endswith('/health/') and self.request.host == 'nil':
+            if self.request.url.endswith('/health/'):
                 return
 
             extra = {
                 'status': response.status,
                 'byte': len(response.body),
-                'host': f'{self.request.ip[0]}:{self.request.ip[1]}',
-                'request': f'{self.request.method} {self.request.url}'
+                'host': f'{self.request.socket[0]}:{self.request.socket[1]}',
+                'request': f'{self.request.method} {self.request.url}',
+                'request_duration': int(time.time() * 1000000) - (self.request._request_time)
             }
             if hasattr(self.request, "_service"):
                 extra.update({

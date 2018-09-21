@@ -1,3 +1,4 @@
+import re
 import ujson as json
 
 from enum import Enum
@@ -24,3 +25,14 @@ def _unpack_enum_error_message(error_code):
         error_code_dict = {"name": f"{prefix}_{error_code.name}", "value": error_code.value}
         return error_code_dict
     return error_code
+
+
+first_cap_re = re.compile('(.)([A-Z][a-z]+)')
+number_re = re.compile('(.)([0-9]+)')
+all_cap_re = re.compile('([a-z0-9])([A-Z])')
+
+
+def camel_to_snake(name):
+    s1 = first_cap_re.sub(r'\1_\2', name)
+    s1 = number_re.sub(r'\1_\2', s1)
+    return all_cap_re.sub(r'\1_\2', s1).lower()
