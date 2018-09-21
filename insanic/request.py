@@ -1,4 +1,5 @@
 import aiotask_context
+import ujson as json
 import time
 import uuid
 
@@ -7,6 +8,7 @@ from pprint import pformat
 from urllib.parse import parse_qs
 
 from sanic.exceptions import InvalidUsage
+from sanic.server import CIDict
 from sanic.request import Request as SanicRequest, RequestParameters, File
 
 from insanic import exceptions
@@ -14,6 +16,7 @@ from insanic.conf import settings
 from insanic.functional import empty
 from insanic.log import logger, error_logger
 from insanic.utils import force_str
+
 
 DEFAULT_HTTP_CONTENT_TYPE = "application/octet-stream"
 
@@ -39,8 +42,8 @@ class Request(SanicRequest):
         'body', 'parsed_json', 'parsed_args', 'parsed_form', 'parsed_files',
         '_ip', '_parsed_url', 'uri_template', 'stream', '_remote_addr',
         'authenticators', 'parsed_data',
-        '_stream', '_authenticator', '_service_authenticator', '_user', '_auth',
-        '_request_time', '_span', '_service', '_service_auth', '_id'
+        '_stream', '_authenticator', '_user', '_auth',
+        '_request_time', '_span', '_service', '_id', 'grpc_request_message'
     )
 
     def __init__(self, url_bytes, headers, version, method, transport,
@@ -51,13 +54,34 @@ class Request(SanicRequest):
         self._request_time = int(time.time() * 1000000)
         self._id = empty
         self.parsed_data = empty
-        self._stream = empty
         self.authenticators = authenticators or ()
+        self.grpc_request_message = empty
+
+    @classmethod
+    def from_protobuf_message(cls, request_message, stream):
+
+        request_headers = {k: v for k, v in request_message.headers.items()}
+
+        req = cls(url_bytes=request_message.endpoint,
+                  headers=CIDict(request_headers),
+                  version=2, method=request_message.method, transport=stream._stream._transport)
+
+        req._id = request_message.request_id
+        req.parsed_json = {k: json.loads(v) for k, v in request_message.body.items()}
+        req.grpc_request_message = request_message
+
+        return req
+
+    @property
+    def socket(self):
+        if not hasattr(self, '_socket'):
+            self._get_address()
+        return self._socket
 
     @property
     def id(self):
         if self._id is empty:
-            self._id = self.headers.get(settings.REQUEST_ID_HEADER_FIELD, f"{uuid.uuid4()}-{id(self)}")
+            self._id = self.headers.get(settings.REQUEST_ID_HEADER_FIELD, f"I-{uuid.uuid4()}-{self._request_time}")
         return self._id
 
     @property
