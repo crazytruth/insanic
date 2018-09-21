@@ -1,4 +1,3 @@
-import aiotask_context
 import asyncio
 import io
 import aiohttp
@@ -14,7 +13,8 @@ from insanic.authentication.handlers import jwt_service_encode_handler, jwt_serv
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.functional import cached_property_with_ttl
-from insanic.models import AnonymousUser, to_header_value
+from insanic.log import error_logger
+from insanic.models import to_header_value
 from insanic.services.response import InsanicResponse
 from insanic.scopes import is_docker
 from insanic.tracing.clients import aws_xray_trace_config
@@ -22,26 +22,11 @@ from insanic.tracing.utils import tracing_name
 from insanic.utils import try_json_decode
 from insanic.utils.datetime import get_utc_datetime
 
+from insanic.services.utils import context_user, context_correlation_id
 
 DEFAULT_SERVICE_REQUEST_TIMEOUT = 1
 
-
-def context_user():
-    default = dict(AnonymousUser)
-    try:
-        user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER, default)
-    except AttributeError:
-        user = default
-    return user
-
-
-def context_correlation_id():
-    try:
-        correlation_id = aiotask_context.get(settings.TASK_CONTEXT_CORRELATION_ID, "unknown")
-    except AttributeError:
-        correlation_id = "not set"
-    return correlation_id
-
+from insanic.services.grpc import GRPCClient
 
 
 class ServiceRegistry(dict):
@@ -76,7 +61,7 @@ class ServiceRegistry(dict):
         cls.__instance = None
 
 
-class Service:
+class Service(GRPCClient):
     _session = None
     _semaphore = None
 
@@ -84,6 +69,7 @@ class Service:
         self._service_name = service_type
         # self._session = None
         self._token = None
+        super().__init__()
 
     @classmethod
     def semaphore(cls):
@@ -106,7 +92,7 @@ class Service:
 
     @cached_property_with_ttl(ttl=60)
     def host(self):
-
+        return "localhost"
         _host = settings.SERVICE_GLOBAL_HOST_TEMPLATE.format(self.service_name)
         if hasattr(settings, "SWARM_SERVICE_LIST"):
             _host = settings.SWARM_SERVICE_LIST.get(self.service_name, {}).get('host', _host)
@@ -122,10 +108,13 @@ class Service:
         return _port
 
     @property
+    def service_payload(self):
+        return jwt_service_payload_handler(self)
+
+    @property
     def service_token(self):
         if self._token is None:
-            self._token = jwt_service_encode_handler(jwt_service_payload_handler(self))
-
+            self._token = jwt_service_encode_handler(self.service_payload)
         return self._token
 
     @property
@@ -160,9 +149,79 @@ class Service:
             url = url.with_query(**query_params)
         return url
 
+    async def dispatch(self, method, endpoint, *, query_params=None, payload=None,
+                       files=None, headers=None,
+                       propagate_error=False, skip_breaker=False,
+                       include_status_code=False, request_timeout=None):
+        """
+        Common interface for attempting interservice communications.
+        Tries grpc if target service is able to accept grpc, otherwise fallback to http.
+
+        :param method:
+        :param endpoint:
+        :param query_params:
+        :param payload:
+        :param files:
+        :param headers:
+        :param propagate_error:
+        :param skip_breaker:
+        :param include_status_code:
+        :param request_timeout:
+        :return:
+        """
+
+        if not await self.health_status() or True:
+            try:
+                response = await self.grpc_dispatch(method, endpoint, query_params=query_params, payload=payload,
+                                                    files=files, headers=headers,
+                                                    propagate_error=propagate_error, skip_breaker=skip_breaker,
+                                                    include_status_code=include_status_code,
+                                                    request_timeout=request_timeout)
+                http_fallback = False
+            except ConnectionRefusedError:
+                http_fallback = True
+            except Exception as e:
+                error_logger.exception("Error with grpc")
+                http_fallback = True
+        else:
+            http_fallback = True
+
+        if http_fallback:
+            response = await self.http_dispatch(method, endpoint, query_params=query_params, payload=payload,
+                                                files=files, headers=headers,
+                                                propagate_error=propagate_error, skip_breaker=skip_breaker,
+                                                include_status_code=include_status_code,
+                                                request_timeout=request_timeout)
+
+        return response
+
+    async def grpc_dispatch(self, method, endpoint, *, query_params=None, payload=None,
+                            files=None, headers=None,
+                            propagate_error=False, skip_breaker=False,
+                            include_status_code=False, request_timeout=None):
+        files = files or {}
+        query_params = query_params or {}
+        payload = payload or {}
+        headers = headers or {}
+
+        if method.upper() not in HTTP_METHODS:
+            raise ValueError("{0} is not a valid method.".format(method))
+
+        response, status_code = await self._dispatch_grpc(method=method, endpoint=endpoint,
+                                                          query_params=query_params,
+                                                          headers=headers, payload=payload, files=files,
+                                                          propagate_error=propagate_error,
+                                                          skip_breaker=skip_breaker,
+                                                          request_timeout=request_timeout)
+
+        if include_status_code:
+            return response, status_code
+        return response
+
     async def http_dispatch(self, method, endpoint, *, query_params=None, payload=None,
                             files=None, headers=None,
-                            propagate_error=False, skip_breaker=False, include_status_code=False, request_timeout=None):
+                            propagate_error=False, skip_breaker=False,
+                            include_status_code=False, request_timeout=None):
         """
         Interface for sending requests to other services.
 
