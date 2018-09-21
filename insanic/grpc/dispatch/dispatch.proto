@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package insanic.v1;
+
+service Dispatch {
+    rpc handle_grpc (ServiceRequest) returns (ServiceResponse) {
+    }
+}
+
+message ContextUser {
+    string id = 1;
+    int32 level = 2;
+    bool is_authenticated = 3;
+}
+
+message ContextService {
+    string source = 1;
+    string aud = 2;
+    string source_ip = 3;
+    string destination_version = 4;
+}
+
+message ServiceRequest {
+    string method = 1;
+    bytes endpoint = 2;
+    map<string, string> headers = 5;
+    ContextUser user = 6;
+    ContextService service = 7;
+    string request_id = 8;
+    map<string, string> body = 10;
+
+    message FileList {
+        repeated bytes f = 1;
+    }
+    map<string, FileList> files = 11;
+}
+
+message ServiceResponse {
+    map<string, string> headers = 1;
+    bytes body = 10;
+    int32 status_code = 11;
+}
