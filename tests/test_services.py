@@ -22,6 +22,7 @@ from insanic.services import ServiceRegistry, Service
 from insanic.services.response import InsanicResponse
 from insanic.views import InsanicView
 
+dispatch_tests = pytest.mark.parametrize('dispatch_type', ['http_dispatch', ])
 
 def test_image_file():
     with open('insanic.png', 'rb') as f:
@@ -55,6 +56,7 @@ class TestServiceRegistry:
 
         with pytest.raises(RuntimeError):
             s = self.registry['test2']
+
 
 
 class TestServiceClass:
@@ -117,36 +119,34 @@ class TestServiceClass:
         assert url.path == test_endpoint
         assert url.query == test_query_params
 
-    def test_http_dispatch(self, monkeypatch):
+    @dispatch_tests
+    def test_dispatch(self, monkeypatch, dispatch_type):
+        _disp = getattr(self.service, dispatch_type)
 
         mock_response = {"a": "b"}
         mock_status_code = random.randint(200, 300)
 
-        async def _mock_dispatch(*args, **kwargs):
-            class MockResponse:
-                async def text(self):
-                    import ujson as json
-                    return json.dumps(mock_response)
+        with aioresponses() as m:
+            m.get(f"http://{self.service.host}:{self.service.port}/", status=mock_status_code, payload=mock_response)
+            m.get(f"http://{self.service.host}:{self.service.port}/", status=mock_status_code, payload=mock_response)
 
-            return mock_response, mock_status_code
+            loop = uvloop.new_event_loop()
+            with pytest.raises(ValueError):
+                loop.run_until_complete(_disp("GETS", "/"))
 
-        monkeypatch.setattr(self.service, '_dispatch', _mock_dispatch)
+            loop = uvloop.new_event_loop()
+            response = loop.run_until_complete(_disp('GET', '/'))
+            assert response == mock_response
 
-        loop = uvloop.new_event_loop()
-        with pytest.raises(ValueError):
-            loop.run_until_complete(self.service.http_dispatch("GETS", "/"))
+            loop = uvloop.new_event_loop()
+            response, status_code = loop.run_until_complete(
+                _disp('GET', '/', include_status_code=True))
+            assert response == mock_response
+            assert status_code == mock_status_code
 
-        loop = uvloop.new_event_loop()
-        response = loop.run_until_complete(self.service.http_dispatch('GET', '/'))
-        assert response == mock_response
-
-        loop = uvloop.new_event_loop()
-        response, status_code = loop.run_until_complete(
-            self.service.http_dispatch('GET', '/', include_status_code=True))
-        assert response == mock_response
-        assert status_code == mock_status_code
-
-    def test_http_dispatch_request_timeout(self, monkeypatch):
+    @dispatch_tests
+    def test_dispatch_request_timeout(self, monkeypatch, dispatch_type):
+        _disp = getattr(self.service, dispatch_type)
 
         async def _mock_dispatch(*args, **kwargs):
             assert "request_timeout" in kwargs
@@ -156,16 +156,18 @@ class TestServiceClass:
 
         loop = uvloop.new_event_loop()
 
-        response = loop.run_until_complete(self.service.http_dispatch('GET', '/'))
+        response = loop.run_until_complete(_disp('GET', '/'))
         assert response['request_timeout'] is None
 
         loop = uvloop.new_event_loop()
 
         response = loop.run_until_complete(
-            self.service.http_dispatch('POST', '/', payload={"a": "b"}, request_timeout=10))
+            _disp('POST', '/', payload={"a": "b"}, request_timeout=10))
         assert response['request_timeout'] is 10
 
-    def test_http_dispatch_dispatch_fetch_request_timeout(self, monkeypatch):
+    @dispatch_tests
+    def test_dispatch_dispatch_fetch_request_timeout(self, monkeypatch, dispatch_type):
+        _disp = getattr(self.service, dispatch_type)
 
         async def _mock_dispatch_fetch(*args, **kwargs):
             assert "request_timeout" in kwargs
@@ -186,16 +188,18 @@ class TestServiceClass:
         loop = uvloop.new_event_loop()
 
         response = loop.run_until_complete(
-            self.service.http_dispatch('PUT', '/', payload={"a": "b"}))
+            _disp('PUT', '/', payload={"a": "b"}))
         assert response['request_timeout'] == None
 
         loop = uvloop.new_event_loop()
 
         response = loop.run_until_complete(
-            self.service.http_dispatch('POST', '/', payload={"a": "b"}, request_timeout=10))
+            _disp('POST', '/', payload={"a": "b"}, request_timeout=10))
         assert response['request_timeout'] == 10
 
-    def test_http_dispatch_catch_timeout(self, monkeypatch):
+    @dispatch_tests
+    def test_dispatch_catch_timeout(self, monkeypatch, dispatch_type):
+        _disp = getattr(self.service, dispatch_type)
 
         async def _mock_dispatch_fetch(*args, **kwargs):
             await asyncio.sleep(2)
@@ -207,7 +211,7 @@ class TestServiceClass:
 
         with pytest.raises(RequestTimeoutError):
             response = loop.run_until_complete(
-                self.service.http_dispatch('GET', '/'))
+                _disp('GET', '/'))
 
     @pytest.mark.parametrize("payload,files,headers, expect_content_type, final_content_type", (
             ({"a": "b"}, {}, {}, 'application/json', 'application/json',),
@@ -222,8 +226,10 @@ class TestServiceClass:
             ({}, {"image": open('insanic.png', 'rb')}, {"Content-type": "application/json"}, 'application/json',
              'application/json'),
     ))
-    def test_http_dispatch_aiohttp_request_object_headers(self, monkeypatch, payload, files, headers,
-                                                          expect_content_type, final_content_type):
+    @dispatch_tests
+    def test_dispatch_aiohttp_request_object_headers(self, monkeypatch, payload, files, headers,
+                                                     expect_content_type, final_content_type, dispatch_type):
+        _disp = getattr(self.service, dispatch_type)
 
         async def _mock_dispatch_fetch(method, url, req_headers, data, *args, **kwargs):
             lower_headers = {k.lower(): v for k, v in req_headers.items()}
@@ -247,13 +253,13 @@ class TestServiceClass:
         loop = uvloop.new_event_loop()
 
         response = loop.run_until_complete(
-            self.service.http_dispatch('GET', '/', payload=payload, files=files, headers=headers))
+            _disp('GET', '/', payload=payload, files=files, headers=headers))
         assert final_content_type in response['content-type']
 
         loop = uvloop.new_event_loop()
 
         response = loop.run_until_complete(
-            self.service.http_dispatch('POST', '/', payload={"a": "b"}, files=files, headers=headers))
+            _disp('POST', '/', payload={"a": "b"}, files=files, headers=headers))
         assert final_content_type in response['content-type']
 
     @pytest.fixture
@@ -279,33 +285,31 @@ class TestServiceClass:
             ({}, {"image": open('insanic.png', 'rb')}, {}),
             ({"a": "b"}, {"image": open('insanic.png', 'rb')}, {})
     ))
-    async def test_http_dispatch_files(self, sanic_test_server, payload, files, headers, monkeypatch):
+    @dispatch_tests
+    async def test_dispatch_files(self, sanic_test_server, payload, files, headers, monkeypatch, dispatch_type):
 
+        _disp = getattr(self.service, dispatch_type)
         monkeypatch.setattr(self.service, "host", "localhost")
         monkeypatch.setattr(self.service, "port", sanic_test_server.port)
         monkeypatch.setattr(settings, 'GATEWAY_REGISTRATION_ENABLED', False)
 
-        response = await self.service.http_dispatch('POST', '/multi', payload=payload, files=files, headers=headers)
+        response = await _disp('POST', '/multi', payload=payload, files=files, headers=headers)
 
         assert list(payload.keys()) + list(files.keys()) == response.get('data', None), response
         assert list(files.keys()) == response.get('files', None)
 
         assert response
 
-
-
-
-
-
-
     @pytest.mark.parametrize("response_code", [k for k in status.REVERSE_STATUS if k >= 400])
-    def test_http_dispatch_raise_for_status(self, response_code):
+    @dispatch_tests
+    def test_dispatch_raise_for_status(self, response_code, dispatch_type):
         """
         raise for different types of response codes
 
         :param monkeypatch:
         :return:
         """
+        _disp = getattr(self.service, dispatch_type)
 
         loop = uvloop.new_event_loop()
 
@@ -316,9 +320,8 @@ class TestServiceClass:
             with pytest.raises(APIException):
                 try:
                     response = loop.run_until_complete(
-                        self.service.http_dispatch('GET', '/',
-                                                   payload={}, files={}, headers={},
-                                                   propagate_error=True))
+                        _disp('GET', '/', payload={}, files={}, headers={},
+                              propagate_error=True))
                 except APIException as e:
                     assert e.status_code == response_code
                     raise e
@@ -632,9 +635,10 @@ class TestRequestTaskContext:
 
             assert resp['user']['id'] == users[i].id
 
-    async def test_task_context_user_http_dispatch_injection(self, insanic_application,
-                                                             test_client,
-                                                             test_user_token_factory):
+    @dispatch_tests
+    async def test_task_context_user_dispatch_injection(self, insanic_application,
+                                                        test_client,
+                                                        test_user_token_factory, dispatch_type):
         import aiotask_context
         import asyncio
         from insanic.loading import get_service
