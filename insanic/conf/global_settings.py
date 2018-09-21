@@ -153,3 +153,7 @@ INTERNAL_REQUEST_USER_HEADER = 'x-insanic-request-user'
 
 PACT_BROKER_URL = 'http://pact'
 SERVICE_UNAVAILABLE_MESSAGE = "{} is currently unavailable."
+
+GRPC_SERVE = True
+GRPC_HOST = '0.0.0.0'
+GRPC_PORT_DELTA = 1000
