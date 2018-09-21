@@ -3,9 +3,12 @@ from insanic.conf import settings
 
 
 class User:
+    """
+    WARNING: when updating update service.proto
+    """
     __slots__ = ('_is_authenticated', 'id', 'level')
 
-    def __init__(self, *, id, level, is_authenticated=False, **kwargs):
+    def __init__(self, *, id="", level=-1, is_authenticated=False, **kwargs):
         self._is_authenticated = is_authenticated
         self.id = id
 
@@ -51,6 +54,9 @@ class _AnonymousUser(User):
 
 
 class RequestService:
+    """
+    WARNING: when updating update service.proto
+    """
     __slots__ = ['request_service', 'destination_service', 'source_ip',
                  'destination_version', 'is_authenticated', ]
 
@@ -60,7 +66,6 @@ class RequestService:
         self.source_ip = source_ip
         self.destination_version = destination_version
         self.is_authenticated = is_authenticated
-
 
     @property
     def is_valid(self):

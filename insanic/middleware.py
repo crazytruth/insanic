@@ -9,7 +9,7 @@ from insanic.log import logger
 
 def request_middleware(request):
     aiotask_context.set(settings.TASK_CONTEXT_CORRELATION_ID,
-                        request.headers.get(settings.REQUEST_ID_HEADER_FIELD, "unknown"))
+                        request.id)
 
 async def response_userip_middleware(request, response):
 
