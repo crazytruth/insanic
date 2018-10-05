@@ -5,8 +5,11 @@ from traceback import format_exc
 
 from sanic.exceptions import ServerError
 from sanic.response import HTTPResponse
+from insanic import status
+from insanic.handlers import INTERNAL_SERVER_ERROR_JSON
 from insanic.log import error_logger, grpc_access_logger as access_logger
 from insanic.request import Request as InsanicRequest
+from insanic.responses import json_response
 from insanic.grpc.dispatch.dispatch_grpc import DispatchBase
 from insanic.grpc.dispatch.dispatch_pb2 import ServiceResponse
 
@@ -26,7 +29,7 @@ class DispatchServer(DispatchBase):
             response = await self.app._run_request_middleware(request)
             if not response:
 
-                handler, args, kwargs, uri = self.app.router._get(request.path, request.method, '')
+                handler, args, kwargs, uri = self.app.router.get(request)
 
                 if handler is None:
                     raise ServerError(
@@ -40,16 +43,13 @@ class DispatchServer(DispatchBase):
                 response = self.app.error_handler.response(request, e)
                 if isawaitable(response):
                     response = await response
-
-                access_logger.exception('', extra={}, exc_info=response.exception)
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
+                err_message = INTERNAL_SERVER_ERROR_JSON
                 if self.app.debug:
-                    response = HTTPResponse(
-                        "Error while handling error: {}\nStack: {}".format(
-                            e, format_exc()))
+                    err_message['description'] = "Error while handling error: {}\nStack: {}".format(e, format_exc())
                 else:
-                    response = HTTPResponse(
-                        "An error occurred while handling an error")
+                    err_message['description'] = "An error occurred while handling an error"
+                response = json_response(err_message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         finally:
             # -------------------------------------------- #
             # Response Middleware

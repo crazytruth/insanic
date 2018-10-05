@@ -20,6 +20,15 @@ message ContextService {
     string destination_version = 4;
 }
 
+message FileList {
+    repeated File f = 1;
+}
+
+message File {
+    string name = 1;
+    bytes body = 5;
+}
+
 message ServiceRequest {
     string method = 1;
     bytes endpoint = 2;
@@ -28,10 +37,6 @@ message ServiceRequest {
     ContextService service = 7;
     string request_id = 8;
     map<string, string> body = 10;
-
-    message FileList {
-        repeated bytes f = 1;
-    }
     map<string, FileList> files = 11;
 }
 

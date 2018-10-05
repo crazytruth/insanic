@@ -9,7 +9,6 @@ from google.protobuf import message as _message
 from google.protobuf import reflection as _reflection
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf import descriptor_pb2
-
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
@@ -19,8 +18,11 @@ DESCRIPTOR = _descriptor.FileDescriptor(
     package='insanic.v1',
     syntax='proto3',
     serialized_pb=_b(
-        '\n$insanic/grpc/dispatch/dispatch.proto\x12\ninsanic.v1\"B\n\x0b\x43ontextUser\x12\n\n\x02id\x18\x01 \x01(\t\x12\r\n\x05level\x18\x02 \x01(\x05\x12\x18\n\x10is_authenticated\x18\x03 \x01(\x08\"]\n\x0e\x43ontextService\x12\x0e\n\x06source\x18\x01 \x01(\t\x12\x0b\n\x03\x61ud\x18\x02 \x01(\t\x12\x11\n\tsource_ip\x18\x03 \x01(\t\x12\x1b\n\x13\x64\x65stination_version\x18\x04 \x01(\t\"\x85\x04\n\x0eServiceRequest\x12\x0e\n\x06method\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\x0c\x12\x38\n\x07headers\x18\x05 \x03(\x0b\x32\'.insanic.v1.ServiceRequest.HeadersEntry\x12%\n\x04user\x18\x06 \x01(\x0b\x32\x17.insanic.v1.ContextUser\x12+\n\x07service\x18\x07 \x01(\x0b\x32\x1a.insanic.v1.ContextService\x12\x12\n\nrequest_id\x18\x08 \x01(\t\x12\x32\n\x04\x62ody\x18\n \x03(\x0b\x32$.insanic.v1.ServiceRequest.BodyEntry\x12\x34\n\x05\x66iles\x18\x0b \x03(\x0b\x32%.insanic.v1.ServiceRequest.FilesEntry\x1a.\n\x0cHeadersEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a+\n\tBodyEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a\x15\n\x08\x46ileList\x12\t\n\x01\x66\x18\x01 \x03(\x0c\x1aQ\n\nFilesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x32\n\x05value\x18\x02 \x01(\x0b\x32#.insanic.v1.ServiceRequest.FileList:\x02\x38\x01\"\x9f\x01\n\x0fServiceResponse\x12\x39\n\x07headers\x18\x01 \x03(\x0b\x32(.insanic.v1.ServiceResponse.HeadersEntry\x12\x0c\n\x04\x62ody\x18\n \x01(\x0c\x12\x13\n\x0bstatus_code\x18\x0b \x01(\x05\x1a.\n\x0cHeadersEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x32T\n\x08\x44ispatch\x12H\n\x0bhandle_grpc\x12\x1a.insanic.v1.ServiceRequest\x1a\x1b.insanic.v1.ServiceResponse\"\x00\x62\x06proto3')
+        '\n$insanic/grpc/dispatch/dispatch.proto\x12\ninsanic.v1\"B\n\x0b\x43ontextUser\x12\n\n\x02id\x18\x01 \x01(\t\x12\r\n\x05level\x18\x02 \x01(\x05\x12\x18\n\x10is_authenticated\x18\x03 \x01(\x08\"]\n\x0e\x43ontextService\x12\x0e\n\x06source\x18\x01 \x01(\t\x12\x0b\n\x03\x61ud\x18\x02 \x01(\t\x12\x11\n\tsource_ip\x18\x03 \x01(\t\x12\x1b\n\x13\x64\x65stination_version\x18\x04 \x01(\t\"\'\n\x08\x46ileList\x12\x1b\n\x01\x66\x18\x01 \x03(\x0b\x32\x10.insanic.v1.File\"\"\n\x04\x46ile\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x62ody\x18\x05 \x01(\x0c\"\xdf\x03\n\x0eServiceRequest\x12\x0e\n\x06method\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\x0c\x12\x38\n\x07headers\x18\x05 \x03(\x0b\x32\'.insanic.v1.ServiceRequest.HeadersEntry\x12%\n\x04user\x18\x06 \x01(\x0b\x32\x17.insanic.v1.ContextUser\x12+\n\x07service\x18\x07 \x01(\x0b\x32\x1a.insanic.v1.ContextService\x12\x12\n\nrequest_id\x18\x08 \x01(\t\x12\x32\n\x04\x62ody\x18\n \x03(\x0b\x32$.insanic.v1.ServiceRequest.BodyEntry\x12\x34\n\x05\x66iles\x18\x0b \x03(\x0b\x32%.insanic.v1.ServiceRequest.FilesEntry\x1a.\n\x0cHeadersEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a+\n\tBodyEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a\x42\n\nFilesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12#\n\x05value\x18\x02 \x01(\x0b\x32\x14.insanic.v1.FileList:\x02\x38\x01\"\x9f\x01\n\x0fServiceResponse\x12\x39\n\x07headers\x18\x01 \x03(\x0b\x32(.insanic.v1.ServiceResponse.HeadersEntry\x12\x0c\n\x04\x62ody\x18\n \x01(\x0c\x12\x13\n\x0bstatus_code\x18\x0b \x01(\x05\x1a.\n\x0cHeadersEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x32T\n\x08\x44ispatch\x12H\n\x0bhandle_grpc\x12\x1a.insanic.v1.ServiceRequest\x1a\x1b.insanic.v1.ServiceResponse\"\x00\x62\x06proto3')
 )
+
+
+
 
 _CONTEXTUSER = _descriptor.Descriptor(
     name='ContextUser',
@@ -65,6 +67,7 @@ _CONTEXTUSER = _descriptor.Descriptor(
     serialized_start=52,
     serialized_end=118,
 )
+
 
 _CONTEXTSERVICE = _descriptor.Descriptor(
     name='ContextService',
@@ -117,6 +120,73 @@ _CONTEXTSERVICE = _descriptor.Descriptor(
     serialized_end=213,
 )
 
+_FILELIST = _descriptor.Descriptor(
+    name='FileList',
+    full_name='insanic.v1.FileList',
+    filename=None,
+    file=DESCRIPTOR,
+    containing_type=None,
+    fields=[
+        _descriptor.FieldDescriptor(
+            name='f', full_name='insanic.v1.FileList.f', index=0,
+            number=1, type=11, cpp_type=10, label=3,
+            has_default_value=False, default_value=[],
+            message_type=None, enum_type=None, containing_type=None,
+            is_extension=False, extension_scope=None,
+            options=None, file=DESCRIPTOR),
+    ],
+    extensions=[
+    ],
+    nested_types=[],
+    enum_types=[
+    ],
+    options=None,
+    is_extendable=False,
+    syntax='proto3',
+    extension_ranges=[],
+    oneofs=[
+    ],
+    serialized_start=215,
+    serialized_end=254,
+)
+
+_FILE = _descriptor.Descriptor(
+    name='File',
+    full_name='insanic.v1.File',
+    filename=None,
+    file=DESCRIPTOR,
+    containing_type=None,
+    fields=[
+        _descriptor.FieldDescriptor(
+            name='name', full_name='insanic.v1.File.name', index=0,
+            number=1, type=9, cpp_type=9, label=1,
+            has_default_value=False, default_value=_b("").decode('utf-8'),
+            message_type=None, enum_type=None, containing_type=None,
+            is_extension=False, extension_scope=None,
+            options=None, file=DESCRIPTOR),
+        _descriptor.FieldDescriptor(
+            name='body', full_name='insanic.v1.File.body', index=1,
+            number=5, type=12, cpp_type=9, label=1,
+            has_default_value=False, default_value=_b(""),
+            message_type=None, enum_type=None, containing_type=None,
+            is_extension=False, extension_scope=None,
+            options=None, file=DESCRIPTOR),
+    ],
+    extensions=[
+    ],
+    nested_types=[],
+    enum_types=[
+    ],
+    options=None,
+    is_extendable=False,
+    syntax='proto3',
+    extension_ranges=[],
+    oneofs=[
+    ],
+    serialized_start=256,
+    serialized_end=290,
+)
+
 _SERVICEREQUEST_HEADERSENTRY = _descriptor.Descriptor(
     name='HeadersEntry',
     full_name='insanic.v1.ServiceRequest.HeadersEntry',
@@ -150,8 +220,8 @@ _SERVICEREQUEST_HEADERSENTRY = _descriptor.Descriptor(
     extension_ranges=[],
     oneofs=[
     ],
-    serialized_start=536,
-    serialized_end=582,
+    serialized_start=613,
+    serialized_end=659,
 )
 
 _SERVICEREQUEST_BODYENTRY = _descriptor.Descriptor(
@@ -187,38 +257,8 @@ _SERVICEREQUEST_BODYENTRY = _descriptor.Descriptor(
     extension_ranges=[],
     oneofs=[
     ],
-    serialized_start=584,
-    serialized_end=627,
-)
-
-_SERVICEREQUEST_FILELIST = _descriptor.Descriptor(
-    name='FileList',
-    full_name='insanic.v1.ServiceRequest.FileList',
-    filename=None,
-    file=DESCRIPTOR,
-    containing_type=None,
-    fields=[
-        _descriptor.FieldDescriptor(
-            name='f', full_name='insanic.v1.ServiceRequest.FileList.f', index=0,
-            number=1, type=12, cpp_type=9, label=3,
-            has_default_value=False, default_value=[],
-            message_type=None, enum_type=None, containing_type=None,
-            is_extension=False, extension_scope=None,
-            options=None, file=DESCRIPTOR),
-    ],
-    extensions=[
-    ],
-    nested_types=[],
-    enum_types=[
-    ],
-    options=None,
-    is_extendable=False,
-    syntax='proto3',
-    extension_ranges=[],
-    oneofs=[
-    ],
-    serialized_start=629,
-    serialized_end=650,
+    serialized_start=661,
+    serialized_end=704,
 )
 
 _SERVICEREQUEST_FILESENTRY = _descriptor.Descriptor(
@@ -254,8 +294,8 @@ _SERVICEREQUEST_FILESENTRY = _descriptor.Descriptor(
     extension_ranges=[],
     oneofs=[
     ],
-    serialized_start=652,
-    serialized_end=733,
+    serialized_start=706,
+    serialized_end=772,
 )
 
 _SERVICEREQUEST = _descriptor.Descriptor(
@@ -324,8 +364,7 @@ _SERVICEREQUEST = _descriptor.Descriptor(
     ],
     extensions=[
     ],
-    nested_types=[_SERVICEREQUEST_HEADERSENTRY, _SERVICEREQUEST_BODYENTRY, _SERVICEREQUEST_FILELIST,
-                  _SERVICEREQUEST_FILESENTRY, ],
+    nested_types=[_SERVICEREQUEST_HEADERSENTRY, _SERVICEREQUEST_BODYENTRY, _SERVICEREQUEST_FILESENTRY, ],
     enum_types=[
     ],
     options=None,
@@ -334,9 +373,10 @@ _SERVICEREQUEST = _descriptor.Descriptor(
     extension_ranges=[],
     oneofs=[
     ],
-    serialized_start=216,
-    serialized_end=733,
+    serialized_start=293,
+    serialized_end=772,
 )
+
 
 _SERVICERESPONSE_HEADERSENTRY = _descriptor.Descriptor(
     name='HeadersEntry',
@@ -371,8 +411,8 @@ _SERVICERESPONSE_HEADERSENTRY = _descriptor.Descriptor(
     extension_ranges=[],
     oneofs=[
     ],
-    serialized_start=536,
-    serialized_end=582,
+    serialized_start=613,
+    serialized_end=659,
 )
 
 _SERVICERESPONSE = _descriptor.Descriptor(
@@ -415,14 +455,14 @@ _SERVICERESPONSE = _descriptor.Descriptor(
     extension_ranges=[],
     oneofs=[
     ],
-    serialized_start=736,
-    serialized_end=895,
+    serialized_start=775,
+    serialized_end=934,
 )
 
+_FILELIST.fields_by_name['f'].message_type = _FILE
 _SERVICEREQUEST_HEADERSENTRY.containing_type = _SERVICEREQUEST
 _SERVICEREQUEST_BODYENTRY.containing_type = _SERVICEREQUEST
-_SERVICEREQUEST_FILELIST.containing_type = _SERVICEREQUEST
-_SERVICEREQUEST_FILESENTRY.fields_by_name['value'].message_type = _SERVICEREQUEST_FILELIST
+_SERVICEREQUEST_FILESENTRY.fields_by_name['value'].message_type = _FILELIST
 _SERVICEREQUEST_FILESENTRY.containing_type = _SERVICEREQUEST
 _SERVICEREQUEST.fields_by_name['headers'].message_type = _SERVICEREQUEST_HEADERSENTRY
 _SERVICEREQUEST.fields_by_name['user'].message_type = _CONTEXTUSER
@@ -433,6 +473,8 @@ _SERVICERESPONSE_HEADERSENTRY.containing_type = _SERVICERESPONSE
 _SERVICERESPONSE.fields_by_name['headers'].message_type = _SERVICERESPONSE_HEADERSENTRY
 DESCRIPTOR.message_types_by_name['ContextUser'] = _CONTEXTUSER
 DESCRIPTOR.message_types_by_name['ContextService'] = _CONTEXTSERVICE
+DESCRIPTOR.message_types_by_name['FileList'] = _FILELIST
+DESCRIPTOR.message_types_by_name['File'] = _FILE
 DESCRIPTOR.message_types_by_name['ServiceRequest'] = _SERVICEREQUEST
 DESCRIPTOR.message_types_by_name['ServiceResponse'] = _SERVICERESPONSE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -451,6 +493,20 @@ ContextService = _reflection.GeneratedProtocolMessageType('ContextService', (_me
 ))
 _sym_db.RegisterMessage(ContextService)
 
+FileList = _reflection.GeneratedProtocolMessageType('FileList', (_message.Message,), dict(
+    DESCRIPTOR=_FILELIST,
+    __module__='insanic.grpc.dispatch.dispatch_pb2'
+    # @@protoc_insertion_point(class_scope:insanic.v1.FileList)
+))
+_sym_db.RegisterMessage(FileList)
+
+File = _reflection.GeneratedProtocolMessageType('File', (_message.Message,), dict(
+    DESCRIPTOR=_FILE,
+    __module__='insanic.grpc.dispatch.dispatch_pb2'
+    # @@protoc_insertion_point(class_scope:insanic.v1.File)
+))
+_sym_db.RegisterMessage(File)
+
 ServiceRequest = _reflection.GeneratedProtocolMessageType('ServiceRequest', (_message.Message,), dict(
 
     HeadersEntry=_reflection.GeneratedProtocolMessageType('HeadersEntry', (_message.Message,), dict(
@@ -467,13 +523,6 @@ ServiceRequest = _reflection.GeneratedProtocolMessageType('ServiceRequest', (_me
     ))
     ,
 
-    FileList=_reflection.GeneratedProtocolMessageType('FileList', (_message.Message,), dict(
-        DESCRIPTOR=_SERVICEREQUEST_FILELIST,
-        __module__='insanic.grpc.dispatch.dispatch_pb2'
-        # @@protoc_insertion_point(class_scope:insanic.v1.ServiceRequest.FileList)
-    ))
-    ,
-
     FilesEntry=_reflection.GeneratedProtocolMessageType('FilesEntry', (_message.Message,), dict(
         DESCRIPTOR=_SERVICEREQUEST_FILESENTRY,
         __module__='insanic.grpc.dispatch.dispatch_pb2'
@@ -487,7 +536,6 @@ ServiceRequest = _reflection.GeneratedProtocolMessageType('ServiceRequest', (_me
 _sym_db.RegisterMessage(ServiceRequest)
 _sym_db.RegisterMessage(ServiceRequest.HeadersEntry)
 _sym_db.RegisterMessage(ServiceRequest.BodyEntry)
-_sym_db.RegisterMessage(ServiceRequest.FileList)
 _sym_db.RegisterMessage(ServiceRequest.FilesEntry)
 
 ServiceResponse = _reflection.GeneratedProtocolMessageType('ServiceResponse', (_message.Message,), dict(
@@ -505,6 +553,7 @@ ServiceResponse = _reflection.GeneratedProtocolMessageType('ServiceResponse', (_
 _sym_db.RegisterMessage(ServiceResponse)
 _sym_db.RegisterMessage(ServiceResponse.HeadersEntry)
 
+
 _SERVICEREQUEST_HEADERSENTRY.has_options = True
 _SERVICEREQUEST_HEADERSENTRY._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001'))
 _SERVICEREQUEST_BODYENTRY.has_options = True
@@ -520,8 +569,8 @@ _DISPATCH = _descriptor.ServiceDescriptor(
     file=DESCRIPTOR,
     index=0,
     options=None,
-    serialized_start=897,
-    serialized_end=981,
+    serialized_start=936,
+    serialized_end=1020,
     methods=[
         _descriptor.MethodDescriptor(
             name='handle_grpc',
