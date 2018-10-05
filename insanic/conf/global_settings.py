@@ -157,3 +157,4 @@ SERVICE_UNAVAILABLE_MESSAGE = "{} is currently unavailable."
 GRPC_SERVE = True
 GRPC_HOST = '0.0.0.0'
 GRPC_PORT_DELTA = 1000
+GRPC_SERVER = []
