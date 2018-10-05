@@ -369,7 +369,7 @@ class GRPCAuthentication(BaseAuthentication):
     def try_decode(self, user):
 
         try:
-            request_user = MessageToDict(user, True)
+            request_user = {camel_to_snake(k): v for k, v in MessageToDict(user, True).items()}
         except AttributeError:
             msg = 'Error decoding request signature.'
             raise exceptions.AuthenticationFailed(msg,
