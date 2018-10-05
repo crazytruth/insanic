@@ -10,6 +10,7 @@ from insanic import Insanic
 from insanic.authentication import handlers
 from insanic.choices import UserLevels
 from insanic.conf import settings
+from insanic.grpc.server import GRPCServer
 from insanic.models import User
 
 from pytest_redis import factories
@@ -34,7 +35,12 @@ def function_session_id():
 
 @pytest.fixture
 def insanic_application():
-    return Insanic("test")
+    yield Insanic("test")
+
+
+@pytest.fixture(autouse=True)
+def grpc_port_delta(monkeypatch):
+    monkeypatch.setattr(settings, 'GRPC_PORT_DELTA', 1)
 
 
 @pytest.fixture(autouse=True)
