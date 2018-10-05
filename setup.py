@@ -14,7 +14,7 @@ def read(fname):
     return open(os.path.join(here, fname)).read()
 
 
-version = '0.5.11.dev0'
+version = '0.6.0'
 
 
 def pytest_command():

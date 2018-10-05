@@ -2,8 +2,8 @@ Changelog for insanic
 =====================
 
 
-0.6.0 (unreleased)
--------------------
+0.6.0 (2018-10-05)
+------------------
 
 - MAJOR: GRPC server and client implementation
 - FEAT: allow multiple files with same keys in dispatch
