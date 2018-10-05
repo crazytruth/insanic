@@ -72,13 +72,14 @@ setup(
         # 'yarl==1.1.1',
         'aioredis>=1.1.0',
         'PyJWT',
-        'aws-xray-sdk>=1.1.1',
+        'aws-xray-sdk==1.1.1',
         "python-consul",
         "hvac",
         "aiotask_context",
         # "infuse>=0.1.0",
         "python-dateutil",
         "packaging",
+        "grpclib",
     ],
     # test_suite='nose.collector',
     tests_require=test_requires,
@@ -90,7 +91,8 @@ setup(
     # },
     extras_require={
         "testing": test_requires,
-        "dev": ["zest.releaser[recommended]", "flake8"]
+        "dev": ["zest.releaser[recommended]", "flake8"],
+        "grpc": ["protobuf", "grpcio-tools", "googleapis-common-protos"]
     },
     cmdclass={'test': pytest_command()},
     include_package_data=True,

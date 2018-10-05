@@ -9,11 +9,14 @@ from grpclib.client import Channel
 from grpclib.exceptions import GRPCError, ProtocolError
 from grpclib.const import Status as GRPCStatus
 
+from sanic.request import File as SanicFile
+
 from insanic import status, exceptions
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
+from insanic.exceptions import APIException
 from insanic.grpc.dispatch.dispatch_grpc import DispatchStub
-from insanic.grpc.dispatch.dispatch_pb2 import ServiceRequest, ContextUser, ContextService
+from insanic.grpc.dispatch.dispatch_pb2 import ServiceRequest, ContextUser, ContextService, FileList
 from insanic.grpc.health.health_grpc import HealthStub
 from insanic.grpc.health.health_pb2 import HealthCheckRequest
 from insanic.log import error_logger, logger
@@ -87,7 +90,10 @@ class GRPCClient:
 
     @property
     def status(self):
-        return GRPCServingStatus(self._status)
+        try:
+            return GRPCServingStatus(self._status)
+        except ValueError:
+            return self._status
 
     @status.setter
     def status(self, val):
@@ -111,6 +117,9 @@ class GRPCClient:
         except GRPCError as e:
             self.status = 0
             logger.warning(f'[GRPC] CHECKER: {self.service_name} error: {e.message}')
+        except Exception as e:
+            self.status = 0
+            logger.exception(f'[GRPC] CHECKER: {self.service_name} unknown error: {e.message}')
 
     # async def health_watch(self):
     #     request = HealthCheckRequest(service="insanic.grpc.dispatch.Dispatch")
@@ -173,15 +182,19 @@ class GRPCClient:
             for f in fs:
                 if isinstance(f, io.BufferedReader):
                     fb = f.read()
-                elif isinstance(f, str):
-                    fb = f.encode()
+                    fn = f.name
+                elif isinstance(f, SanicFile):
+                    fb = f.body
+                    fn = f.name
                 else:
-                    fb = f
+                    raise RuntimeError(
+                        "INVALID FILE: invalid value for files. Must be either and instance "
+                        "of io.IOBase(using open) or sanic File objects.")
 
                 if k not in packed_files:
-                    packed_files[k] = ServiceRequest.FileList()
+                    packed_files[k] = FileList()
                 try:
-                    packed_files[k].append(ServiceRequest.FileList(f=fb))
+                    packed_files[k].f.add(body=fb, name=fn)
                 except TypeError:
                     raise
 
@@ -212,6 +225,13 @@ class GRPCClient:
 
         try:
             response = await self.stub.handle_grpc(request, timeout=request_timeout)
+            response_body = json.loads(response.body)
+            if propagate_error:
+                if 400 <= response.status_code:
+                    e = APIException(response_body['description'],
+                                     error_code=response_body['error_code'], status_code=response.status_code)
+                    e.message = response_body.get('message', e.message)
+                    raise e
         except GRPCError as e:
             raise self._status_translations(e)
         except asyncio.TimeoutError as e:
@@ -227,4 +247,4 @@ class GRPCClient:
             self.status = 0
             raise e
 
-        return json.loads(response.body), response.status_code
+        return response_body, response.status_code
