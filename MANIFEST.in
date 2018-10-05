@@ -12,3 +12,4 @@ exclude insanic_ascii
 exclude tests
 exclude tests/intest
 recursive-exclude tests *.py
+recursive-exclude insanic *.proto
