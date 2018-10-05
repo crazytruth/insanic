@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.5.11 (unreleased)
+0.6.0 (unreleased)
 -------------------
 
 - MAJOR: GRPC server and client implementation
