@@ -68,6 +68,8 @@ class Request(SanicRequest):
 
         req._id = request_message.request_id
         req.parsed_json = {k: json.loads(v) for k, v in request_message.body.items()}
+        req.parsed_files = RequestParameters({k: [File(body=f.body, name=f.name, type="")
+                                                  for f in v.f] for k, v in request_message.files.items()})
         req.grpc_request_message = request_message
 
         return req
