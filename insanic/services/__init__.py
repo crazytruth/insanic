@@ -92,7 +92,7 @@ class Service(GRPCClient):
 
     @cached_property_with_ttl(ttl=60)
     def host(self):
-        return "localhost"
+        # return "localhost"
         _host = settings.SERVICE_GLOBAL_HOST_TEMPLATE.format(self.service_name)
         if hasattr(settings, "SWARM_SERVICE_LIST"):
             _host = settings.SWARM_SERVICE_LIST.get(self.service_name, {}).get('host', _host)
@@ -170,28 +170,32 @@ class Service(GRPCClient):
         :return:
         """
 
-        if not await self.health_status() or True:
-            try:
+        http_fallback = False
+        response = None
+        try:
+            if await self.health_status():
                 response = await self.grpc_dispatch(method, endpoint, query_params=query_params, payload=payload,
                                                     files=files, headers=headers,
                                                     propagate_error=propagate_error, skip_breaker=skip_breaker,
                                                     include_status_code=include_status_code,
                                                     request_timeout=request_timeout)
-                http_fallback = False
-            except ConnectionRefusedError:
+            else:
                 http_fallback = True
-            except Exception as e:
-                error_logger.exception("Error with grpc")
-                http_fallback = True
-        else:
+        except ConnectionRefusedError:
             http_fallback = True
+        except Exception as e:
+            error_logger.exception("Error with grpc")
+            http_fallback = True
+        finally:
+            if http_fallback:
+                response = await self.http_dispatch(method, endpoint, query_params=query_params, payload=payload,
+                                                    files=files, headers=headers,
+                                                    propagate_error=propagate_error, skip_breaker=skip_breaker,
+                                                    include_status_code=include_status_code,
+                                                    request_timeout=request_timeout)
 
-        if http_fallback:
-            response = await self.http_dispatch(method, endpoint, query_params=query_params, payload=payload,
-                                                files=files, headers=headers,
-                                                propagate_error=propagate_error, skip_breaker=skip_breaker,
-                                                include_status_code=include_status_code,
-                                                request_timeout=request_timeout)
+            if response is None:
+                self.raise_503()
 
         return response
 
@@ -321,18 +325,21 @@ class Service(GRPCClient):
             for k, v in payload.items():
                 data.add_field(k, v, content_type=None)
 
-
-            for k, v in files.items():
-                if k in payload.keys():
-                    raise RuntimeError(f"CONFLICT ERROR: payload already has the key, {k}. Can not overwrite.")
-                elif isinstance(v, io.IOBase):
-                    data.add_field(k, v)
-                elif isinstance(v, File):
-                    data.add_field(k, v.body, filename=v.name, content_type=v.type)
+            def add_file(key, item):
+                if isinstance(item, io.IOBase):
+                    data.add_field(key, item, filename=item.name)
+                elif isinstance(item, File):
+                    data.add_field(key, item.body, filename=item.name, content_type=item.type)
+                elif isinstance(item, (list, set, tuple)):
+                    for v1 in item:
+                        add_file(key, v1)
                 else:
                     raise RuntimeError(
-                        "INVALID FILE: invalid value for files. Must be either and instance of io.IOBase(using open), "
-                        "sanic File object, or bytestring.")
+                        "INVALID FILE: invalid value for files. Must be either and instance of io.IOBase(using open) or"
+                        "sanic File object.")
+
+            for k, v in files.items():
+                add_file(k, v)
 
         return data
 
