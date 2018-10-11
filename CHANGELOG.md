@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.6.1 (unreleased)
+0.6.1 (2018-10-11)
 ------------------
 
 - FIX: set request object to view before dispatch prep
