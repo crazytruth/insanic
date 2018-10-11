@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.6.2 (unreleased)
+0.6.2 (2018-10-11)
 ------------------
 
 - FIX: view dispatch logic with convert keywords and authentications
