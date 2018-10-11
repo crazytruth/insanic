@@ -108,7 +108,7 @@ class GRPCClient:
         request = HealthCheckRequest(service="insanic.v1.Dispatch")
 
         try:
-            health = await self.health.Check(request, timeout=10)
+            health = await self.health.Check(request, timeout=2)
             self.status = health.status
             logger.info(f'[GRPC] CHECKER: {self.service_name} is grpc status is : {self.status.name}!')
         except ConnectionRefusedError:
@@ -119,7 +119,7 @@ class GRPCClient:
             logger.warning(f'[GRPC] CHECKER: {self.service_name} error: {e.message}')
         except Exception as e:
             self.status = 0
-            logger.exception(f'[GRPC] CHECKER: {self.service_name} unknown error: {e.message}')
+            logger.exception(f'[GRPC] CHECKER: {self.service_name} unknown error')
 
     # async def health_watch(self):
     #     request = HealthCheckRequest(service="insanic.grpc.dispatch.Dispatch")

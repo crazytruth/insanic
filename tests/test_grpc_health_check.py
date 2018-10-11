@@ -40,3 +40,13 @@ class TestGRPCHealth:
         assert service_instance._status_check is 0
         await service_instance.health_check()
         assert service_instance.status == GRPCServingStatus.SERVING
+
+    async def test_health_timeout_errors(self, service_instance, monkeypatch):
+        def mock_check(*args, **kwargs):
+            raise TimeoutError("Deadline exceeded")
+
+        monkeypatch.setattr(service_instance.health, 'Check', mock_check)
+
+        await service_instance.health_check()
+
+        assert service_instance.status == GRPCServingStatus.UNKNOWN

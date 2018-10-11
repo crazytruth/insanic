@@ -5,7 +5,7 @@ Changelog for insanic
 0.6.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: grpc healthcheck logging for general exception
 
 
 0.6.2 (2018-10-11)
