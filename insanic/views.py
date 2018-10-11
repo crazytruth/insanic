@@ -106,7 +106,6 @@ class InsanicView(HTTPMethodView):
         but with extra hooks for startup, finalize, and exception handling.
         """
 
-        self.request = request
         self.request.authenticators = self.get_authenticators()
         self.headers = self.default_response_headers  # deprecate?
 
@@ -124,7 +123,6 @@ class InsanicView(HTTPMethodView):
         :return:
         """
         self.headers = {}
-        self.request = request
         self.request.authenticators = [authentication.GRPCAuthentication()]
 
     async def dispatch_request(self, request, *args, **kwargs):
@@ -134,6 +132,7 @@ class InsanicView(HTTPMethodView):
         """
         self.args = args
         self.kwargs = kwargs
+        self.request = request
         await self.convert_keywords()
 
         if request.version == 2:
