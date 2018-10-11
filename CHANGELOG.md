@@ -5,7 +5,8 @@ Changelog for insanic
 0.6.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: set request object to view before dispatch prep
+- FIX: add google-common-protos to required packages
 
 
 0.6.0 (2018-10-05)

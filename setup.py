@@ -80,6 +80,7 @@ setup(
         "python-dateutil",
         "packaging",
         "grpclib",
+        "googleapis-common-protos"
     ],
     # test_suite='nose.collector',
     tests_require=test_requires,
