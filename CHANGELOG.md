@@ -5,7 +5,7 @@ Changelog for insanic
 0.6.4 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- CHORE: modify logging for grpc access logs
 
 
 0.6.3 (2018-10-11)

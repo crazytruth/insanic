@@ -4,7 +4,6 @@ from inspect import isawaitable
 from traceback import format_exc
 
 from sanic.exceptions import ServerError
-from sanic.response import HTTPResponse
 from insanic import status
 from insanic.handlers import INTERNAL_SERVER_ERROR_JSON
 from insanic.log import error_logger, grpc_access_logger as access_logger
@@ -72,8 +71,9 @@ class DispatchServer(DispatchBase):
             'byte': len(response.body),
             'host': f'{request.socket[0]}:{request.socket[1]}',
             # 'host': f'{request._service.source_ip}',
-            'request': f'{request.method} {request.url} HTTP/{request.version}',
-            'request_duration': int(time.time() * 1000000) - (request._request_time)
+            'request': f'{request.method} {request.path} HTTP/{request.version}',
+            'request_duration': int(time.time() * 1000000) - (request._request_time),
+            'is_grpc': 1
         }
         if hasattr(request, "_service"):
             extra.update({

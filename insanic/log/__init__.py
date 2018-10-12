@@ -69,14 +69,15 @@ def get_logging_config():
                            "span_id": "%(ot_span_id)s",
                            "sampled": "%(ot_sampled)s", "request_duration": "%(request_duration)s",
                            "parent_id": "%(ot_parent_id)s", "correlation_id": "%(correlation_id)s",
-                           "exc_text": "%(exc_text)s", "request_service": "%(request_service)s"},
+                           "exc_text": "%(exc_text)s", "request_service": "%(request_service)s",
+                           "is_grpc": "%(is_grpc)d"},
                 'datefmt': '%Y-%m-%dT%H:%M:%S.%%(msecs)d%z'
             }
         }
     )
 
     from insanic.scopes import is_docker
-    if not is_docker:
+    if not is_docker and False:
         LOGGING_CONFIG_DEFAULTS['loggers']['root']['level'] = logging.DEBUG
         LOGGING_CONFIG_DEFAULTS['loggers']['sanic.error']['level'] = logging.DEBUG
         LOGGING_CONFIG_DEFAULTS['loggers']['sanic.access']['level'] = logging.DEBUG
