@@ -22,8 +22,9 @@ class DispatchServer(DispatchBase):
     async def handle_grpc(self, stream):
         rpc_request = await stream.recv_message()
 
+        request = InsanicRequest.from_protobuf_message(rpc_request, stream)
         try:
-            request = InsanicRequest.from_protobuf_message(rpc_request, stream)
+
             request.app = self.app
             response = await self.app._run_request_middleware(request)
             if not response:
@@ -44,10 +45,8 @@ class DispatchServer(DispatchBase):
                     response = await response
             except Exception as e:  # pragma: no cover
                 err_message = INTERNAL_SERVER_ERROR_JSON
-                if self.app.debug:
-                    err_message['description'] = "Error while handling error: {}\nStack: {}".format(e, format_exc())
-                else:
-                    err_message['description'] = "An error occurred while handling an error"
+                err_message['description'] = "An error occurred while handling an error"
+                error_logger.exception("An error occurred while handling an error")
                 response = json_response(err_message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         finally:
             # -------------------------------------------- #
@@ -55,9 +54,9 @@ class DispatchServer(DispatchBase):
             # -------------------------------------------- #
             try:
                 response = await self.app._run_response_middleware(request, response)
-            except BaseException:
+            except BaseException as e:
                 error_logger.exception(
-                    'Exception occurred in one of response middleware handlers'
+                    'Exception occurred in one of response middleware handlers',
                 )
 
             self.log_response(request, response)

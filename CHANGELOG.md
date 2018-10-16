@@ -7,6 +7,7 @@ Changelog for insanic
 
 - CHORE: modify logging for grpc access logs
 - FIX: test user token factory for test plugins
+- CHORE: better error handling for grpc
 
 
 0.6.3 (2018-10-11)
