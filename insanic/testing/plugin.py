@@ -83,17 +83,16 @@ def session_unused_tcp_port_factory():
     return factory
 
 
-class _UserTokenFactory:
+@pytest.fixture(scope="session")
+def test_user_token_factory():
+    created_test_user_ids = set()
 
-    def __init__(self):
-        self.created_test_user_ids = set()
-
-    def user_token_factory(self, id=None, *, level, return_with_user=False):
+    def user_token_factory(id=None, *, level, return_with_user=False):
         if id is None:
             id = uuid.uuid4()
 
         user = User(id=id.hex, level=level, is_authenticated=True)
-        self.created_test_user_ids.add(user.id)
+        created_test_user_ids.add(user.id)
         # Create test consumer
         requests.post(gateway.kong_base_url.with_path(f'/consumers/'), json={'username': user.id})
 
@@ -111,29 +110,26 @@ class _UserTokenFactory:
 
         return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], token])
 
-    @pytest.fixture(scope="session")
-    def test_user_token_factory(self):
+    yield user_token_factory
 
-        yield self.user_token_factory
+    for user_id in created_test_user_ids:
+        # Delete JWTs
+        response = requests.get(gateway.kong_base_url.with_path(f'/consumers/{user_id}/jwt/'))
+        response.raise_for_status()
 
-        for user_id in self.created_test_user_ids:
-            # Delete JWTs
-            response = requests.get(gateway.kong_base_url.with_path(f'/consumers/{user_id}/jwt/'))
+        jwt_ids = (response.json())['data']
+        for jwt in jwt_ids:
+            response = requests.delete(gateway.kong_base_url.with_path(f"/consumers/{user_id}/jwt/{jwt['id']}/"))
             response.raise_for_status()
 
-            jwt_ids = (response.json())['data']
-            for jwt in jwt_ids:
-                response = requests.delete(gateway.kong_base_url.with_path(f"/consumers/{user_id}/jwt/{jwt['id']}/"))
-                response.raise_for_status()
-
-            # Delete test consumer
-            response = requests.delete(gateway.kong_base_url.with_path(f"/consumers/{user_id}/"))
-            response.raise_for_status()
+        # Delete test consumer
+        response = requests.delete(gateway.kong_base_url.with_path(f"/consumers/{user_id}/"))
+        response.raise_for_status()
 
 
-token_factory = _UserTokenFactory()
-test_user_token_factory = token_factory.test_user_token_factory
-user_token_factory = token_factory.user_token_factory
+# token_factory = _UserTokenFactory()
+# test_user_token_factory = token_factory.test_user_token_factory
+# user_token_factory = token_factory.user_token_factory
 
 
 @pytest.fixture(scope="session")
