@@ -80,7 +80,8 @@ setup(
         "python-dateutil",
         "packaging",
         "grpclib",
-        "googleapis-common-protos"
+        "googleapis-common-protos",
+        "aio-pika==3.2.1",
     ],
     # test_suite='nose.collector',
     tests_require=test_requires,

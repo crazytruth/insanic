@@ -5,6 +5,7 @@ import asyncio
 from insanic.conf import settings
 from insanic.connections import _connections
 from insanic.grpc.server import GRPCServer
+from insanic.rabbitmq.connections import RabbitMQConnectionHandler
 from insanic.registration import gateway
 from insanic.services import ServiceRegistry
 from insanic.grpc.dispatch.server import DispatchServer
@@ -39,6 +40,22 @@ async def after_server_start_start_grpc(app, loop=None, **kwargs):
     else:
         GRPCServer.logger("info", f"GRPC_SERVE is turned off")
 
+async def after_server_start_start_rabbitmq_connection(app, loop=None, **kwargs):
+    if settings.RABBITMQ_SERVE:
+        port = settings.RABBITMQ_PORT or 5672  # RabbitMQ default port
+        rabbit_mq = RabbitMQConnectionHandler()
+        await rabbit_mq.connect(
+            rabbitmq_username=settings.RABBITMQ_USERNAME,
+            rabbitmq_password=settings.RABBITMQ_PASSWORD,
+            host=settings.RABBITMQ_HOST,
+            port=int(port),
+            loop=loop
+        )
+    else:
+        RabbitMQConnectionHandler.logger("info", f"RABBITMQ_SERVE is turned off")
+
+async def before_server_stop_stop_rabbitmq_connection(app, loop=None, **kwargs):
+    await RabbitMQConnectionHandler.disconnect()
 
 async def before_server_stop_stop_grpc(app, loop=None, **kwargs):
     await GRPCServer.stop()

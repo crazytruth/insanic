@@ -90,6 +90,7 @@ def get_logging_config():
 
 logger = logging.getLogger('root')
 grpc_logger = logging.getLogger('root.grpc')
+rabbitmq_logger = logging.getLogger('root.rabbitmq')
 error_logger = logging.getLogger('sanic.error')
 access_logger = logging.getLogger('sanic.access')
 grpc_access_logger = logging.getLogger('sanic.access.grpc')
