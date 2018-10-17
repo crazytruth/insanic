@@ -73,6 +73,7 @@ class RabbitMQConnectionHandler:
         self._conn = await connect(
             f"amqp://{rabbitmq_username}:{rabbitmq_password}@{host}:{port}/", loop=loop
         )
+        self.logger('info', f"[RABBIT] Rabbit is connected from {host}:{port}")
         self._channel = await self._conn.channel()
 
 
