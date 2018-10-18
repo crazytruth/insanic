@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from aio_pika import connect
+from aio_pika import connect_robust
 
 from insanic.log import rabbitmq_logger
 
@@ -45,6 +45,10 @@ class RabbitMQConnectionHandler:
         return cls.__instance
 
     @classmethod
+    def channel(cls):
+        return cls.__instance._channel
+
+    @classmethod
     async def disconnect(cls):
         if cls.__instance is not None:
             cls.logger('info', f"[RABBIT] Closing RabbitMQ connection.")
@@ -70,10 +74,8 @@ class RabbitMQConnectionHandler:
         if self._conn:
             raise AssertionError("RabbitMQ connection has already been initialized.")
 
-        self._conn = await connect(
+        self._conn = await connect_robust(
             f"amqp://{rabbitmq_username}:{rabbitmq_password}@{host}:{port}/", loop=loop
         )
         self.logger('info', f"[RABBIT] Rabbit is connected from {host}:{port}")
         self._channel = await self._conn.channel()
-
-

@@ -2,8 +2,10 @@ import asyncio
 import json
 
 import aiotask_context
+from aio_pika.exceptions import AMQPError
 
 from insanic.conf import settings
+from insanic.rabbitmq.helpers import fire_ip
 from insanic.loading import get_service
 from insanic.log import logger
 
@@ -28,14 +30,27 @@ async def response_userip_middleware(request, response):
 
             try:
                 if request.client_ip:
-                    asyncio.ensure_future(UseripService.http_dispatch(
-                        'POST', '/api/v1/ip/',
-                        include_status_code=True,
-                        payload={'user_id': user.id, 'ip_addr': request.client_ip}
-                    ))
+                    payload = {'user_id': user.id, 'ip_addr': request.client_ip}
+
+                    if settings.RABBITMQ_SERVE:
+                        try:
+                            await fire_ip(payload)
+                        except RuntimeError:
+                            asyncio.ensure_future(UseripService.http_dispatch(
+                                'POST', '/api/v1/ip/',
+                                include_status_code=True,
+                                payload=payload
+                            ))
+                    else:
+                        asyncio.ensure_future(UseripService.http_dispatch(
+                            'POST', '/api/v1/ip/',
+                            include_status_code=True,
+                            payload=payload
+                        ))
 
                     if settings.MMT_ENV == "test":
                         response.headers["userip"] = "fired"
+
                 else:
                     logger.warn(json.dumps({
                         'warning' : 'client_ip value is None.',
