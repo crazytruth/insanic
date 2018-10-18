@@ -84,6 +84,7 @@ class ChannelManager:
         try:
             channel = random.choice(list(self._channel.values()))
         except KeyError:
+            logger.error("[GRPC] No channel found.")
             raise
         else:
             return channel
