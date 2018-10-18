@@ -1,8 +1,11 @@
+import aiodns
 import asyncio
 import io
+import random
 import time
 import ujson as json
 
+from aiodns.error import DNSError
 from collections import OrderedDict
 from enum import IntEnum
 from grpclib.client import Channel
@@ -43,7 +46,8 @@ GRPC_HTTP_STATUS_MAP = OrderedDict([
 ])
 
 GRPC_HEALTH_CHECK_CACHE_TTL = 60
-
+DNS_DEFAULT_TTL = 60
+DNS_QUERY_TYPE = 'A'
 
 class GRPCServingStatus(IntEnum):
     UNKNOWN = 0
@@ -52,35 +56,111 @@ class GRPCServingStatus(IntEnum):
     SERVICE_UNKNOWN = 3
 
 
-class GRPCClient:
+class ChannelManager:
     _channel = None
+    _channel_update_time = time.monotonic()
+
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+        self._resolver = aiodns.DNSResolver()
+
+    async def resolve_host(self):
+        try:
+            query_result = await self._resolver.query(self.host, DNS_QUERY_TYPE)
+        except DNSError as e:
+            ip_list = [(self.host, DNS_DEFAULT_TTL)]
+        else:
+            ip_list = [(q.host, q.ttl) for q in query_result]
+
+        for ip in ip_list:
+            self.add_channel(ip[0], self.port)
+        self._channel_update_time = time.monotonic() + min([q[1] for q in ip_list])
+
+    async def get_channel(self):
+        if self._channel is None or self._channel_update_time < time.monotonic():
+            await self.resolve_host()
+
+        try:
+            channel = random.choice(list(self._channel.values()))
+        except KeyError:
+            raise
+        else:
+            return channel
+
+    def add_channel(self, host, port):
+        """
+        add channel to list of available channels
+
+        :param host:
+        :param port:
+        :return:
+        """
+        if self._channel is None:
+            self._channel = OrderedDict()
+
+        self._channel.update({host: Channel(host=host,
+                                            port=port,
+                                            loop=asyncio.get_event_loop())})
+
+    def remove_channel(self, channel: Channel):
+        try:
+            channel.close()
+        except AttributeError:
+            pass
+        else:
+            self._remove_channel(channel._host)
+
+    def close_all(self):
+        """
+        Closes all channels
+        :return:
+        """
+        if self._channel is None:
+            return
+
+        while self._channel:
+            h, c = self._channel.popitem()
+            c.close()
+            self._remove_channel(c._host)
+
+    def _remove_channel(self, key):
+        try:
+            del self._channel[key]
+        except KeyError:
+            pass
+
+
+class GRPCClient:
+
     _stub = None
     _health_stub = None
 
     def __init__(self):
         self._status = None
         self._status_check = 0
+        self._channel_manager = None
 
     @property
     def grpc_port(self):
         return int(self.port) + settings.GRPC_PORT_DELTA
 
     @property
-    def channel(self):
-        if self._channel is None:
-            self._channel = Channel(host=self.host, port=self.grpc_port, loop=asyncio.get_event_loop())
-        return self._channel
+    def channel_manager(self):
+        if self._channel_manager is None:
+            self._channel_manager = ChannelManager(self.host, self.grpc_port)
+        return self._channel_manager
 
     @property
-    def stub(self):
+    async def stub(self):
         if self._stub is None:
-            self._stub = DispatchStub(self.channel)
+            self._stub = DispatchStub(await self.channel_manager.get_channel())
         return self._stub
 
     @property
-    def health(self):
+    async def health(self):
         if self._health_stub is None:
-            self._health_stub = HealthStub(self.channel)
+            self._health_stub = HealthStub(await self.channel_manager.get_channel())
         return self._health_stub
 
     async def health_status(self):
@@ -107,19 +187,23 @@ class GRPCClient:
     async def health_check(self):
         request = HealthCheckRequest(service="insanic.v1.Dispatch")
 
+        health_stub = await self.health
         try:
-            health = await self.health.Check(request, timeout=2)
+            health = await health_stub.Check(request, timeout=1)
             self.status = health.status
             logger.info(f'[GRPC] CHECKER: {self.service_name} is grpc status is : {self.status.name}!')
         except ConnectionRefusedError:
-            self.status = 2
+            self.status = GRPCServingStatus.NOT_SERVING
             logger.info(f'[GRPC] CHECKER: {self.service_name} is not serving grpc!')
+            self.channel_manager.remove_channel(health_stub.Check.channel)
         except GRPCError as e:
-            self.status = 0
+            self.status = GRPCServingStatus.UNKNOWN
             logger.warning(f'[GRPC] CHECKER: {self.service_name} error: {e.message}')
+            self.channel_manager.remove_channel(health_stub.Check.channel)
         except Exception as e:
-            self.status = 0
+            self.status = GRPCServingStatus.UNKNOWN
             logger.exception(f'[GRPC] CHECKER: {self.service_name} unknown error')
+            self.channel_manager.remove_channel(health_stub.Check.channel)
 
     # async def health_watch(self):
     #     request = HealthCheckRequest(service="insanic.grpc.dispatch.Dispatch")
@@ -222,9 +306,9 @@ class GRPCClient:
             body=body,
             files=files
         )
-
+        dispatch_stub = await self.stub
         try:
-            response = await self.stub.handle_grpc(request, timeout=request_timeout)
+            response = await dispatch_stub.handle_grpc(request, timeout=request_timeout)
             response_body = json.loads(response.body)
             if propagate_error:
                 if 400 <= response.status_code:
@@ -235,15 +319,18 @@ class GRPCClient:
         except GRPCError as e:
             raise self._status_translations(e)
         except asyncio.TimeoutError as e:
+            self.channel_manager.remove_channel(dispatch_stub.handle_grpc.channel)
             raise exceptions.RequestTimeoutError(description=f'Request to {self.service_name} took too long!',
                                                  error_code=GlobalErrorCodes.request_timeout,
                                                  status_code=status.HTTP_408_REQUEST_TIMEOUT)
         except ProtocolError as e:
+            self.channel_manager.remove_channel(dispatch_stub.handle_grpc.channel)
             error_logger.exception(f"GRPC Protocol Error: {e.msg}", exc_info=e)
             raise exceptions.APIException("Something unexpected happened.",
                                           error_code=GlobalErrorCodes.protocol_error,
                                           status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except ConnectionRefusedError as e:
+            self.channel_manager.remove_channel(dispatch_stub.handle_grpc.channel)
             self.status = 0
             raise e
 

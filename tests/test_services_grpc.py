@@ -109,10 +109,10 @@ class TestGRPCServiceClass:
 
     @pytest.fixture
     def service_instance(self, monkeypatch, insanic_server):
+        monkeypatch.setattr(Service, 'host', '127.0.0.1')
+        monkeypatch.setattr(Service, 'port', insanic_server.port)
         test_service = Service('test')
 
-        monkeypatch.setattr(test_service, 'host', '127.0.0.1')
-        monkeypatch.setattr(test_service, 'port', insanic_server.port)
         monkeypatch.setattr(test_service, '_status', 1)
         monkeypatch.setattr(test_service, '_status_check', time.monotonic())
 
