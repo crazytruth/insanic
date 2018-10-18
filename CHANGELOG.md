@@ -5,7 +5,7 @@ Changelog for insanic
 0.6.5 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FEAT: implement naive client-side grpc loadbalancing
 
 
 0.6.4 (2018-10-16)
