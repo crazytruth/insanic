@@ -42,7 +42,7 @@ async def after_server_start_start_grpc(app, loop=None, **kwargs):
 
 async def after_server_start_start_rabbitmq_connection(app, loop=None, **kwargs):
     if settings.RABBITMQ_SERVE:
-        port = settings.RABBITMQ_PORT or 5672  # RabbitMQ default port
+        port = settings.RABBITMQ_PORT
         rabbit_mq = RabbitMQConnectionHandler()
         await rabbit_mq.connect(
             rabbitmq_username=settings.RABBITMQ_USERNAME,
