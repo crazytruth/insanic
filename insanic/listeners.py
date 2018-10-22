@@ -14,6 +14,13 @@ from insanic.grpc.dispatch.server import DispatchServer
 def before_server_start_set_task_factory(app, loop, **kwargs):
     loop.set_task_factory(aiotask_context.chainmap_task_factory)
 
+def get_callback_function(callback):
+    from importlib import import_module
+    callback = callback.split('.')
+    f_n = callback.pop()
+    mo = import_module(".".join(callback))
+    return getattr(mo, f_n)
+
 async def after_server_stop_clean_up(app, loop, **kwargs):
     close_tasks = _connections.close_all()
     await close_tasks
@@ -51,6 +58,18 @@ async def after_server_start_start_rabbitmq_connection(app, loop=None, **kwargs)
             port=int(port),
             loop=loop
         )
+        queue_settings = settings.RABBITMQ_QUEUE_SETTINGS
+        for q_s in queue_settings:
+            exchange_name = q_s.get("EXCHNAGE_NAME")
+            routing_keys = q_s.get("ROUTING_KEYS", "#")
+            queue_name = "_".join(routing_keys.insert(0, exchange_name))
+            rabbit_mq.consume_queue(
+                exchange_name=exchange_name,
+                queue_name=queue_name,
+                routing_keys=routing_keys,
+                callback=get_callback_function(q_s["CALLBACK"]),
+                prefetch_count=q_s.get("PREFETCH_COUNT", 1)
+            )
     else:
         RabbitMQConnectionHandler.logger("info", f"RABBITMQ_SERVE is turned off")
 

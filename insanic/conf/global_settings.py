@@ -160,3 +160,16 @@ GRPC_PORT_DELTA = 1000
 GRPC_SERVER = []
 
 RABBITMQ_PORT = 5672  # RabbitMQ default port
+"""
+QUEUE SETTING TEMPLATE
+
+Example:
+
+QUEUE_SETTING = {
+    "EXCHANGE_NAME" : "",
+    "ROUTING_KEYS" : [],
+    "CALLBACK": "",
+    "PREFETCH_COUNT: int,
+}
+"""
+RABBITMQ_QUEUE_SETTINGS = []

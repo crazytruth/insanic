@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from aio_pika import connect_robust
+from aio_pika import connect_robust, ExchangeType
 
 from insanic.log import rabbitmq_logger
 
@@ -79,3 +79,19 @@ class RabbitMQConnectionHandler:
         )
         self.logger('info', f"[RABBIT] Rabbit is connected from {host}:{port}")
         self._channel = await self._conn.channel()
+
+    async def consume_queue(self, exchange_name, queue_name, routing_keys: [], callback, prefetch_count=1):
+        await self._channel.set_qos(prefetch_count)
+
+        exchange = await self._channel.declare_exchange(
+            exchange_name, ExchangeType.TOPIC, durable=True
+        )
+
+        queue = await self._channel.declare_queue(
+            queue_name, durable=True
+        )
+
+        for routing_key in routing_keys:
+            await queue.bind(exchange, routing_key=routing_key)
+
+        await queue.consume(callback=callback)

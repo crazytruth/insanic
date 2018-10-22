@@ -1,7 +1,7 @@
 import asyncio
 import json
 
-from aio_pika import DeliveryMode, Message
+from aio_pika import DeliveryMode, Message, ExchangeType
 
 from .connections import RabbitMQConnectionHandler
 
@@ -21,13 +21,27 @@ def make_pika_message(message, is_persistent=True):
     return message
 
 
-async def fire_ip(message, routing_key="userip"):
-    message = make_pika_message(message)
+async def fire_a_msg_via_rabbit(exchange_name, routing_key, message: dict):
     channel = RabbitMQConnectionHandler.channel()
 
-    await channel.default_exchange.publish(
-        message,
-        routing_key=routing_key
+    exchange = await channel.declare_exchange(
+        exchange_name, ExchangeType.TOPIC, durable=True
     )
 
-    RabbitMQConnectionHandler.logger('info', f" Sent {message.body}")
+    message = make_pika_message(message)
+
+    await exchange.publish(
+        message, routing_key=routing_key
+    )
+
+
+# async def fire_ip(message, routing_key="userip"):
+#     message = make_pika_message(message)
+#     channel = RabbitMQConnectionHandler.channel()
+#
+#     await channel.default_exchange.publish(
+#         message,
+#         routing_key=routing_key
+#     )
+#
+#     RabbitMQConnectionHandler.logger('info', f" Sent {message.body}")
