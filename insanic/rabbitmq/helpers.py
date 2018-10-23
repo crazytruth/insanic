@@ -1,6 +1,8 @@
 import asyncio
 import json
 
+from insanic.conf import settings
+
 from aio_pika import DeliveryMode, Message, ExchangeType
 
 from .connections import RabbitMQConnectionHandler
@@ -21,7 +23,11 @@ def make_pika_message(message, is_persistent=True):
     return message
 
 
-async def fire_a_msg_via_rabbit(exchange_name, routing_key, message: dict):
+def get_dict_from_pika_msg(message):
+    return json.loads(message.body.decode('utf8'))
+
+
+async def fire_a_msg_via_rabbit(routing_key, message: dict, exchange_name=settings.SERVICE_NAME):
     channel = RabbitMQConnectionHandler.channel()
 
     exchange = await channel.declare_exchange(

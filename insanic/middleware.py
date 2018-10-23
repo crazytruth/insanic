@@ -5,7 +5,6 @@ import aiotask_context
 from aio_pika.exceptions import AMQPError
 
 from insanic.conf import settings
-from insanic.rabbitmq.helpers import fire_ip
 from insanic.loading import get_service
 from insanic.log import logger
 

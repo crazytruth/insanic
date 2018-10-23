@@ -30,6 +30,7 @@ test_requires = [
     "pytest-sanic",
     "pytest-sugar",
     "pytest-xdist",
+    "pytest-rabbitmq",
     "chardet",
     "pytest-flake8",
     "asynctest",
