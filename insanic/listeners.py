@@ -14,12 +14,14 @@ from insanic.grpc.dispatch.server import DispatchServer
 def before_server_start_set_task_factory(app, loop, **kwargs):
     loop.set_task_factory(aiotask_context.chainmap_task_factory)
 
+
 def get_callback_function(callback):
     from importlib import import_module
     callback = callback.split('.')
     f_n = callback.pop()
     mo = import_module(".".join(callback))
     return getattr(mo, f_n)
+
 
 async def after_server_stop_clean_up(app, loop, **kwargs):
     close_tasks = _connections.close_all()
@@ -32,6 +34,7 @@ async def after_server_stop_clean_up(app, loop, **kwargs):
                 service_sessions.append(service._session.close())
     await asyncio.gather(*service_sessions)
     await gateway.session.close()
+
 
 async def after_server_start_connect_database(app, loop=None, **kwargs):
     _connections.loop = loop
@@ -47,6 +50,7 @@ async def after_server_start_start_grpc(app, loop=None, **kwargs):
     else:
         GRPCServer.logger("info", f"GRPC_SERVE is turned off")
 
+
 async def after_server_start_start_rabbitmq_connection(app, loop=None, **kwargs):
     if settings.RABBITMQ_SERVE:
         port = settings.RABBITMQ_PORT
@@ -60,7 +64,7 @@ async def after_server_start_start_rabbitmq_connection(app, loop=None, **kwargs)
         )
         queue_settings = settings.RABBITMQ_QUEUE_SETTINGS
         for q_s in queue_settings:
-            exchange_name = q_s.get("EXCHNAGE_NAME")
+            exchange_name = q_s.get("EXCHANGE_NAME")
             routing_keys = q_s.get("ROUTING_KEYS", "#")
             queue_name = "_".join(routing_keys.insert(0, exchange_name))
             rabbit_mq.consume_queue(
@@ -73,8 +77,10 @@ async def after_server_start_start_rabbitmq_connection(app, loop=None, **kwargs)
     else:
         RabbitMQConnectionHandler.logger("info", f"RABBITMQ_SERVE is turned off")
 
+
 async def before_server_stop_stop_rabbitmq_connection(app, loop=None, **kwargs):
     await RabbitMQConnectionHandler.disconnect()
+
 
 async def before_server_stop_stop_grpc(app, loop=None, **kwargs):
     await GRPCServer.stop()

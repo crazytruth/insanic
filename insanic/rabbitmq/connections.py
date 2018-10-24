@@ -1,8 +1,11 @@
 import asyncio
 import logging
+import json
 
-from aio_pika import connect_robust, ExchangeType
+from aio_pika import connect_robust
+from aio_pika import DeliveryMode, Message, ExchangeType
 
+from insanic.conf import settings
 from insanic.log import rabbitmq_logger
 
 
@@ -59,6 +62,25 @@ class RabbitMQConnectionHandler:
         else:
             cls.logger('info', f"[RABBIT] There is no RabbitMQ connection.")
 
+    @staticmethod
+    def make_pika_message(message, is_persistent=True):
+        message = json.dumps(message).encode('utf8')
+        delivery_mode = None
+
+        if is_persistent:
+            delivery_mode = DeliveryMode.PERSISTENT
+
+        message = Message(
+            message,
+            delivery_mode=delivery_mode
+        )
+
+        return message
+
+    @staticmethod
+    def get_dict_from_pika_msg(message):
+        return json.loads(message.body.decode('utf8'))
+
     async def connect(self, rabbitmq_username, rabbitmq_password, host, port=5672, loop=None):
         """
         :param rabbitmq_username: username of RabbitMQ
@@ -95,3 +117,16 @@ class RabbitMQConnectionHandler:
             await queue.bind(exchange, routing_key=routing_key)
 
         await queue.consume(callback=callback)
+
+    async def produce_message(self, routing_key, message: dict, exchange_name=settings.SERVICE_NAME):
+        channel = self._channel
+        exchange = await channel.declare_exchange(
+            exchange_name,
+            ExchangeType.TOPIC,
+            durable=True
+        )
+        message = self.make_pika_message(message)
+
+        await exchange.publish(
+            message, routing_key=routing_key
+        )

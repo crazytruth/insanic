@@ -4,7 +4,6 @@ import pytest
 from aio_pika import IncomingMessage
 
 from insanic.rabbitmq.connections import RabbitMQConnectionHandler
-from insanic.rabbitmq.helpers import fire_a_msg_via_rabbit, get_dict_from_pika_msg
 
 RABBITMQ_USERNAME = "guest"
 RABBITMQ_PASSWORD = "guest"
@@ -50,7 +49,7 @@ class TestRabbitMQFireMessage:
 
         def on_message(incoming_message: IncomingMessage):
             with incoming_message.process():
-                incoming_message_body_as_dict = get_dict_from_pika_msg(incoming_message)
+                incoming_message_body_as_dict = RabbitMQConnectionHandler.get_dict_from_pika_msg(incoming_message)
                 nonlocal result
                 result = incoming_message_body_as_dict
 
@@ -61,14 +60,14 @@ class TestRabbitMQFireMessage:
         await rabbit.consume_queue(
             exchange_name=exchange_name, queue_name=queue_name, routing_keys=routing_keys, callback=on_message)
 
-        await fire_a_msg_via_rabbit(
+        await rabbit.produce_message(
             routing_key=routing_key,
             exchange_name=exchange_name,
             message=message)
 
         assert result == message
 
-        await fire_a_msg_via_rabbit(
+        await rabbit.produce_message(
             routing_key=routing_key,
             exchange_name=exchange_name,
             message=message_2)
