@@ -93,3 +93,5 @@ ENV/
 pytestdebug.log
 
 .pytest_cache
+
+.DS_Store

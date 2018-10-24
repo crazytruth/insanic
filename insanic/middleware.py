@@ -7,9 +7,11 @@ from insanic.conf import settings
 from insanic.loading import get_service
 from insanic.log import logger
 
+
 def request_middleware(request):
     aiotask_context.set(settings.TASK_CONTEXT_CORRELATION_ID,
                         request.id)
+
 
 async def response_userip_middleware(request, response):
 

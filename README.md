@@ -147,6 +147,7 @@ _For full changelogs, please refer to the [CHANGELOG][changelog]._
 [Kwang Jin Kim](https://github.com/crazytruth) - david@mymusictaste.com
 [Sunghyun Lee](https://github.com/sunghyun-lee) - sunghyunlee@mymusictaste.com
 [Jaemyun Lee](https://github.com/jaemyunlee) - jake@mymusictaste.com
+[Jooeun Ahn](https://github.com/JooeunAhn) - jflow@mymusictaste.com
 
 Distributed under the MIT license. See ``LICENSE`` for more information.
 

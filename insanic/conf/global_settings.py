@@ -158,3 +158,27 @@ GRPC_SERVE = True
 GRPC_HOST = '0.0.0.0'
 GRPC_PORT_DELTA = 1000
 GRPC_SERVER = []
+
+RABBITMQ_SERVE = False
+RABBITMQ_USERNAME = "guest"
+RABBITMQ_PASSWORD = "guest"
+RABBITMQ_HOST = ""
+RABBITMQ_PORT = 5672  # RabbitMQ default port
+"""
+QUEUE SETTING TEMPLATE
+
+Example:
+
+QUEUE_SETTING = {
+    "EXCHANGE_NAME" : "",
+    "ROUTING_KEYS" : [],
+    "CALLBACK": "",
+    "PREFETCH_COUNT: int,
+}
+"""
+RABBITMQ_QUEUE_SETTINGS = [{
+    "EXCHANGE_NAME": "",
+    "ROUTING_KEYS": [],
+    "CALLBACK": "",
+    "PREFETCH_COUNT": 1,
+}]
