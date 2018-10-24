@@ -3,7 +3,9 @@ import pytest
 
 from aio_pika import IncomingMessage
 
+from insanic.conf import settings
 from insanic.rabbitmq.connections import RabbitMQConnectionHandler
+from insanic.listeners import after_server_start_start_rabbitmq_connection, before_server_stop_stop_rabbitmq_connection
 
 RABBITMQ_USERNAME = "guest"
 RABBITMQ_PASSWORD = "guest"
@@ -36,7 +38,7 @@ class TestRabbitMQConnectionHandlerClass:
 
 class TestRabbitMQFireMessage:
 
-    async def test_fire_a_msg_and_consume_message(self, rabbitmq_proc):
+    async def test_produce_message_and_consume_message(self, rabbitmq_proc):
         rabbit = RabbitMQConnectionHandler()
         exchange_name = "test"
         queue_name = "test"
@@ -75,3 +77,39 @@ class TestRabbitMQFireMessage:
         assert result != message
 
         await RabbitMQConnectionHandler.disconnect()
+
+
+class TestRabbitMQListeners:
+
+    async def test_listeners(self, rabbitmq_proc):
+        setattr(settings, "RABBITMQ_HOST", rabbitmq_proc.host)
+        setattr(settings, "RABBITMQ_PORT", rabbitmq_proc.port)
+        setattr(settings, "RABBITMQ_SERVE", True)
+
+        rabbitmq_queue_settings = []
+        rabbitmq_queue_setting = {
+            "EXCHANGE_NAME": "test",
+            "CALLBACK": "insanic.testing.rabbitmq.callbacks.test",
+            "ROUTING_KEYS": ["test.test"],
+            "PREFETCH_COUNT": 100
+        }
+
+        rabbitmq_queue_settings.append(rabbitmq_queue_setting)
+
+        setattr(settings, "RABBITMQ_QUEUE_SETTINGS", rabbitmq_queue_settings)
+
+        app = "test"
+
+        await after_server_start_start_rabbitmq_connection(app)
+        assert RabbitMQConnectionHandler.channel() is not None
+
+        await before_server_stop_stop_rabbitmq_connection(app)
+        assert RabbitMQConnectionHandler.channel() is None
+
+        setattr(settings, "RABBITMQ_SERVE", False)
+        await after_server_start_start_rabbitmq_connection(app)
+        assert RabbitMQConnectionHandler.channel() is None
+
+
+
+

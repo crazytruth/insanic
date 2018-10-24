@@ -1,6 +1,6 @@
 import asyncio
 import logging
-import json
+import ujson as json
 
 from aio_pika import connect_robust
 from aio_pika import DeliveryMode, Message, ExchangeType

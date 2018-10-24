@@ -6,6 +6,7 @@ from insanic.conf import settings
 from insanic.connections import _connections
 from insanic.grpc.server import GRPCServer
 from insanic.rabbitmq.connections import RabbitMQConnectionHandler
+from insanic.rabbitmq.helpers import get_callback_function
 from insanic.registration import gateway
 from insanic.services import ServiceRegistry
 from insanic.grpc.dispatch.server import DispatchServer
@@ -13,14 +14,6 @@ from insanic.grpc.dispatch.server import DispatchServer
 
 def before_server_start_set_task_factory(app, loop, **kwargs):
     loop.set_task_factory(aiotask_context.chainmap_task_factory)
-
-
-def get_callback_function(callback):
-    from importlib import import_module
-    callback = callback.split('.')
-    f_n = callback.pop()
-    mo = import_module(".".join(callback))
-    return getattr(mo, f_n)
 
 
 async def after_server_stop_clean_up(app, loop, **kwargs):
@@ -53,20 +46,19 @@ async def after_server_start_start_grpc(app, loop=None, **kwargs):
 
 async def after_server_start_start_rabbitmq_connection(app, loop=None, **kwargs):
     if settings.RABBITMQ_SERVE:
-        port = settings.RABBITMQ_PORT
         rabbit_mq = RabbitMQConnectionHandler()
         await rabbit_mq.connect(
             rabbitmq_username=settings.RABBITMQ_USERNAME,
             rabbitmq_password=settings.RABBITMQ_PASSWORD,
             host=settings.RABBITMQ_HOST,
-            port=int(port),
+            port=int(settings.RABBITMQ_PORT),
             loop=loop
         )
         queue_settings = settings.RABBITMQ_QUEUE_SETTINGS
         for q_s in queue_settings:
             exchange_name = q_s.get("EXCHANGE_NAME")
-            routing_keys = q_s.get("ROUTING_KEYS", "#")
-            queue_name = "_".join(routing_keys.insert(0, exchange_name))
+            routing_keys = q_s.get("ROUTING_KEYS", ["#"])
+            queue_name = "_".join([exchange_name] + routing_keys)
             rabbit_mq.consume_queue(
                 exchange_name=exchange_name,
                 queue_name=queue_name,
