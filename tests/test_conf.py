@@ -318,6 +318,8 @@ class TestVaultConfig:
                 return {'data': {"COMMON_SETTING": "common setting"}}
             elif path == self.config.vault_service_path.format(env=env, service_name=service_name):
                 return {'data': {"SERVICE_SETTING": "service setting"}}
+            elif path == self.config.vault_service_path_insensitive.format(service_name=service_name):
+                return {'data': {"SERVICE_SETTING_INSENSITIVE": "service setting insensitive"}}
             else:
                 raise Forbidden(f"Forbidden: {path}")
 
@@ -329,8 +331,10 @@ class TestVaultConfig:
 
         assert hasattr(self.config, "COMMON_SETTING") is True
         assert hasattr(self.config, "SERVICE_SETTING") is True
+        assert hasattr(self.config, "SERVICE_SETTING_INSENSITIVE") is True
         assert self.config.COMMON_SETTING == "common setting"
         assert self.config.SERVICE_SETTING == "service setting"
+        assert self.config.SERVICE_SETTING_INSENSITIVE == "service setting insensitive"
 
     def test_service_name(self, monkeypatch):
         import uuid
