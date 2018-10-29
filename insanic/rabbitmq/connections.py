@@ -110,7 +110,7 @@ class RabbitMQConnectionHandler:
         self._channel = await self._conn.channel()
 
     async def consume_queue(self, exchange_name, queue_name, routing_keys: [], callback, prefetch_count=1):
-        await self._channel.set_qos(prefetch_count)
+        await self._channel.set_qos(prefetch_count=prefetch_count)
 
         exchange = await self._channel.declare_exchange(
             exchange_name, ExchangeType.TOPIC, durable=True
