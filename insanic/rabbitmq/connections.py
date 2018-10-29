@@ -6,6 +6,7 @@ from aio_pika import connect_robust
 from aio_pika import DeliveryMode, Message, ExchangeType
 
 from insanic.conf import settings
+from insanic.services.utils import context_user, context_correlation_id
 from insanic.log import rabbitmq_logger
 
 
@@ -63,7 +64,13 @@ class RabbitMQConnectionHandler:
             cls.logger('info', f"[RABBIT] There is no RabbitMQ connection.")
 
     @staticmethod
-    def make_pika_message(message, is_persistent=True):
+    def make_pika_message(message: dict, is_persistent=True):
+
+        message.update({
+            "request_id": context_correlation_id(),
+            "user": context_user(),
+        })
+
         message = json.dumps(message).encode('utf8')
         delivery_mode = None
 

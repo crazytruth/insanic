@@ -59,7 +59,7 @@ async def after_server_start_start_rabbitmq_connection(app, loop=None, **kwargs)
             exchange_name = q_s.get("EXCHANGE_NAME")
             routing_keys = q_s.get("ROUTING_KEYS", ["#"])
             queue_name = "_".join([exchange_name] + routing_keys)
-            rabbit_mq.consume_queue(
+            await rabbit_mq.consume_queue(
                 exchange_name=exchange_name,
                 queue_name=queue_name,
                 routing_keys=routing_keys,
