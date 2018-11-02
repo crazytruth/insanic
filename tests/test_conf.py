@@ -316,8 +316,10 @@ class TestVaultConfig:
         def mock_data(path, **kwargs):
             if path == self.config.vault_common_path.format(env=env):
                 return {'data': {"COMMON_SETTING": "common setting"}}
-            elif path == self.config.vault_service_path.format(env=env, service_name=service_name):
-                return {'data': {"SERVICE_SETTING": "service setting"}}
+            elif path == self.config.vault_service_secret_path.format(env=env, service_name=service_name):
+                return {'data': {"SERVICE_SECRET_SETTING": "service secret setting"}}
+            elif path == self.config.vault_service_config_path.format(service_name=service_name):
+                return {'data': {"SERVICE_CONFIG_SETTING": "service config setting"}}
             else:
                 raise Forbidden(f"Forbidden: {path}")
 
@@ -328,9 +330,11 @@ class TestVaultConfig:
         self.config.load_from_vault()
 
         assert hasattr(self.config, "COMMON_SETTING") is True
-        assert hasattr(self.config, "SERVICE_SETTING") is True
+        assert hasattr(self.config, "SERVICE_SECRET_SETTING") is True
+        assert hasattr(self.config, "SERVICE_CONFIG_SETTING") is True
         assert self.config.COMMON_SETTING == "common setting"
-        assert self.config.SERVICE_SETTING == "service setting"
+        assert self.config.SERVICE_SECRET_SETTING == "service secret setting"
+        assert self.config.SERVICE_CONFIG_SETTING == "service config setting"
 
     def test_service_name(self, monkeypatch):
         import uuid
