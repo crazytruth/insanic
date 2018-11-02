@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.6.6 (unreleased)
+0.6.6 (2018-11-02)
 ------------------
 
 - FEAT: divide vault settings to config and secrets
