@@ -176,9 +176,13 @@ QUEUE_SETTING = {
     "PREFETCH_COUNT: int,
 }
 """
+RABBITMQ_QUEUE_SETTINGS = []
+"""
 RABBITMQ_QUEUE_SETTINGS = [{
     "EXCHANGE_NAME": "",
     "ROUTING_KEYS": [],
     "CALLBACK": "",
     "PREFETCH_COUNT": 1,
 }]
+"""
+
