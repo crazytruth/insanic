@@ -1,4 +1,4 @@
-include *.py
+recursive-include insanic *.py
 include LICENSE
 include README.md
 include CHANGELOG.md
