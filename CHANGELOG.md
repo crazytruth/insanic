@@ -5,7 +5,8 @@ Changelog for insanic
 0.6.6 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FEAT: divide vault settings to config and secrets
+- FEAT: rabbitmq integration!
 
 
 0.6.5 (2018-10-18)

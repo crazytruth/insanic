@@ -318,7 +318,7 @@ class TestVaultConfig:
                 return {'data': {"COMMON_SETTING": "common setting"}}
             elif path == self.config.vault_service_secret_path.format(env=env, service_name=service_name):
                 return {'data': {"SERVICE_SECRET_SETTING": "service secret setting"}}
-            elif path == self.config.vault_service_config_path.format(service_name=service_name):
+            elif path == self.config.vault_service_config_path.format(env=env, service_name=service_name):
                 return {'data': {"SERVICE_CONFIG_SETTING": "service config setting"}}
             else:
                 raise Forbidden(f"Forbidden: {path}")

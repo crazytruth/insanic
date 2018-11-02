@@ -32,7 +32,7 @@ class TestRabbitMQConnectionHandlerClass:
             rabbitmq_username=RABBITMQ_USERNAME, rabbitmq_password=RABBITMQ_PASSWORD,
             host=rabbitmq_proc.host, port=rabbitmq_proc.port)
         assert RabbitMQConnectionHandler.channel() is not None
-        await rabbit.disconnect()
+        await RabbitMQConnectionHandler.disconnect()
         assert RabbitMQConnectionHandler.channel() is None
 
 

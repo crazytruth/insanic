@@ -56,7 +56,8 @@ class RabbitMQConnectionHandler:
     async def disconnect(cls):
         if cls.__instance is not None:
             cls.logger('info', f"[RABBIT] Closing RabbitMQ connection.")
-            await cls.__instance._conn.close()
+            if cls.__instance._conn is not None:
+                await cls.__instance._conn.close()
             cls.logger('info', f"[RABBIT] Closed RabbitMQ connection.")
             cls.__instance._conn = None
             cls.__instance._channel = None
