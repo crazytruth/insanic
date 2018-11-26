@@ -117,6 +117,7 @@ class VaultConfig(BaseConfig):
     """
 
     vault_common_path = "msa/{env}/common"
+    vault_service_path = "msa/{env}/{service_name}"
     vault_service_secret_path = "msa_secret/{env}/{service_name}"
     vault_service_config_path = "msa_config/{env}/{service_name}"
 
@@ -179,6 +180,20 @@ class VaultConfig(BaseConfig):
     #                 self[key] = getattr(module, key)
 
     def load_from_vault(self, raise_exception=False):
+        """
+        Settings are loading in the following order
+        1. Common
+        2. By Service
+
+        updated to
+        1. Common
+        2. config
+        3. secrets
+
+
+        :param raise_exception:
+        :return:
+        """
 
         try:
             self.can_vault(raise_exception=True)
@@ -189,10 +204,30 @@ class VaultConfig(BaseConfig):
         else:
             try:
                 common_settings = self.vault_client.read(self.vault_common_path.format(env=self.MMT_ENV))
-                service_secret_settings = self.vault_client.read(
-                    self.vault_service_secret_path.format(env=self.MMT_ENV, service_name=self.SERVICE_NAME))
-                service_config_settings = self.vault_client.read(
-                    self.vault_service_config_path.format(env=self.MMT_ENV, service_name=self.SERVICE_NAME))
+
+                try:
+                    service_config_settings = self.vault_client.read(
+                        self.vault_service_config_path.format(
+                            env=self.MMT_ENV,
+                            service_name=self.SERVICE_NAME)
+                    )
+                    service_secret_settings = self.vault_client.read(
+                        self.vault_service_secret_path.format(
+                            env=self.MMT_ENV,
+                            service_name=self.SERVICE_NAME)
+                    )
+                except Forbidden:
+                    service_settings = self.vault_client.read(
+                        self.vault_service_path.format(
+                            env=self.MMT_ENV,
+                            service_name=self.SERVICE_NAME)
+                    )
+                    service_settings = service_settings['data']
+                else:
+                    service_settings = service_config_settings['data']
+                    for k, v in service_secret_settings['data'].items():
+                        service_settings.update({k.upper(): v})
+
             except Forbidden:
                 msg = f"Unable to load settings from vault. Please check settings exists for " \
                       f"the environment and service. ENV: {self.MMT_ENV} SERVICE: {self.SERVICE_NAME}"
@@ -204,17 +239,19 @@ class VaultConfig(BaseConfig):
                     raise
             else:
                 common_settings = common_settings['data']
-                service_secret_settings = service_secret_settings['data']
-                service_config_settings = service_config_settings['data']
+                # service_secret_settings = service_secret_settings['data']
+                # service_config_settings = service_config_settings['data']
 
                 for k, v in common_settings.items():
                     setattr(self, k.upper(), v)
 
-                for k, v in service_secret_settings.items():
+                for k, v in service_settings.items():
                     setattr(self, k.upper(), v)
 
-                for k, v in service_config_settings.items():
-                    setattr(self, k.upper(), v)
+                # for k, v in service_secret_settings.items():
+                #     setattr(self, k.upper(), v)
+
+
 
     @property
     def SERVICE_NAME(self):
