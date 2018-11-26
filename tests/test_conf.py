@@ -307,7 +307,7 @@ class TestVaultConfig:
         with pytest.raises(Forbidden):
             self.config.load_from_vault(True)
 
-    def test_load_from_vault(self, monkeypatch):
+    def test_load_from_new_vault(self, monkeypatch):
         self.undo_mock_load_from_vault(monkeypatch)
 
         env = "test"
@@ -335,6 +335,31 @@ class TestVaultConfig:
         assert self.config.COMMON_SETTING == "common setting"
         assert self.config.SERVICE_SECRET_SETTING == "service secret setting"
         assert self.config.SERVICE_CONFIG_SETTING == "service config setting"
+
+    def test_load_from_vault(self, monkeypatch):
+        self.undo_mock_load_from_vault(monkeypatch)
+
+        env = "test"
+        service_name = "testservice"
+
+        def mock_data(path, **kwargs):
+            if path == self.config.vault_common_path.format(env=env):
+                return {'data': {"COMMON_SETTING": "common setting"}}
+            elif path == self.config.vault_service_path.format(env=env, service_name=service_name):
+                return {'data': {"SERVICE_SETTING": "service setting"}}
+            else:
+                raise Forbidden(f"Forbidden: {path}")
+
+        monkeypatch.setattr(self.config, "_service_name", service_name)
+        monkeypatch.setenv('MMT_ENV', env)
+        monkeypatch.setattr(self.config.vault_client, "read", mock_data)
+
+        self.config.load_from_vault()
+
+        assert hasattr(self.config, "COMMON_SETTING") is True
+        assert hasattr(self.config, "SERVICE_SETTING") is True
+        assert self.config.COMMON_SETTING == "common setting"
+        assert self.config.SERVICE_SETTING == "service setting"
 
     def test_service_name(self, monkeypatch):
         import uuid
