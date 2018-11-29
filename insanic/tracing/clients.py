@@ -42,13 +42,14 @@ async def end_subsegment(session, trace_config_ctx, params):
         return
 
     subsegment = xray_recorder.current_subsegment()
-    subsegment.put_http_meta(http.STATUS, params.response.status)
+    if subsegment.sampled:
+        subsegment.put_http_meta(http.STATUS, params.response.status)
 
-    if params.response.status >= status.HTTP_400_BAD_REQUEST:
-        resp = await params.response.text()
-        resp = try_json_decode(resp)
-        resp = get_safe_dict(resp)
-        subsegment.put_annotation('response', json.dumps(resp))
+        if params.response.status >= status.HTTP_400_BAD_REQUEST:
+            resp = await params.response.text()
+            resp = try_json_decode(resp)
+            resp = get_safe_dict(resp)
+            subsegment.put_annotation('response', json.dumps(resp))
 
     xray_recorder.end_subsegment()
 
@@ -58,13 +59,15 @@ async def end_subsegment_with_exception(session, trace_config_ctx, params):
         return
 
     subsegment = xray_recorder.current_subsegment()
-    subsegment.add_exception(
-        params.exception,
-        traceback.extract_stack(limit=xray_recorder._max_trace_back)
-    )
 
-    if isinstance(params.exception, LOCAL_EXCEPTIONS):
-        subsegment.namespace = LOCAL_NAMESPACE
+    if subsegment.sampled:
+        subsegment.add_exception(
+            params.exception,
+            traceback.extract_stack(limit=xray_recorder._max_trace_back)
+        )
+
+        if isinstance(params.exception, LOCAL_EXCEPTIONS):
+            subsegment.namespace = LOCAL_NAMESPACE
 
     xray_recorder.end_subsegment()
 
@@ -78,7 +81,7 @@ def aws_xray_trace_config(name=None):
 
     def _trace_config_ctx_factory(trace_request_ctx):
         return SimpleNamespace(
-            name=trace_request_ctx.get('name', None),
+            name=trace_request_ctx.get('name', None) if trace_request_ctx is not None else None,
             trace_request_ctx=trace_request_ctx
         )
 

@@ -48,28 +48,24 @@ class InsanicTracer:
     @classmethod
     def init_app(cls, app):
         # checks to see if tracing can be enabled
+        messages = cls._check_prerequisites(app)
+        if len(messages) == 0:
+            if not hasattr(app, 'tracer'):
+                app.sampler = Sampler(app)
 
-        if app.config.TRACING_ENABLED:
-            messages = cls._check_prerequisites(app)
-            if len(messages) == 0:
-                if not hasattr(app, 'tracer'):
-                    app.sampler = Sampler(app)
+                async def before_server_start_start_tracing(app, loop=None, **kwargs):
+                    xray_recorder.configure(service=app.sampler.tracing_service_name,
+                                            context=AsyncContext(loop=loop),
+                                            sampling_rules=app.sampler.sampling_rules,
+                                            daemon_address=f"{app.config.TRACING_HOST}:{app.config.TRACING_PORT}",
+                                            context_missing=app.config.TRACING_CONTEXT_MISSING_STRATEGY,
+                                            streaming_threshold=10)
 
-                    async def before_server_start_start_tracing(app, loop=None, **kwargs):
-                        xray_recorder.configure(service=app.sampler.tracing_service_name,
-                                                context=AsyncContext(loop=loop),
-                                                sampling_rules=app.sampler.sampling_rules,
-                                                daemon_address=f"{app.config.TRACING_HOST}:{app.config.TRACING_PORT}",
-                                                context_missing=app.config.TRACING_CONTEXT_MISSING_STRATEGY,
-                                                streaming_threshold=10)
+                    app.tracer = InsanicXRayMiddleware(app, loop)
 
-                        app.tracer = InsanicXRayMiddleware(app, loop)
-
-                    # need to configure xray as the first thing that happens so insert into 0
-                    app.listeners['before_server_start'].insert(0, before_server_start_start_tracing)
-
-                    patch(app.config.TRACING_PATCH_MODULES, raise_errors=False)
-
-            else:
-                cls._handle_error(app, messages)
-                settings.TRACING_ENABLED = False
+                # need to configure xray as the first thing that happens so insert into 0
+                app.listeners['before_server_start'].insert(0, before_server_start_start_tracing)
+                patch(app.config.TRACING_PATCH_MODULES, raise_errors=False)
+        else:
+            cls._handle_error(app, messages)
+            settings.TRACING_ENABLED = False

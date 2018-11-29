@@ -8,6 +8,8 @@ Changelog for insanic
 - FEAT: divide vault settings to config and secrets
 - FEAT: if vault settings and config is not set, fall back to original vault settings
 - FEAT: rabbitmq integration!
+- FEAT: initialize xray subsegments from traced requests
+- DEPRECATE: sampling rules for views because hard to manage
 
 
 0.6.5 (2018-10-18)

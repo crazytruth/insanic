@@ -32,8 +32,8 @@ class InsanicXRayMiddleware:
             if not request.path.endswith("/health/"):
                 await self._after_request(request, response)
 
-            if hasattr(request, "span"):
-                response.span = request.span
+            if hasattr(request, "segments"):
+                response.segment = request.segment
             return response
 
         # patch()
@@ -58,57 +58,60 @@ class InsanicXRayMiddleware:
             parent_id=xray_header.parent,
             sampling=sampling_decision,
         )
-        segment.save_origin_trace_header(xray_header)
-        segment.put_annotation('insanic_version', __version__)
-        segment.put_annotation("service_version", settings.get('SERVICE_VERSION'))
-        segment.put_http_meta(http.URL, request.url)
-        segment.put_http_meta(http.METHOD, request.method)
-        segment.put_http_meta(http.USER_AGENT, headers.get('User-Agent'))
 
-        client_ip = headers.get('X-Forwarded-For') or headers.get('HTTP_X_FORWARDED_FOR') or request.ip
-        if client_ip:
-            segment.put_http_meta(http.CLIENT_IP, client_ip)
-            segment.put_http_meta(http.X_FORWARDED_FOR, True)
-        else:
-            segment.put_http_meta(http.CLIENT_IP, request.remote_addr)
+        if segment.sampled:
+            segment.save_origin_trace_header(xray_header)
+            segment.put_annotation('insanic_version', __version__)
+            segment.put_annotation("service_version", settings.get('SERVICE_VERSION'))
+            segment.put_http_meta(http.URL, request.url)
+            segment.put_http_meta(http.METHOD, request.method)
+            segment.put_http_meta(http.USER_AGENT, headers.get('User-Agent'))
 
-        attributes = ['args', 'content_type', 'cookies', 'data',
-                      'host', 'ip', 'method', 'path', 'scheme', 'url', ]
-        for attr in attributes:
-            if hasattr(request, attr):
-                payload = getattr(request, attr)
+            client_ip = headers.get('X-Forwarded-For') or headers.get('HTTP_X_FORWARDED_FOR') or request.ip
+            if client_ip:
+                segment.put_http_meta(http.CLIENT_IP, client_ip)
+                segment.put_http_meta(http.X_FORWARDED_FOR, True)
+            else:
+                segment.put_http_meta(http.CLIENT_IP, request.remote_addr)
 
-                if isinstance(payload, dict):
-                    payload = abbreviate_for_xray(get_safe_dict(payload))
-                payload = json.dumps(payload)
+            attributes = ['args', 'content_type', 'cookies', 'data',
+                          'host', 'ip', 'method', 'path', 'scheme', 'url', ]
+            for attr in attributes:
+                if hasattr(request, attr):
+                    payload = getattr(request, attr)
 
-                segment.put_metadata(f"{attr}", payload, "request")
+                    if isinstance(payload, dict):
+                        payload = abbreviate_for_xray(get_safe_dict(payload))
+                    payload = json.dumps(payload)
+
+                    segment.put_metadata(f"{attr}", payload, "request")
 
         request.span = segment
 
     async def _after_request(self, request, response):
-        segment = xray_recorder.current_segment()
+        segment = request.segment or xray_recorder.current_segment()
 
-        # setting user was moved from _before_request,
-        # because calling request.user authenticates, and if
-        # authenticators are not set for request, will end not being
-        # able to authenticate correctly
-        user = await request.user
-        if user.id:
-            segment.set_user(user.id)
-            segment.put_annotation('user__level', user.level)
+        if segment.sampled:
+            # setting user was moved from _before_request,
+            # because calling request.user authenticates, and if
+            # authenticators are not set for request, will end not being
+            # able to authenticate correctly
+            user = await request.user
+            if user.id:
+                segment.set_user(user.id)
+                segment.put_annotation('user__level', user.level)
 
-        segment.put_http_meta(http.STATUS, response.status)
+            segment.put_http_meta(http.STATUS, response.status)
 
-        cont_len = response.headers.get('Content-Length')
-        # truncate response if too lo
-        segment.put_annotation('response', response.body.decode()[:1000])
-        if cont_len:
-            segment.put_http_meta(http.CONTENT_LENGTH, int(cont_len))
+            cont_len = response.headers.get('Content-Length')
+            # truncate response if too lo
+            segment.put_annotation('response', response.body.decode()[:1000])
+            if cont_len:
+                segment.put_http_meta(http.CONTENT_LENGTH, int(cont_len))
 
-        if hasattr(response, 'exception'):
-            stack = traceback.extract_stack(limit=xray_recorder.max_trace_back)
-            segment.add_exception(response.exception, stack)
+            if hasattr(response, 'exception'):
+                stack = traceback.extract_stack(limit=xray_recorder.max_trace_back)
+                segment.add_exception(response.exception, stack)
 
         xray_recorder.end_segment()
         return response
