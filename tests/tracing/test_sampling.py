@@ -1,5 +1,4 @@
 from insanic.conf import settings
-from insanic.scopes import public_facing
 from insanic.tracing.sampling import Sampler
 from insanic.responses import json_response
 from insanic.views import InsanicView

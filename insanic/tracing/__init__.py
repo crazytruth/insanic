@@ -52,16 +52,10 @@ class InsanicTracer:
         if len(messages) == 0:
             if not hasattr(app, 'tracer'):
                 app.sampler = Sampler(app)
+                app.tracer = InsanicXRayMiddleware(app)
 
                 async def before_server_start_start_tracing(app, loop=None, **kwargs):
-                    xray_recorder.configure(service=app.sampler.tracing_service_name,
-                                            context=AsyncContext(loop=loop),
-                                            sampling_rules=app.sampler.sampling_rules,
-                                            daemon_address=f"{app.config.TRACING_HOST}:{app.config.TRACING_PORT}",
-                                            context_missing=app.config.TRACING_CONTEXT_MISSING_STRATEGY,
-                                            streaming_threshold=10)
-
-                    app.tracer = InsanicXRayMiddleware(app, loop)
+                    xray_recorder.configure(**cls.xray_config(app))
 
                 # need to configure xray as the first thing that happens so insert into 0
                 app.listeners['before_server_start'].insert(0, before_server_start_start_tracing)
@@ -69,3 +63,17 @@ class InsanicTracer:
         else:
             cls._handle_error(app, messages)
             settings.TRACING_ENABLED = False
+
+    @classmethod
+    def xray_config(cls, app):
+        config = dict(
+            service=app.sampler.tracing_service_name,
+            context=AsyncContext(),
+            sampling=True,
+            sampling_rules=app.sampler.sampling_rules,
+            daemon_address=f"{app.config.TRACING_HOST}:{app.config.TRACING_PORT}",
+            context_missing=app.config.TRACING_CONTEXT_MISSING_STRATEGY,
+            streaming_threshold=10
+        )
+
+        return config

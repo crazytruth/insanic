@@ -23,14 +23,14 @@ class InsanicHttpProtocol(HttpProtocol):
                 extra.update({
                     "request_service": str(self.request._service.request_service),
                 })
-            if hasattr(response, 'span'):
-                span = response.span
-                if span is not None:
+            if hasattr(response, 'segment'):
+                segment = response.segment
+                if segment is not None:
                     extra.update({
-                        'ot_trace_id': span.trace_id,
-                        'ot_parent_id': span.parent_id,
-                        'ot_sampled': int(span.sampled),
-                        'ot_duration': (span.end_time - span.start_time) * 1000
+                        'ot_trace_id': segment.trace_id,
+                        'ot_parent_id': segment.parent_id,
+                        'ot_sampled': int(segment.sampled),
+                        'ot_duration': (segment.end_time - segment.start_time) * 1000
                     })
 
             if str(response.status)[0] == "5":

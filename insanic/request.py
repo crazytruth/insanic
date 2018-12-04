@@ -43,7 +43,7 @@ class Request(SanicRequest):
         '_ip', '_parsed_url', 'uri_template', 'stream', '_remote_addr',
         'authenticators', 'parsed_data',
         '_stream', '_authenticator', '_user', '_auth',
-        '_request_time', '_span', '_service', '_id', 'grpc_request_message'
+        '_request_time', '_segment', '_service', '_id', 'grpc_request_message'
     )
 
     def __init__(self, url_bytes, headers, version, method, transport,
@@ -87,12 +87,12 @@ class Request(SanicRequest):
         return self._id
 
     @property
-    def span(self):
-        return self._span
+    def segment(self):
+        return self._segment
 
-    @span.setter
-    def span(self, value):
-        self._span = value
+    @segment.setter
+    def segment(self, value):
+        self._segment = value
 
     @property
     def query_params(self):

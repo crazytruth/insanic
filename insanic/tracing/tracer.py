@@ -17,7 +17,7 @@ except ImportError:
 
 class InsanicXRayMiddleware:
 
-    def __init__(self, app, loop):
+    def __init__(self, app):
 
         self.app = app
         logger.debug("[XRAY] Initializing xray middleware")
@@ -32,7 +32,7 @@ class InsanicXRayMiddleware:
             if not request.path.endswith("/health/"):
                 await self._after_request(request, response)
 
-            if hasattr(request, "segments"):
+            if hasattr(request, "segment"):
                 response.segment = request.segment
             return response
 
@@ -44,7 +44,8 @@ class InsanicXRayMiddleware:
 
         name = calculate_segment_name(request.host, xray_recorder)
 
-        sampling_decision = calculate_sampling_decision(
+        # custom decision to skip if TRACING_ENABLED is false
+        sampling_decision = self.app.sampler.calculate_sampling_decision(
             trace_header=xray_header,
             recorder=xray_recorder,
             service_name=request.host,
@@ -86,7 +87,7 @@ class InsanicXRayMiddleware:
 
                     segment.put_metadata(f"{attr}", payload, "request")
 
-        request.span = segment
+        request.segment = segment
 
     async def _after_request(self, request, response):
         segment = request.segment or xray_recorder.current_segment()
