@@ -9,7 +9,9 @@ Changelog for insanic
 - FEAT: if vault settings and config is not set, fall back to original vault settings
 - FEAT: rabbitmq integration!
 - FEAT: initialize xray subsegments from traced requests
+- FEAT: reduce keep alive to 0 to prevent 1 instance sending requests to only 1 instance 
 - DEPRECATE: sampling rules for views because hard to manage
+- CHORE: refactor legacy span naming to segments
 
 
 0.6.5 (2018-10-18)

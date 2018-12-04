@@ -192,18 +192,18 @@ class GRPCClient:
         try:
             health = await health_stub.Check(request, timeout=1)
             self.status = health.status
-            logger.info(f'[GRPC] CHECKER: {self.service_name} is grpc status is : {self.status.name}!')
+            logger.debug(f'[GRPC] CHECKER: {self.service_name} is grpc status is : {self.status.name}!')
         except ConnectionRefusedError:
             self.status = GRPCServingStatus.NOT_SERVING
-            logger.info(f'[GRPC] CHECKER: {self.service_name} is not serving grpc!')
+            logger.debug(f'[GRPC] CHECKER: {self.service_name} is not serving grpc!')
             self.channel_manager.remove_channel(health_stub.Check.channel)
         except GRPCError as e:
             self.status = GRPCServingStatus.UNKNOWN
-            logger.warning(f'[GRPC] CHECKER: {self.service_name} error: {e.message}')
+            logger.info(f'[GRPC] CHECKER: {self.service_name} error: {e.message}')
             self.channel_manager.remove_channel(health_stub.Check.channel)
         except Exception as e:
             self.status = GRPCServingStatus.UNKNOWN
-            logger.exception(f'[GRPC] CHECKER: {self.service_name} unknown error')
+            logger.warning(f'[GRPC] CHECKER: {self.service_name} unknown error')
             self.channel_manager.remove_channel(health_stub.Check.channel)
 
     # async def health_watch(self):

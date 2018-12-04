@@ -4,7 +4,7 @@ import uuid
 
 from insanic.app import Insanic
 from insanic.conf import settings
-from insanic.exceptions import ServiceUnavailable503Error
+from insanic.exceptions import ServiceUnavailable503Error, BadRequest
 from insanic.grpc.server import GRPCServer
 from insanic.services import Service
 
@@ -82,6 +82,17 @@ class TestServiceDispatch:
         response = await service_instance.dispatch('GET', '/')
         assert response == HTTP_RESPONSE
         assert caplog.records[0].message == "Error with grpc"
+
+    async def test_dispatch_api_error(self, service_instance, monkeypatch):
+        exc = BadRequest("mocked")
+
+        async def mock_grpc_dispatch_api_error(*args, **kwargs):
+            raise exc
+
+        monkeypatch.setattr(service_instance, 'grpc_dispatch', mock_grpc_dispatch_api_error)
+
+        response = await service_instance.dispatch('GET', '/')
+        assert response == exc.__dict__()
 
     async def test_dispatch_grpc_http_error(self, service_instance, monkeypatch):
         async def mock_grpc_dispatch_connection_error(*args, **kwargs):

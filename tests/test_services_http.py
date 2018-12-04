@@ -5,6 +5,7 @@ import jwt
 import uvloop
 import pytest
 import random
+import socket
 import uuid
 import ujson
 
@@ -73,6 +74,7 @@ class TestServiceClass:
     def initialize_service(self, monkeypatch):
         monkeypatch.setattr(settings, "SERVICE_LIST", {}, raising=False)
         self.service = Service(self.service_name)
+        ServiceRegistry.reset()
 
     async def test_init(self):
         # assert self.service._registry is ServiceRegistry()
@@ -867,3 +869,29 @@ class TestRequestTaskContext:
             assert r.status == 200, resp
 
             assert resp['user']['id'] == str(users[i].id)
+
+    async def test_client_dns_balancing(self, monkeypatch):
+        ServiceRegistry.reset()
+        monkeypatch.setattr(settings, "SERVICE_CONNECTIONS", ["amazon"])
+
+        from insanic.loading import get_service
+        amazon = get_service("amazon")
+
+        amazon_host = 'amazonaws.com'
+
+        assert len(socket.gethostbyname_ex(amazon_host)[2]) > 1
+
+        monkeypatch.setattr(amazon, "host", amazon_host)
+        monkeypatch.setattr(amazon, "port", 80)
+
+        assert amazon.url.port == 80
+        assert amazon.url.host == amazon_host
+        url = amazon._construct_url('/')
+
+        remote_addrs = []
+        for i in range(10):
+            async with amazon.session().request(method='GET', url=url, allow_redirects=False) as resp:
+                remote_addrs.append(resp._protocol.transport._sock.getpeername()[0])
+
+        assert len(remote_addrs) == 10
+        assert len(set(remote_addrs)) > 1

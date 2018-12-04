@@ -3,6 +3,7 @@ import io
 import aiohttp
 
 from asyncio import get_event_loop
+from grpclib.exceptions import ProtocolError
 from inspect import isawaitable
 from sanic.constants import HTTP_METHODS
 from sanic.request import File
@@ -126,20 +127,18 @@ class Service(GRPCClient):
     def session(cls):
 
         if cls._session is None or cls._session.closed or cls._session.loop._closed:
-
-            trace_configs = None
-
-            if settings.TRACING_ENABLED:
-                trace_configs = [aws_xray_trace_config()]
-
+            # 20181128 changed TCPConnector from keepalive_timeout=15 to 0 to stop connections getting reused
+            # not the most elegant solution because now each connection will open and close
+            # force_close seems to absolutely close the connection so don't use because we need to get
+            # meta data from the connection even if it is closed
             cls._session = aiohttp.ClientSession(loop=get_event_loop(),
                                                  connector=aiohttp.TCPConnector(limit=100,
-                                                                                keepalive_timeout=15,
+                                                                                keepalive_timeout=0,
                                                                                 limit_per_host=10,
                                                                                 ttl_dns_cache=10),
                                                  response_class=InsanicResponse,
                                                  read_timeout=DEFAULT_SERVICE_REQUEST_TIMEOUT,
-                                                 trace_configs=trace_configs)
+                                                 trace_configs=[aws_xray_trace_config()])
 
         return cls._session
 
@@ -170,6 +169,7 @@ class Service(GRPCClient):
         :return:
         """
 
+
         http_fallback = False
         response = None
         try:
@@ -181,8 +181,20 @@ class Service(GRPCClient):
                                                     request_timeout=request_timeout)
             else:
                 http_fallback = True
+        except exceptions.APIException as e:
+            if propagate_error:
+                raise
+            else:
+                if include_status_code:
+                    return e.__dict__(), e.status_code
+                else:
+                    return e.__dict__()
         except ConnectionRefusedError:
             http_fallback = True
+        except ProtocolError:
+            http_fallback = True
+        except asyncio.TimeoutError as e:
+            raise
         except Exception as e:
             error_logger.exception("Error with grpc")
             http_fallback = True
@@ -194,8 +206,8 @@ class Service(GRPCClient):
                                                     include_status_code=include_status_code,
                                                     request_timeout=request_timeout)
 
-            if response is None:
-                self.raise_503()
+        if response is None:
+            self.raise_503()
 
         return response
 
@@ -397,10 +409,11 @@ class Service(GRPCClient):
             response = try_json_decode(await _response_obj.text())
 
         except aiohttp.client_exceptions.ClientResponseError as e:
-
             message = e.message
             if isawaitable(message):
                 message = await message
+
+            error_logger.exception(f"ClientResponseError: {message}")
 
             response = try_json_decode(message)
             try:
@@ -416,6 +429,7 @@ class Service(GRPCClient):
             exc.message = response.get('message', GlobalErrorCodes.unknown_error.name)
             # raise exc
         except aiohttp.client_exceptions.ClientConnectorError as e:
+
             """subset of connection errors that are initiated by an OSError exception"""
             if e.errno == 61:
                 msg = settings.SERVICE_UNAVAILABLE_MESSAGE.format(self._service_name)
@@ -423,6 +437,7 @@ class Service(GRPCClient):
                                                             error_code=GlobalErrorCodes.service_unavailable,
                                                             status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
             else:
+                error_logger.exception(f"ClientConnectorError: {e.strerror}")
                 exc = exceptions.APIException(description=e.strerror,
                                               error_code=GlobalErrorCodes.unknown_error,
                                               status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -451,7 +466,10 @@ class Service(GRPCClient):
                                                             error_code=GlobalErrorCodes.service_unavailable,
                                                             status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
 
+            error_logger.exception(f"ServerConnectionError: {e.args[0]}")
+
         except aiohttp.client_exceptions.ClientConnectionError as e:
+            error_logger.exception(f"ClientConnectionError: {e.args[0]}")
             # https://aiohttp.readthedocs.io/en/v3.0.1/client_reference.html#hierarchy-of-exceptions
             exc = exceptions.APIException(description=e.args[0],
                                           error_code=GlobalErrorCodes.unknown_error,
