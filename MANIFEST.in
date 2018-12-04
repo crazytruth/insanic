@@ -11,5 +11,6 @@ exclude *.png
 exclude insanic_ascii
 exclude tests
 exclude tests/intest
+exclude tests/tracing
 recursive-exclude tests *.py
 recursive-exclude insanic *.proto
