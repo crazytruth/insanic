@@ -28,8 +28,9 @@ class GRPCServer:
     async def stop(cls):
         if cls.__instance is not None:
             cls.logger('info', f"[GRPC] Closing GRPC.")
-            cls.__instance._grpc_server.close()
-            await cls.__instance._grpc_server.wait_closed()
+            if cls.__instance._grpc_server is not None:
+                cls.__instance._grpc_server.close()
+                await cls.__instance._grpc_server.wait_closed()
             cls.logger('info', f"[GRPC] Closed GRPC.")
             cls.__instance._grpc_server = None
 
