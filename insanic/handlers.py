@@ -1,26 +1,49 @@
-import logging
-import sys
+from enum import Enum
 
-from sanic.log import log
-from sanic.response import json, html
-from sanic.handlers import ErrorHandler as SanicErrorHandler, format_exc, SanicException, INTERNAL_SERVER_ERROR_HTML
+from sanic import exceptions as sanic_exceptions
+from sanic.response import json
+from sanic.handlers import ErrorHandler as SanicErrorHandler, format_exc, SanicException
 
-from insanic import status
+from insanic import exceptions, status
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
+from insanic.log import error_logger
+from insanic.utils import _unpack_enum_error_message
+
+
 
 INTERNAL_SERVER_ERROR_JSON = {
-  "message": "Server Error",
-  "description": "Something has blown up really bad. Somebody should be notified?",
-  "error_code": {
-      "name": "unknown_error",
-      "value": 99999
-  }
+    "message": "Server Error",
+    "description": "Something has blown up really bad. Somebody should be notified?",
+    "error_code": _unpack_enum_error_message(GlobalErrorCodes.unknown_error)
 }
 
-logger = logging.getLogger('insanic.request')
 
 class ErrorHandler(SanicErrorHandler):
+
+    def __init__(self):
+        super().__init__()
+        self.add(sanic_exceptions.SanicException, self.sanic_exception_handler)
+        self.add(exceptions.NotAuthenticated, self.not_authenticated_handler)
+        self.add(exceptions.AuthenticationFailed, self.not_authenticated_handler)
+
+    def sanic_exception_handler(self, request, exception):
+
+        if hasattr(exceptions, f"Sanic{exception.__class__.__name__}"):
+            exception = getattr(exceptions, f"Sanic{exception.__class__.__name__}")(exception.args[0],
+                                                                                    status_code=exception.status_code)
+        return self.default(request, exception)
+
+    def not_authenticated_handler(self, request, exception):
+
+        auth_header = self.get_authenticate_header(request)
+
+        if auth_header:
+            exception.auth_header = auth_header
+        # else:
+        #     exception.status_code = status.HTTP_403_FORBIDDEN
+
+        return self.default(request, exception)
 
     def response(self, request, exception):
         """Fetches and executes an exception handler and returns a response
@@ -39,49 +62,66 @@ class ErrorHandler(SanicErrorHandler):
             if response is None:
                 response = self.default(request=request, exception=exception)
         except Exception:
-            self.log(format_exc())
+            exc = format_exc()
+            self.log(exc)
             if self.debug:
+
                 url = getattr(request, 'path', 'unknown')
                 response_message = (
                     'Exception raised in exception handler "{}" '
                     'for uri: "{}"\n{}').format(
                     handler.__name__, url, format_exc())
-                log.error(response_message)
+                error_logger.error(response_message)
                 return self.handle_uncaught_exception(request, exception, response_message)
             else:
                 return self.handle_uncaught_exception(request, exception)
+        response.exception = exception
         return response
-
 
     def default(self, request, exception):
         if settings.DEBUG:
             self.log(format_exc())
-        if issubclass(type(exception), SanicException):
-            return json(
-                {"message": getattr(exception, 'default_detail', status.REVERSE_STATUS[exception.status_code]),
-                 "description": getattr(exception, 'detail', exception.args[0]),
-                 "error_code": getattr(exception, 'error_code', GlobalErrorCodes.unknown_error)},
-                status=getattr(exception, 'status_code', status.HTTP_500_INTERNAL_SERVER_ERROR),
-                headers=getattr(exception, 'headers', dict())
-            )
-        elif self.debug:
-            html_output = self._render_traceback_html(exception, request)
+        if issubclass(type(exception), exceptions.APIException):
+            headers = {}
+            if getattr(exception, 'auth_header', None):
+                headers['WWW-Authenticate'] = exception.auth_header
+            if getattr(exception, 'wait', None):
+                headers['Retry-After'] = '%d' % exception.wait
 
-            response_message = (
-                'Exception occurred while handling uri: "{}"\n{}'.format(
-                    request.path, format_exc()))
-            log.error(response_message)
-            return html(html_output, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            response = json(
+                {"message": getattr(exception, 'message', status.REVERSE_STATUS[exception.status_code]),
+                 "description": getattr(exception, 'description', exception.args[0]),
+                 "error_code": _unpack_enum_error_message(
+                     getattr(exception, 'error_code', GlobalErrorCodes.unknown_error))},
+                status=getattr(exception, 'status_code', status.HTTP_500_INTERNAL_SERVER_ERROR),
+                headers=getattr(exception, 'headers', headers),
+            )
+        elif issubclass(type(exception), SanicException):
+
+            response = json(
+                {
+                    "message": status.REVERSE_STATUS[exception.status_code],
+                    "description": getattr(exception, 'description', exception.args[0]),
+                    "error_code": _unpack_enum_error_message(
+                        getattr(exception, 'error_code', GlobalErrorCodes.error_unspecified))
+                },
+                status=getattr(exception, 'status_code', status.HTTP_500_INTERNAL_SERVER_ERROR),
+                headers=getattr(exception, 'headers', {}),
+            )
         else:
-            return self.handle_uncaught_exception(request, exception)
+            response = self.handle_uncaught_exception(request, exception)
+
+        return response
 
     def handle_uncaught_exception(self, request, exception, custom_message=INTERNAL_SERVER_ERROR_JSON):
-        logger.error('Internal Server Error: %s',
-                     request.path,
-                     exc_info=sys.exc_info(),
-                     extra={
-                         'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR,
-                         'request': request
-                     })
 
         return json(custom_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def get_authenticate_header(self, request):
+        """
+        If a request is unauthenticated, determine the WWW-Authenticate
+        header to use for 401 responses, if any.
+        """
+        authenticators = request.authenticators
+        if authenticators:
+            return request.authenticators[0].authenticate_header(request)

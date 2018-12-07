@@ -1,74 +1,48 @@
-from sanic.log import log
+import asyncio
+import json
 
-# import opentracing
+import aiotask_context
 
-# MIDDLEWARE_CLASSES = (
-#     'mmt_mk2.middleware.PinningRouterMiddleware',
-#
-#
-#
-#     'django.contrib.sessions.middleware.SessionMiddleware',
-#     'django.middleware.locale.LocaleMiddleware',
-#
-#
-#     'corsheaders.middleware.CorsMiddleware',
-#
-#
-#
-#     'django.middleware.common.CommonMiddleware',
-#     'django.middleware.csrf.CsrfViewMiddleware',
-#     'django.contrib.auth.middleware.AuthenticationMiddleware',
-#     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
-#     'oauth2_provider.middleware.OAuth2TokenMiddleware',
-#     'django.contrib.messages.middleware.MessageMiddleware',
-#     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-#     'django_requestlogging.middleware.LogSetupMiddleware',
-#     'django.contrib.flatpages.middleware.FlatpageFallbackMiddleware',
-#     'django_user_agents.middleware.UserAgentMiddleware',
-#
-#
-#
-#     'mmt_mk2.middleware.MMTMobileApplicationMiddleware',
-#     # 'mmt_mk2.middleware.MMTTargetedIndexMiddleware',
-#     'mmt_mk2.middleware.MMTDisqusAuthCodeMiddleware',
-#     'mmt_mk2.middleware.UserIpAddressMiddleware'
-# )
+from insanic.conf import settings
+from insanic.loading import get_service
+from insanic.log import logger
 
 
-# @app.middleware('request')
-async def request_middleware(request):
-    # log.debug("Request Middleware")
-    # log.debug(request)
-    # tracer = opentracing.tracer
-    #
-    # span_context = tracer.extract(
-    #     format=opentracing.Format.HTTP_HEADERS,
-    #     carrier=request.headers,
-    # )
-    # span = tracer.start_span(
-    #     operation_name=request.operation,
-    #     child_of(span_context))
-    # span.set_tag('http.url', request.full_url)
-    #
-    # remote_ip = request.remote_ip
-    # if remote_ip:
-    #     span.set_tag(tags.PEER_HOST_IPV4, remote_ip)
-    #
-    # caller_name = request.caller_name
-    # if caller_name:
-    #     span.set_tag(tags.PEER_SERVICE, caller_name)
-    #
-    # remote_port = request.remote_port
-    # if remote_port:
-    #     span.set_tag(tags.PEER_PORT, remote_port)
-    #
-    # return span
-    pass
-
-async def response_middleware(request, response):
-    # log.debug("Response Middleware")
-    # log.debug(response)
-    pass
+def request_middleware(request):
+    aiotask_context.set(settings.TASK_CONTEXT_CORRELATION_ID,
+                        request.id)
 
 
-# from opentracing import
+async def response_userip_middleware(request, response):
+
+    try:
+        user = await request.user
+        service = await request.service
+        service_name = settings.SERVICE_NAME
+    except Exception:
+        if settings.LOG_IP_FAIL_TYPE == "soft":
+            pass
+        else:
+            raise
+    else:
+        if user.is_authenticated and not service.is_authenticated and service_name != 'userip':
+            UseripService = get_service('userip')
+
+            try:
+                if request.client_ip:
+                    asyncio.ensure_future(UseripService.http_dispatch(
+                        'POST', '/api/v1/ip/',
+                        include_status_code=True,
+                        payload={'user_id': user.id, 'ip_addr': request.client_ip}
+                    ))
+
+                    if settings.MMT_ENV == "test":
+                        response.headers["userip"] = "fired"
+                else:
+                    logger.warn(json.dumps({
+                        'warning' : 'client_ip value is None.',
+                        "requester's ip": request.ip,
+                        "requester's headers": request.headers
+                    }))
+            except:
+                pass

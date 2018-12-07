@@ -1,4 +1,3 @@
-import cgi
 import ujson as json
 
 from insanic.exceptions import ParseError
@@ -50,4 +49,3 @@ class JSONParser(BaseParser):
             return json.loads(data)
         except ValueError as exc:
             raise ParseError('JSON parse error - %s' % str(exc))
-

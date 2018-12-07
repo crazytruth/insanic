@@ -1,38 +1,29 @@
-import hashlib
-import io
+import aiotask_context
+import ujson as json
 import time
+import uuid
 
-from httptools import parse_url
+from cgi import parse_header
 from pprint import pformat
+from urllib.parse import parse_qs
 
-
-from sanic.request import Request as SanicRequest, RequestParameters
+from sanic.exceptions import InvalidUsage
+from sanic.server import CIDict
+from sanic.request import Request as SanicRequest, RequestParameters, File
 
 from insanic import exceptions
 from insanic.conf import settings
-from insanic.models import AnonymousUser
+from insanic.functional import empty
+from insanic.log import logger, error_logger
 from insanic.utils import force_str
-from insanic.utils.mediatypes import parse_header, HTTP_HEADER_ENCODING
 
 
-def is_form_media_type(media_type):
-    """
-    Return True if the media type is a valid form media type.
-    """
-    base_media_type, params = parse_header(media_type.encode(HTTP_HEADER_ENCODING))
-    return (base_media_type == 'application/x-www-form-urlencoded' or
-            base_media_type == 'multipart/form-data')
+DEFAULT_HTTP_CONTENT_TYPE = "application/octet-stream"
 
-
-class Empty:
-    """
-    Placeholder for unset attributes.
-    Cannot use `None`, as that may be a valid value.
-    """
-    pass
 
 def _hasattr(obj, name):
-    return not getattr(obj, name) is Empty
+    return not getattr(obj, name) is empty
+
 
 class Request(SanicRequest):
     """
@@ -50,48 +41,58 @@ class Request(SanicRequest):
         'app', 'headers', 'version', 'method', '_cookies', 'transport',
         'body', 'parsed_json', 'parsed_args', 'parsed_form', 'parsed_files',
         '_ip', '_parsed_url', 'uri_template', 'stream', '_remote_addr',
-        'authenticators', '_data', '_files', '_full_data', '_content_type',
-        '_stream', '_authenticator', '_user', '_auth', '_is_service', '_service_hosts',
-        '_request_time', '_span'
+        'authenticators', 'parsed_data',
+        '_stream', '_authenticator', '_user', '_auth',
+        '_request_time', '_segment', '_service', '_id', 'grpc_request_message'
     )
-
-
 
     def __init__(self, url_bytes, headers, version, method, transport,
                  authenticators=None):
 
         super().__init__(url_bytes, headers, version, method, transport)
-        # self._request = request
+
         self._request_time = int(time.time() * 1000000)
-
-
-        self._data = Empty
-        self._files = Empty
-        self._full_data = Empty
-        self._content_type = Empty
-        self._stream = Empty
-        self._is_service = Empty
-        self._service_hosts = Empty
-
+        self._id = empty
+        self.parsed_data = empty
         self.authenticators = authenticators or ()
+        self.grpc_request_message = empty
+
+    @classmethod
+    def from_protobuf_message(cls, request_message, stream):
+
+        request_headers = {k: v for k, v in request_message.headers.items()}
+
+        req = cls(url_bytes=request_message.endpoint,
+                  headers=CIDict(request_headers),
+                  version=2, method=request_message.method, transport=stream._stream._transport)
+
+        req._id = request_message.request_id
+        req.parsed_json = {k: json.loads(v) for k, v in request_message.body.items()}
+        req.parsed_files = RequestParameters({k: [File(body=f.body, name=f.name, type="")
+                                                  for f in v.f] for k, v in request_message.files.items()})
+        req.grpc_request_message = request_message
+
+        return req
 
     @property
-    def tracing(self):
-        return "{0}.{1}".format(self._request_time, id(self))
+    def socket(self):
+        if not hasattr(self, '_socket'):
+            self._get_address()
+        return self._socket
 
     @property
-    def span(self):
-        return self._span
-
-    @span.setter
-    def span(self, value):
-        self._span = value
-
+    def id(self):
+        if self._id is empty:
+            self._id = self.headers.get(settings.REQUEST_ID_HEADER_FIELD, f"I-{uuid.uuid4()}-{self._request_time}")
+        return self._id
 
     @property
-    def content_type(self):
-        meta = self.headers
-        return meta.get('content-type', 'application/json')
+    def segment(self):
+        return self._segment
+
+    @segment.setter
+    def segment(self, value):
+        self._segment = value
 
     @property
     def query_params(self):
@@ -99,32 +100,6 @@ class Request(SanicRequest):
         More semantically correct name for request.GET.
         """
         return self.args
-
-    @property
-    def data(self):
-        if not _hasattr(self, '_full_data'):
-            self._load_data_and_files()
-        return self._full_data
-
-    @property
-    def is_service(self):
-
-        if not _hasattr(self, "_is_service"):
-            if "mmt-token" not in self.headers:
-                self._is_service = False
-            elif not _hasattr(self, '_service_hosts'):
-                self._service_hosts = {c.get('externalserviceport'): s for s, c in settings.SERVICES.items()}
-                try:
-                    _port = int(self.headers.get('host').split(':')[-1])
-                except ValueError:
-                    _port = 80
-                m = hashlib.sha256()
-                m.update('mmt-server-{0}'.format(self._service_hosts.get(_port, '')).encode())
-                m.update(settings.WEB_SECRET_KEY.encode())
-                self._is_service = m.hexdigest() == self.headers.get('mmt-token')
-            else:
-                self._is_service = False
-        return self._is_service
 
     @property
     async def user(self):
@@ -146,7 +121,19 @@ class Request(SanicRequest):
         Note that we also set the user on Django's underlying `HttpRequest`
         instance, ensuring that it is available to any middleware in the stack.
         """
+
         self._user = value
+        aiotask_context.set(settings.TASK_CONTEXT_REQUEST_USER, dict(value))
+
+    @property
+    async def service(self):
+        if not hasattr(self, '_service'):
+            await self._authenticate()
+        return self._service
+
+    @service.setter
+    def service(self, value):
+        self._service = value
 
     @property
     def auth(self):
@@ -176,61 +163,45 @@ class Request(SanicRequest):
             self._authenticate()
         return self._authenticator
 
-    def _load_data_and_files(self):
-        """
-        Parses the request content into `self.data`.
-        """
-        if not _hasattr(self, '_data'):
-            self._data, self._files = self._parse()
-            if self._files:
-                self._full_data = RequestParameters(self._data.copy())
-                self._full_data.update(self._files)
-            else:
-                self._full_data = self._data
+    @property
+    def data(self):
+        if not _hasattr(self, 'parsed_data'):
+            try:
+                self.parsed_data = self.json
+            except InvalidUsage:
+                self.parsed_data = self.form
+            finally:
+                if self.parsed_files:
+                    for k in self.parsed_files.keys():
+                        v = self.parsed_files.getlist(k)
+                        self.parsed_data.update({k: v})
+        return self.parsed_data
 
-    def _load_stream(self):
-        """
-        Return the content body of the request, as a stream.
-        """
-        meta = self.headers
-        try:
-            content_length = int(
-                meta.get('content-length', 0)
-            )
-        except (ValueError, TypeError):
-            content_length = 0
+    @property
+    def form(self):
+        if self.parsed_form is None:
+            self.parsed_form = RequestParameters()
+            self.parsed_files = RequestParameters()
+            content_type = self.headers.get(
+                'Content-Type', DEFAULT_HTTP_CONTENT_TYPE)
+            content_type, parameters = parse_header(content_type)
+            try:
+                if content_type == 'application/x-www-form-urlencoded':
+                    self.parsed_form = RequestParameters(
+                        parse_qs(self.body.decode('utf-8')))
+                elif content_type == 'multipart/form-data':
+                    # TODO: Stream this instead of reading to/from memory
+                    boundary = parameters['boundary'].encode('utf-8')
+                    self.parsed_form, self.parsed_files = (
+                        parse_multipart_form(self.body, boundary))
+            except Exception:
+                error_logger.exception("Failed when parsing form")
 
-        if content_length == 0:
-            self._stream = None
-        # elif not self._request._read_started:
-        #     self._stream = self._request
-        else:
-            self._stream = io.BytesIO(self.body)
+        return self.parsed_form
 
-    def _supports_form_parsing(self):
-        """
-        Return True if this requests supports parsing form data.
-        """
-        form_media = (
-            'application/x-www-form-urlencoded',
-            'multipart/form-data'
-        )
-        return any([parser.media_type in form_media for parser in self.parsers])
-
-    def _parse(self):
-        """
-        Parse the request content, returning a two-tuple of (data, files)
-
-        May raise an `UnsupportedMediaType`, or `ParseError` exception.
-        """
-        media_type = self.content_type
-
-        if media_type.startswith("application/json"):
-            return self.json, self.files
-        elif media_type.startswith('application/x-www-form-urlencoded') or media_type.startswith('multipart/form-data'):
-            return self.form, self.files
-        else:
-            raise exceptions.UnsupportedMediaType(media_type)
+    @property
+    def client_ip(self):
+        return self.headers.get('x-forwarded-for', '').split(",")[0] if self.headers.get('x-forwarded-for') else None
 
     async def _authenticate(self):
         """
@@ -241,14 +212,15 @@ class Request(SanicRequest):
         for authenticator in self.authenticators:
             try:
                 user_auth_tuple = await authenticator.authenticate(self)
-            except exceptions.APIException:
+            except exceptions.APIException as e:
                 self._not_authenticated()
                 raise
 
             if user_auth_tuple is not None:
                 self._authenticator = authenticator
                 # self.user_auth = user_auth_tuple
-                self.user, self.auth = user_auth_tuple
+                self.user, self.service, self.auth = user_auth_tuple
+
                 return
 
         self._not_authenticated()
@@ -259,28 +231,11 @@ class Request(SanicRequest):
 
         Defaults are None, AnonymousUser & None.
         """
+        from insanic.models import AnonymousUser, AnonymousRequestService
         self._authenticator = None
-        self.user = AnonymousUser()
+        self.user = AnonymousUser
+        self.service = AnonymousRequestService
         self.auth = None
-
-    @property
-    def POST(self):
-        # Ensure that request.POST uses our request parsing.
-        if not _hasattr(self, '_data'):
-            self._load_data_and_files()
-        if is_form_media_type(self.content_type):
-            return self._data
-        return {}
-
-    @property
-    def FILES(self):
-        # Leave this one alone for backwards compat with Django's request.FILES
-        # Different from the other two cases, which are not valid property
-        # names on the WSGIRequest class.
-        if not _hasattr(self, '_files'):
-            self._load_data_and_files()
-        return self._files
-
 
 def build_request_repr(request, path_override=None, GET_override=None,
                        POST_override=None, COOKIES_override=None,
@@ -333,3 +288,62 @@ def build_request_repr(request, path_override=None, GET_override=None,
                       str(meta),
                       str(query_params)))
 
+
+def parse_multipart_form(body, boundary):
+    """Parse a request body and returns fields and files
+    :param body: bytes request body
+    :param boundary: bytes multipart boundary
+    :return: fields (RequestParameters), files (RequestParameters)
+    """
+    files = RequestParameters()
+    fields = RequestParameters()
+
+    form_parts = body.split(boundary)
+    for form_part in form_parts[1:-1]:
+        file_name = None
+        content_type = 'text/plain'
+        content_charset = 'utf-8'
+        field_name = None
+        line_index = 2
+        line_end_index = 0
+        while not line_end_index == -1:
+            line_end_index = form_part.find(b'\r\n', line_index)
+            form_line = form_part[line_index:line_end_index].decode('utf-8')
+            line_index = line_end_index + 2
+
+            if not form_line:
+                break
+
+            colon_index = form_line.index(':')
+            form_header_field = form_line[0:colon_index].lower()
+            form_header_value, form_parameters = parse_header(
+                form_line[colon_index + 2:])
+
+            if form_header_field == 'content-disposition':
+                file_name = form_parameters.get('filename')
+                field_name = form_parameters.get('name')
+            elif form_header_field == 'content-type':
+                content_type = form_header_value
+                content_charset = form_parameters.get('charset', 'utf-8')
+
+        if field_name:
+            post_data = form_part[line_index:-4]
+            if file_name:
+                form_file = File(type=content_type,
+                                 name=file_name,
+                                 body=post_data)
+                if field_name in files:
+                    files[field_name].append(form_file)
+                else:
+                    files[field_name] = [form_file]
+            else:
+                value = post_data.decode(content_charset)
+                if field_name in fields:
+                    fields[field_name].append(value)
+                else:
+                    fields[field_name] = [value]
+        else:
+            logger.debug('Form-data field does not have a \'name\' parameter \
+                         in the Content-Disposition header')
+
+    return fields, files

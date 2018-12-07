@@ -1,69 +1,88 @@
+import aiohttp
+import aiotask_context
 import asyncio
+
 from insanic.conf import settings
-from insanic.connections import _connections, get_connection
-from insanic.services import IS_INFUSED
+from insanic.connections import _connections
+from insanic.grpc.server import GRPCServer
+from insanic.rabbitmq.connections import RabbitMQConnectionHandler
+from insanic.rabbitmq.helpers import get_callback_function
+from insanic.registration import gateway
+from insanic.services import ServiceRegistry
+from insanic.grpc.dispatch.server import DispatchServer
 
-from importlib import import_module
-from peewee import BaseModel
-from peewee_async import Manager
+
+def before_server_start_set_task_factory(app, loop, **kwargs):
+    loop.set_task_factory(aiotask_context.chainmap_task_factory)
 
 
-# async def before_server_stop_close_database(app, loop, **kwargs):
-async def after_server_stop_close_database(app, loop, **kwargs):
-    await app.database.close_async()
+async def after_server_stop_clean_up(app, loop, **kwargs):
     close_tasks = _connections.close_all()
+    await close_tasks
 
-    await app.objects.close()
+    service_sessions = []
+    for service_name, service in ServiceRegistry().items():
+        if service is not None:
+            if service._session is not None:
+                service_sessions.append(service._session.close())
+    await asyncio.gather(*service_sessions)
+    await gateway.session.close()
 
 
 async def after_server_start_connect_database(app, loop=None, **kwargs):
-
     _connections.loop = loop
 
-    app.database.init(settings.WEB_MYSQL_DATABASE,
-                      host=settings.WEB_MYSQL_HOST,
-                      port=settings.WEB_MYSQL_PORT,
-                      user=settings.WEB_MYSQL_USER,
-                      password=settings.WEB_MYSQL_PASS,
-                      min_connections=5, max_connections=10, charset='utf8', use_unicode=True)
 
-    # import models and switch out database
-    try:
-        service_models = import_module('{0}.models'.format(settings.SERVICE_NAME))
-        for m in dir(service_models):
-            if m[0].isupper():
-                possible_model = getattr(service_models, m)
-                if isinstance(possible_model, BaseModel):
-                    possible_model._meta.database = app.database
-    except ModuleNotFoundError:
-        pass
+async def after_server_start_start_grpc(app, loop=None, **kwargs):
+    if settings.GRPC_SERVE:
+        port = int(settings.SERVICE_PORT) + settings.GRPC_PORT_DELTA
 
-    app.objects = Manager(app.database, loop=loop)
+        grpc = GRPCServer([DispatchServer(app)], loop)
+        await grpc.start(host=settings.GRPC_HOST, port=port)
+        grpc.set_status(True)
+    else:
+        GRPCServer.logger("info", f"GRPC_SERVE is turned off")
 
 
-async def after_server_start_half_open_circuit(app, loop=None, **kwargs):
-    '''
-    If the circuit to running service is open, convert to half open state to try and allow connections.
-    If multiple services are run, there could be multiple attempts at half-open circuit.
-    '''
+async def after_server_start_start_rabbitmq_connection(app, loop=None, **kwargs):
+    if settings.RABBITMQ_SERVE:
+        rabbit_mq = RabbitMQConnectionHandler()
+        await rabbit_mq.connect(
+            rabbitmq_username=settings.RABBITMQ_USERNAME,
+            rabbitmq_password=settings.RABBITMQ_PASSWORD,
+            host=settings.RABBITMQ_HOST,
+            port=int(settings.RABBITMQ_PORT),
+            loop=loop
+        )
+        queue_settings = settings.RABBITMQ_QUEUE_SETTINGS
+        for q_s in queue_settings:
+            exchange_name = q_s.get("EXCHANGE_NAME")
+            routing_keys = q_s.get("ROUTING_KEYS", ["#"])
+            queue_name = "_".join([exchange_name] + routing_keys)
+            await rabbit_mq.consume_queue(
+                exchange_name=exchange_name,
+                queue_name=queue_name,
+                routing_keys=routing_keys,
+                callback=get_callback_function(q_s["CALLBACK"]),
+                prefetch_count=q_s.get("PREFETCH_COUNT", 1)
+            )
+    else:
+        RabbitMQConnectionHandler.logger("info", f"RABBITMQ_SERVE is turned off")
 
-    if IS_INFUSED:
-        from infuse import AioCircuitBreaker, CircuitAioRedisStorage, STATE_HALF_OPEN, STATE_OPEN
 
-        conn = await get_connection('redis')
-        conn = await conn.acquire()
+async def before_server_stop_stop_rabbitmq_connection(app, loop=None, **kwargs):
+    await RabbitMQConnectionHandler.disconnect()
 
-        circuit_breaker_storage = CircuitAioRedisStorage(STATE_HALF_OPEN, conn, settings.SERVICE_NAME)
 
-        breaker = await AioCircuitBreaker.initialize(fail_max=settings.INFUSE_MAX_FAILURE,
-                                                     reset_timeout=settings.INFUSE_RESET_TIMEOUT,
-                                                     state_storage=circuit_breaker_storage,
-                                                     listeners=[])
+async def before_server_stop_stop_grpc(app, loop=None, **kwargs):
+    await GRPCServer.stop()
 
-        current_state = await breaker.current_state
 
-        # if open, try half open state to allow connections.
-        # if half-open, pass
-        # if closed, pass
-        if current_state == STATE_OPEN:
-            await breaker.half_open()
+def after_server_start_register_service(app, loop, **kwargs):
+    # need to leave session because we need this in hardjwt to get consumer
+    gateway.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ttl_dns_cache=300))
+    gateway.register(app)
+
+
+def before_server_stop_deregister_service(app, loop, **kwargs):
+    gateway.deregister()

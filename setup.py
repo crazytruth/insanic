@@ -1,56 +1,103 @@
+import os
 from setuptools import setup, find_packages
 
-def readme():
-    with open('README.rst') as f:
-        return f.read()
+here = os.path.dirname(__file__)
 
-def version():
-    with open('VERSION') as f:
-        return f.read().strip()
+
+def read(fname):
+    """
+    Read given file's content.
+    :param str fname: file name
+    :returns: file contents
+    :rtype: str
+    """
+    return open(os.path.join(here, fname)).read()
+
+
+version = '0.6.7.dev0'
+
+
+def pytest_command():
+    from commands.pytest import PyTestCommand
+    return PyTestCommand
+
+
+test_requires = [
+    "coverage",
+    "pytest",
+    "pytest-cov",
+    "pytest-redis",
+    "pytest-sanic",
+    "pytest-sugar",
+    "pytest-xdist",
+    "pytest-rabbitmq",
+    "chardet",
+    "pytest-flake8",
+    "asynctest",
+    "pact-python",
+    "requests",
+    "aioresponses"
+    # "beautifulsoup4"
+    # "docker",
+    # "aiobotocore",
+    # "pytest",
+    # "pytest-asyncio",
+]
 
 setup(
     name='insanic',
-    version=version(),
+    version=version,
     description='API framework for sanic',
-    long_description=readme(),
+    long_description=(
+            read('README.md') + '\n\n' + read('CHANGELOG.md')
+    ),
     classifiers=[
-    'Development Status :: 3 - Alpha',
-    'License :: OSI Approved :: MIT License',
-    'Programming Language :: Python :: 3.6',
+        'Intended Audience :: Developers',
+        'Development Status :: 3 - Alpha',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 3.6',
+        'Topic :: Software Development :: Libraries :: Application Frameworks'
     ],
-    keywords='api framework sanic async',
-    url='http://github.com/',
+    keywords='api framework sanic async asyncio microservice msa',
+    url='http://github.com/MyMusicTaste/insanic',
     author='crazytruth',
     author_email='kwangjinkim@gmail.com',
     license='MIT',
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
+    setup_requires=["zest.releaser[recommended]", "setuptools"],
     install_requires=[
-        'sanic',
+        'sanic==0.7.0',
         'sanic-useragent',
-        'aiohttp',
-        'aiomysql',
-        'aioredis',
-        'aiobotocore',
-        'aiohttp-jinja2',
-        'cryptography',
-        'peewee-async',
+        'aiohttp>=3.0.0',
+        'aiodns',
+        # 'yarl==1.1.1',
+        'aioredis>=1.1.0',
         'PyJWT',
-        'marshmallow',
-        'Marshmallow-Peewee',
-        'docker',
-        'boto3',
-        'Pillow',
-        'jinja2',
-        'basictracer'
+        'aws-xray-sdk==1.1.2',
+        "python-consul",
+        "hvac",
+        "aiotask_context",
+        # "infuse>=0.1.0",
+        "python-dateutil",
+        "packaging",
+        "grpclib",
+        "googleapis-common-protos",
+        "aio-pika==3.2.1",
     ],
     # test_suite='nose.collector',
-    # tests_require=['nose', 'nose-cover3'],
-    entry_points={
-        'pytest11': [
-            'insanic = insanic.testing.pytest_plugin',
-        ]
+    tests_require=test_requires,
+    test_suite='tests',
+    # entry_points={
+    #     'pytest11': [
+    #         'insanic = insanic.testing.plugin',
+    #     ]
+    # },
+    extras_require={
+        "testing": test_requires,
+        "dev": ["zest.releaser[recommended]", "flake8"],
+        "grpc": ["protobuf", "grpcio-tools", "googleapis-common-protos"]
     },
+    cmdclass={'test': pytest_command()},
     include_package_data=True,
     zip_safe=False
 )
-

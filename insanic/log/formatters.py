@@ -1,3 +1,4 @@
+import aiotask_context
 import logging
 import time
 import socket
@@ -25,11 +26,25 @@ class JSONFormatter(logging.Formatter):
             self._fmt_dict = fmt
 
         self.hostname = socket.gethostname()
-        self.extra_fields = {"service": settings.SERVICE_NAME, "environment": settings.MMT_ENV,
-                             "insanic_version": __version__, "service_version": "0.0.1"}
+        self._extra_fields = None
 
-        for k,v in self.extra_fields.items():
-            setattr(self, k, v)
+    @property
+    def extra_fields(self):
+        if not self._extra_fields:
+            self._extra_fields = {
+                "service": settings.get('SERVICE_NAME'),
+                "environment": settings.get('MMT_ENV'),
+                "insanic_version": __version__,
+                "service_version": settings.get('SERVICE_VERSION')
+            }
+
+        try:
+            correlation_id = aiotask_context.get(settings.TASK_CONTEXT_CORRELATION_ID, default='unknown')
+        except ValueError:
+            correlation_id = "not set"
+        self._extra_fields.update({"correlation_id": correlation_id})
+
+        return self._extra_fields
 
     def formatTime(self, record, datefmt=None):
         s = super().formatTime(record, datefmt)
@@ -47,7 +62,7 @@ class JSONFormatter(logging.Formatter):
         super().format(record)
         # Add ours
         record.hostname = self.hostname
-        for k,v in self.extra_fields.items():
+        for k, v in self.extra_fields.items():
             setattr(record, k, v)
 
         # Apply format
@@ -61,10 +76,23 @@ class JSONFormatter(logging.Formatter):
 
             data[key] = value
 
+        # s = self.formatMessage(record)
+        # if record.exc_info:
+        #     # Cache the traceback text to avoid converting it multiple times
+        #     # (it's constant anyway)
+        #     if not record.exc_text:
+        #         record.exc_text = self.formatException(record.exc_info)
+        # if record.exc_text:
+        #     if s[-1:] != "\n":
+        #         s = s + "\n"
+        #     s = s + record.exc_text
+        # if record.stack_info:
+        #     if s[-1:] != "\n":
+        #         s = s + "\n"
+        #     s = s + self.formatStack(record.stack_info)
+
         self._structuring(data, record)
         return json.dumps(data, sort_keys=True)
-
-
 
     def usesTime(self):
         return any([value.find('%(asctime)') >= 0

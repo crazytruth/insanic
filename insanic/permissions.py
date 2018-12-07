@@ -1,6 +1,8 @@
 """
 Provides a set of pluggable permission policies.
 """
+from insanic.models import _AnonymousUser
+
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 
 
@@ -13,13 +15,7 @@ class BasePermission(object):
         """
         Return `True` if permission is granted, `False` otherwise.
         """
-        return True
-
-    async def has_object_permission(self, request, view, obj):
-        """
-        Return `True` if permission is granted, `False` otherwise.
-        """
-        return True
+        raise NotImplementedError(".has_permission() needs to be overridden.")
 
 
 class AllowAny(BasePermission):
@@ -29,7 +25,8 @@ class AllowAny(BasePermission):
     permission_classes list, but it's useful because it makes the intention
     more explicit.
     """
-    def has_permission(self, request, view):
+
+    async def has_permission(self, request, view):
         return True
 
 
@@ -41,7 +38,7 @@ class IsAuthenticated(BasePermission):
     async def has_permission(self, request, view):
         user = await request.user
 
-        return user and user.is_authenticated
+        return not isinstance(user, _AnonymousUser) and user.is_authenticated
 
 
 class IsAdminUser(BasePermission):
@@ -49,8 +46,9 @@ class IsAdminUser(BasePermission):
     Allows access only to admin users.
     """
 
-    def has_permission(self, request, view):
-        return request.user and request.user.is_staff
+    async def has_permission(self, request, view):
+        user = await request.user
+        return not isinstance(user, _AnonymousUser) and user.is_staff
 
 
 class IsAuthenticatedOrReadOnly(BasePermission):
@@ -58,12 +56,13 @@ class IsAuthenticatedOrReadOnly(BasePermission):
     The request is authenticated as a user, or is a read-only request.
     """
 
-    def has_permission(self, request, view):
+    async def has_permission(self, request, view):
+        user = await request.user
+
         return (
-            request.method in SAFE_METHODS or
-            request.user and
-            request.user.is_authenticated
+                request.method in SAFE_METHODS or not isinstance(user, _AnonymousUser)
         )
+
 
 class IsOwnerOrAdmin(BasePermission):
     """
@@ -78,25 +77,27 @@ class IsOwnerOrAdmin(BasePermission):
             return True
 
         try:
-            return user.id == int(view.kwargs.get("user_id"))
-        except TypeError:
+            return user.id == view.kwargs.get("user_id")
+        except TypeError:  # pragma: no cover
             return False
 
 
-    async def has_object_permission(self, request, view, obj):
+class IsAnonymousUser(BasePermission):
+    """
+    Permission to check this api can only be access by non authenticated user.
+    """
+
+    async def has_permission(self, request, view):
         user = await request.user
-        if user.is_superuser:
-            return True
-        # Write permissions are only allowed to the owner of the snippet.
-        if isinstance(obj, dict):
-            if "user_id" in obj:
-                return obj['user_id'] == user.id
-            else:
-                return obj['id'] == user.id
-        else:
+        return isinstance(user, _AnonymousUser)
 
-            if hasattr(obj, "user_id"):
-                return obj.user_id == user.id
-            else:
-                return obj.id == user.id
 
+class IsServiceOnly(BasePermission):
+    """
+    Permission to check this api can only be access by another service
+    """
+
+    async def has_permission(self, request, view):
+        service = await request.service
+
+        return service.is_authenticated

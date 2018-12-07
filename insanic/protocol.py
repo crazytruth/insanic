@@ -1,70 +1,39 @@
-from sanic import server
-from sanic.server import HttpProtocol, CIDict, netlog, log, ServerError
+import time
 
-from insanic.request import Request
+from sanic.server import HttpProtocol
+
+from insanic.log import access_logger
+
 
 class InsanicHttpProtocol(HttpProtocol):
 
-    def on_headers_complete(self):
-        self.request = Request(
-            url_bytes=self.url,
-            headers=CIDict(self.headers),
-            version=self.parser.get_http_version(),
-            method=self.parser.get_method().decode(),
-            transport=self.transport
-        )
+    def log_response(self, response):
+        if self.access_log:
+            if self.request.url.endswith('/health/'):
+                return
 
-    # -------------------------------------------- #
-    # Responding
-    # -------------------------------------------- #
-    def write_response(self, response):
-        """
-        Writes response content synchronously to the transport.
-        # overriding to inject trace_id and span_id into network logs
-        """
-        try:
-            keep_alive = self.keep_alive
-            self.transport.write(
-                response.output(
-                    self.request.version, keep_alive,
-                    self.request_timeout))
-            if self.has_log:
-
-                extra = {
-                    'status': response.status,
-                    'byte': len(response.body),
-                    'host': '{0}:{1}'.format(self.request.ip[0],
-                                             self.request.ip[1]),
-                    'request': '{0} {1}'.format(self.request.method,
-                                                self.request.url)
-                }
-                span = response.span
-
-                if span is not None:
+            extra = {
+                'status': response.status,
+                'byte': len(response.body),
+                'host': f'{self.request.socket[0]}:{self.request.socket[1]}',
+                'request': f'{self.request.method} {self.request.url}',
+                'request_duration': int(time.time() * 1000000) - (self.request._request_time)
+            }
+            if hasattr(self.request, "_service"):
+                extra.update({
+                    "request_service": str(self.request._service.request_service),
+                })
+            if hasattr(response, 'segment'):
+                segment = response.segment
+                if segment is not None:
                     extra.update({
-                        'ot_trace_id': span.context.trace_id,
-                        'ot_parent_id': span.parent_id,
-                        'ot_sampled': int(span.context.sampled),
-                        'ot_duration': span.duration
+                        'ot_trace_id': segment.trace_id,
+                        'ot_parent_id': segment.parent_id,
+                        'ot_sampled': int(segment.sampled),
+                        'ot_duration': (segment.end_time - segment.start_time) * 1000
                     })
-                netlog.info('', extra=extra)
-        except AttributeError:
-            log.error(
-                ('Invalid response object for url {}, '
-                 'Expected Type: HTTPResponse, Actual Type: {}').format(
-                    self.url, type(response)))
-            self.write_error(ServerError('Invalid response type'))
-        except RuntimeError:
-            log.error(
-                'Connection lost before response written @ {}'.format(
-                    self.request.ip))
-        except Exception as e:
-            self.bail_out(
-                "Writing response failed, connection closed {}".format(
-                    repr(e)))
-        finally:
-            if not keep_alive:
-                self.transport.close()
+
+            if str(response.status)[0] == "5":
+                access_logger.exception('', extra=extra, exc_info=response.exception)
             else:
-                self._last_request_time = server.current_time
-                self.cleanup()
+                access_logger.info('', extra=extra)
