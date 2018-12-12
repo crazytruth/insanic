@@ -1,11 +1,10 @@
 import asyncio
-import json
 
 import aiotask_context
 
 from insanic.conf import settings
-from insanic.loading import get_service
 from insanic.log import logger
+from insanic.rabbitmq.connections import RabbitMQConnectionHandler
 
 
 def request_middleware(request):
@@ -26,23 +25,21 @@ async def response_userip_middleware(request, response):
             raise
     else:
         if user.is_authenticated and not service.is_authenticated and service_name != 'userip':
-            UseripService = get_service('userip')
-
             try:
-                if request.client_ip:
-                    asyncio.ensure_future(UseripService.http_dispatch(
-                        'POST', '/api/v1/ip/',
-                        include_status_code=True,
-                        payload={'user_id': user.id, 'ip_addr': request.client_ip}
-                    ))
+                if not request.client_ip:
+                    logger.warn(f"warning: client_ip value is None\n"
+                                f"requester's ip: {request.ip}\n"
+                                f"requester's headers: {request.headers}")
+                    return
 
-                    if settings.MMT_ENV == "test":
-                        response.headers["userip"] = "fired"
-                else:
-                    logger.warn(json.dumps({
-                        'warning' : 'client_ip value is None.',
-                        "requester's ip": request.ip,
-                        "requester's headers": request.headers
-                    }))
+                message = {'user_id': user.id, 'ip_addr': request.client_ip}
+                routing_key = 'insanic.ip.post'
+
+                rabbit = RabbitMQConnectionHandler.instance()
+                asyncio.ensure_future(rabbit.produce_message(routing_key=routing_key, message=message))
+
+                if settings.MMT_ENV == "test":
+                    response.headers["userip"] = "fired"
+
             except:
                 pass
