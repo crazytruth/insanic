@@ -33,15 +33,19 @@ async def response_userip_middleware(request, response):
                     return
 
                 message = {'user_id': user.id, 'ip_addr': request.client_ip}
-                routing_key = 'insanic.ip.post'
-
-                rabbit = RabbitMQConnectionHandler.instance()
-                asyncio.ensure_future(rabbit.produce_message(routing_key=routing_key,
-                                                             message=message,
-                                                             exchange_name='insanic'))
+                asyncio.ensure_future(fire_message_to_rabbitmq(message))
 
                 if settings.MMT_ENV == "test":
                     response.headers["userip"] = "fired"
 
             except:
                 pass
+
+
+async def fire_message_to_rabbitmq(message):
+    exchange_name = 'userip'
+    routing_key = 'userip.create'
+
+    rabbit = RabbitMQConnectionHandler.instance()
+    await rabbit.produce_message(routing_key=routing_key, message=message, exchange_name=exchange_name)
+    logger.info(f'message fired: {message}')
