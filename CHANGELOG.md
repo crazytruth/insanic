@@ -6,7 +6,7 @@ Changelog for insanic
 ------------------
 
 - CHORE: sanic access logger to always log for info level
-
+- FEAT: userip http call to buffer into mq 
 
 0.6.6 (2018-12-04)
 ------------------
