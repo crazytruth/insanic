@@ -23,7 +23,7 @@ def get_logging_config():
             },
 
             "sanic.access": {
-                "level": log_level,
+                "level": 'INFO',
                 "handlers": ["access_console"],
                 "propagate": True,
                 "qualname": "sanic.access"

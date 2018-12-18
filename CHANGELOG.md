@@ -5,7 +5,7 @@ Changelog for insanic
 0.6.7 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- CHORE: sanic access logger to always log for info level
 
 
 0.6.6 (2018-12-04)
