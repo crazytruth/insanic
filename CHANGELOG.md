@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.6.7 (unreleased)
+0.6.7 (2018-12-18)
 ------------------
 
 - CHORE: sanic access logger to always log for info level
