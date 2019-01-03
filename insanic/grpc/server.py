@@ -2,10 +2,14 @@ import asyncio
 import logging
 
 from grpclib.server import Server
+from grpclib.health.check import ServiceStatus
+from grpclib.health.service import Health
 
-from insanic.grpc.health.check import ServiceStatus
-from insanic.grpc.health.server import Health
+from insanic.conf import settings
+from insanic.grpc.dispatch.server import DispatchServer
+
 from insanic.log import grpc_logger
+from insanic.utils import load_class
 
 
 class GRPCServer:
@@ -61,7 +65,7 @@ class GRPCServer:
 
         grpc_logger.log(log_level, message, *args, **kwargs)
 
-    def __init__(self, grpc_services, loop=None):
+    def __init__(self, app, loop=None):
         """
         Initialize a singleton grpc server
 
@@ -73,8 +77,17 @@ class GRPCServer:
 
         loop = loop or asyncio.get_event_loop()
 
-        self.health = {s: [ServiceStatus(loop=loop)] for s in grpc_services}
-        self._grpc_server = Server(grpc_services + [Health(self.health)], loop=loop)
+        servers = [DispatchServer(app)]
+        for s in settings.GRPC_SERVER:
+            if isinstance(s, str):
+                klass = load_class(s)
+            else:
+                klass = s
+
+            servers.append(klass())
+
+        self.health = {s: [ServiceStatus(loop=loop)] for s in servers}
+        self._grpc_server = Server(servers + [Health(self.health)], loop=loop)
 
     async def start(self, host, port, reuse_port=True, reuse_address=True):
         """

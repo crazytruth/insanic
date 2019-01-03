@@ -9,7 +9,6 @@ from insanic.rabbitmq.connections import RabbitMQConnectionHandler
 from insanic.rabbitmq.helpers import get_callback_function
 from insanic.registration import gateway
 from insanic.services import ServiceRegistry
-from insanic.grpc.dispatch.server import DispatchServer
 
 
 def before_server_start_set_task_factory(app, loop, **kwargs):
@@ -37,7 +36,7 @@ async def after_server_start_start_grpc(app, loop=None, **kwargs):
     if settings.GRPC_SERVE:
         port = int(settings.SERVICE_PORT) + settings.GRPC_PORT_DELTA
 
-        grpc = GRPCServer([DispatchServer(app)], loop)
+        grpc = GRPCServer(app, loop)
         await grpc.start(host=settings.GRPC_HOST, port=port)
         grpc.set_status(True)
     else:

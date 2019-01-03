@@ -1,6 +1,7 @@
 import re
 import ujson as json
 
+from importlib import import_module
 from enum import Enum
 
 def force_str(val):
@@ -36,3 +37,9 @@ def camel_to_snake(name):
     s1 = first_cap_re.sub(r'\1_\2', name)
     s1 = number_re.sub(r'\1_\2', s1)
     return all_cap_re.sub(r'\1_\2', s1).lower()
+
+
+def load_class(kls):
+    parts = kls.rsplit('.', 1)
+    m = import_module(parts[0])
+    return getattr(m, parts[-1])

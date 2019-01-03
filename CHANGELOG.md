@@ -5,6 +5,7 @@ Changelog for insanic
 0.6.8 (unreleased)
 ------------------
 
+- FEAT: load server classes and serves
 - CHORE: remove grpc health in place of grpclib health  
 
 
