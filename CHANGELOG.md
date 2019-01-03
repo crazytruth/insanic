@@ -6,6 +6,7 @@ Changelog for insanic
 ------------------
 
 - FEAT: load server classes and serves
+- FEAT: searches installed grpc packages and binds to service client object
 - CHORE: remove grpc health in place of grpclib health  
 
 

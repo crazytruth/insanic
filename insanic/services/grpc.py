@@ -8,8 +8,11 @@ import ujson as json
 from aiodns.error import DNSError
 from collections import OrderedDict
 from enum import IntEnum
+from functools import wraps
 from grpclib.client import Channel
 from grpclib.exceptions import GRPCError, ProtocolError
+from grpclib.health.v1.health_grpc import HealthStub
+from grpclib.health.v1.health_pb2 import HealthCheckRequest
 from grpclib.const import Status as GRPCStatus
 
 from sanic.request import File as SanicFile
@@ -18,10 +21,9 @@ from insanic import status, exceptions
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.exceptions import APIException
+from insanic.functional import cached_property
 from insanic.grpc.dispatch.dispatch_grpc import DispatchStub
 from insanic.grpc.dispatch.dispatch_pb2 import ServiceRequest, ContextUser, ContextService, FileList
-from insanic.grpc.health.health_grpc import HealthStub
-from insanic.grpc.health.health_pb2 import HealthCheckRequest
 from insanic.log import error_logger, logger
 from insanic.services.utils import context_user, context_correlation_id
 
@@ -132,15 +134,137 @@ class ChannelManager:
             pass
 
 
-class GRPCClient:
+import importlib
+import inspect
+from grpclib.client import ServiceMethod
 
-    _stub = None
+from grpc_location_service.service_grpc import LocationStub
+from grpc_location_service.service_pb2 import NationRequest
+
+
+def is_stub(m):
+    return inspect.isclass(m) and not inspect.isabstract(m)
+
+
+def is_grpc_module(m):
+    return inspect.ismodule(m)
+
+
+def is_service_method(m):
+    return isinstance(m, ServiceMethod)
+
+
+from collections import namedtuple
+
+GRPCStubSignature = namedtuple('GRPCStubSignature', ['method', 'request_type', 'response_type'])
+
+
+class ContextStub:
+
+    def __init__(self, channel_manager, stub, request_type, reply_type):
+        self.channel_manager = channel_manager
+        self.stub = stub
+        self.request_type = request_type
+        self.reply_type = reply_type
+
+    async def __aenter__(self):
+        stub = self.stub
+        stub.channel = await self.channel_manager.get_channel()
+
+        @wraps(self.stub)
+        def decorate_stub(message=None, **kwargs):
+            if message is None:
+                message_params = {}
+                for k in self.request_type.DESCRIPTOR.fields_by_name:
+                    if k in kwargs:
+                        message_params.update({k: kwargs[k]})
+
+                message = self.request_type(**message_params)
+            else:
+                if not isinstance(message, self.request_type):
+                    raise RuntimeError(f"Invalid Usage. `message` must be of {self.request_type}")
+
+            return self.stub(message)
+
+        return decorate_stub
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        self.stub.channel = None
+
+
+
+
+class GRPCClient:
+    _dispatch_stub = None
     _health_stub = None
 
     def __init__(self):
         self._status = None
         self._status_check = 0
         self._channel_manager = None
+        self._stub = {}
+        self._bind_grpc_packages()
+
+    def _bind_grpc_packages(self):
+        for package_name in self.grpc_packages:
+            prefix, service, namespace = package_name.split('-')
+
+            gp = importlib.import_module("_".join([prefix, service, namespace]))
+
+            try:
+                _, module = inspect.getmembers(gp, is_grpc_module)[0]
+            except KeyError:
+                raise RuntimeError(f'Error while loading {package_name}. '
+                                   f'Could not find module ending with "_grpc".')
+
+            try:
+                class_name, StubClass = inspect.getmembers(module, is_stub)[0]
+            except KeyError:
+                raise RuntimeError(f'Error while loading {package_name}. '
+                                   f'Could not find stub in {module}.')
+
+            stub = StubClass(None)
+
+            for stub_name, method in inspect.getmembers(stub, is_service_method):
+                if namespace not in self._stub:
+                    self._stub[namespace] = {}
+
+                self._stub[namespace].update({stub_name: GRPCStubSignature(method=method,
+                                                                           request_type=method.request_type,
+                                                                           response_type=method.reply_type)})
+
+    def grpc(self, namespace, service_method):
+        try:
+            stub, request_type, response_type = self._stub[namespace][service_method]
+        except KeyError:
+            error_logger.error(f"GRPC stub for {namespace} and {service_method} was not found. "
+                               f"Maybe you need to include `grpc-{self.service_name}-{namespace} "
+                               f"in your requirements.")
+            raise ImportError(f"GRPC service method for {namespace} and {service_method} was not found.")
+
+        return ContextStub(self.channel_manager, stub, request_type, response_type)
+
+    # def GetNation(self, namespace, **kwargs):
+    #     inspect.signature(NationRequest)
+    #     # kwargs.keys() == NationRequest signature
+    #
+    #
+    #
+    #     NationRequest(id=id, include=include)
+    #
+    #
+    # get_service('location').GetNation(namespace='v2', id="", include='')
+    #
+    # get_service('location').v2.GetNation(id="", include="")
+    #
+    # get_service('location').grpc(namespace='v2', service_method='GetNation', params={})
+    #
+    # get_service('location').http_dispatch(method='', endpoint='', query_params={})
+
+    # with get_service('location').grpc(namespace='v2', service_method='GetNation') as stub:
+    #     response = await stub(id='', include='')
+
+
 
     @property
     def grpc_port(self):
@@ -153,10 +277,10 @@ class GRPCClient:
         return self._channel_manager
 
     @property
-    async def stub(self):
-        if self._stub is None:
-            self._stub = DispatchStub(await self.channel_manager.get_channel())
-        return self._stub
+    async def dispatch_stub(self):
+        if self._dispatch_stub is None:
+            self._dispatch_stub = DispatchStub(await self.channel_manager.get_channel())
+        return self._dispatch_stub
 
     @property
     async def health(self):
@@ -307,7 +431,7 @@ class GRPCClient:
             body=body,
             files=files
         )
-        dispatch_stub = await self.stub
+        dispatch_stub = await self.dispatch_stub
         try:
             response = await dispatch_stub.handle_grpc(request, timeout=request_timeout)
             response_body = json.loads(response.body)
@@ -336,3 +460,23 @@ class GRPCClient:
             raise e
 
         return response_body, response.status_code
+
+    _grpc_client_packages = None
+
+    @classmethod
+    def _search_grpc_packages(cls):
+        import pkg_resources
+        cls._grpc_client_packages = [p.key for p in pkg_resources.working_set if p.key.startswith('grpc-')]
+
+    @classmethod
+    def search_grpc_packages(cls):
+        if cls._grpc_client_packages is None:
+            cls._search_grpc_packages()
+        return cls._grpc_client_packages
+
+    @cached_property
+    def grpc_packages(self):
+        # to include extra '-' at the end
+        search_packages = ['grpc', self.service_name, '']
+        search_for = "-".join(search_packages)
+        return [p for p in self.search_grpc_packages() if p.startswith(search_for)]

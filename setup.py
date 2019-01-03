@@ -36,7 +36,8 @@ test_requires = [
     "asynctest",
     "pact-python",
     "requests",
-    "aioresponses"
+    "aioresponses",
+    "grpc-location-service"
     # "beautifulsoup4"
     # "docker",
     # "aiobotocore",
@@ -80,7 +81,7 @@ setup(
         # "infuse>=0.1.0",
         "python-dateutil",
         "packaging",
-        "grpclib",
+        "grpclib==0.2.1",
         "googleapis-common-protos",
         "aio-pika==3.2.1",
     ],

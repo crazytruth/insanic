@@ -112,11 +112,13 @@ class TestGRPCServiceClass:
         monkeypatch.setattr(Service, 'host', '127.0.0.1')
         monkeypatch.setattr(Service, 'port', insanic_server.port)
         test_service = Service('test')
+        test_service._grpc_client_package = None
 
         monkeypatch.setattr(test_service, '_status', 1)
         monkeypatch.setattr(test_service, '_status_check', time.monotonic())
 
-        return test_service
+        yield test_service
+
 
     async def test_dispatch(self, service_instance):
         response = await service_instance.grpc_dispatch('GET', '/')
@@ -237,3 +239,59 @@ class TestGRPCServiceClass:
         aiotask_context.set(settings.TASK_CONTEXT_CORRELATION_ID, request_id)
         response, status_code = await service_instance.grpc_dispatch('GET', '/context', include_status_code=True)
         assert response['correlation_id'] == request_id == response['request_id']
+
+    def test_grpc_packages_searched_only_once(self, service_instance, monkeypatch):
+        # already initialized at this point because of service_instance init call
+
+        def mock_search(cls, *args, **kwargs):
+            cls._grpc_client_packages = "Shouldn't Be Here"
+
+        monkeypatch.setattr(Service, '_search_grpc_packages', mock_search)
+
+        test_service = Service('something_else')
+        service_instance.search_grpc_packages()
+        assert test_service._grpc_client_packages is not None
+        assert test_service._grpc_client_packages != "Shouldn't Be Here"
+        assert service_instance._grpc_client_packages is test_service._grpc_client_packages
+
+
+class TestClientStubs:
+
+    @pytest.fixture
+    def insanic_application(self, monkeypatch):
+
+        from grpc_location_service.service_grpc import LocationBase
+        from grpc_location_service.service_pb2 import NationObject
+
+        class TestLocationBase(LocationBase):
+            async def GetNation(self, stream):
+                request = await stream.recv_message()
+                response = NationObject(id=int(request.nation_id), name="testlocation")
+                await stream.send_message(response)
+
+        monkeypatch.setattr(settings, 'GRPC_SERVER', [TestLocationBase, ])
+        app = Insanic('test')
+
+        yield app
+
+    @pytest.fixture
+    def insanic_server(self, loop, insanic_application, test_server, monkeypatch):
+        monkeypatch.setattr(settings, 'GRPC_PORT_DELTA', 1)
+
+        return loop.run_until_complete(test_server(insanic_application))
+
+    async def test_grpc_context_manager(self, monkeypatch, insanic_server):
+        monkeypatch.setattr(Service, 'host', '127.0.0.1')
+        monkeypatch.setattr(Service, 'port', insanic_server.port)
+        service_instance = Service('location')
+
+        nation_id = "192839"
+
+        async with service_instance.grpc(namespace='service', service_method='GetNation') as stub:
+            try:
+                r = await stub(nation_id=nation_id)
+            except Exception as e:
+                raise e
+
+            assert r.id == int(nation_id)
+            assert r.name == "testlocation"
