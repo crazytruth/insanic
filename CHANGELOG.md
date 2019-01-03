@@ -5,7 +5,7 @@ Changelog for insanic
 0.6.8 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- CHORE: remove grpc health in place of grpclib health  
 
 
 0.6.7 (2018-12-18)
