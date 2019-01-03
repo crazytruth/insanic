@@ -2,11 +2,11 @@ import asyncio
 import pytest
 
 from grpclib.client import Channel
+from grpclib.health.v1.health_pb2 import HealthCheckRequest
+from grpclib.health.v1.health_grpc import HealthStub
 
 from insanic.app import Insanic
 from insanic.grpc.server import GRPCServer
-from insanic.grpc.health.health_grpc import HealthStub
-from insanic.grpc.health.health_pb2 import HealthCheckRequest
 
 
 class StubHelper:
@@ -40,7 +40,7 @@ class TestGRPCServerClass(StubHelper):
         grpc = GRPCServer([])
         host = '127.0.0.1'
         await grpc.start(host, unused_port)
-        assert grpc._grpc_server._tcp_server is not None
+        assert grpc._grpc_server._server is not None
         await grpc.stop()
         assert grpc._grpc_server is None
 
