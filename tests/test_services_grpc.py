@@ -260,16 +260,16 @@ class TestClientStubs:
     @pytest.fixture
     def insanic_application(self, monkeypatch):
 
-        from grpc_location_service.service_grpc import LocationBase
-        from grpc_location_service.service_pb2 import NationObject
+        from grpc_test_monkey.monkey_grpc import ApeServiceBase
+        from grpc_test_monkey.monkey_pb2 import ApeMonkeyResponse
 
-        class TestLocationBase(LocationBase):
-            async def GetNation(self, stream):
+        class TestApeService(ApeServiceBase):
+            async def ApeMonkey(self, stream):
                 request = await stream.recv_message()
-                response = NationObject(id=int(request.nation_id), name="testlocation")
+                response = ApeMonkeyResponse(id=int(request.id))
                 await stream.send_message(response)
 
-        monkeypatch.setattr(settings, 'GRPC_SERVER', [TestLocationBase, ])
+        monkeypatch.setattr(settings, 'GRPC_SERVER', [TestApeService, ])
         app = Insanic('test')
 
         yield app
@@ -283,15 +283,14 @@ class TestClientStubs:
     async def test_grpc_context_manager(self, monkeypatch, insanic_server):
         monkeypatch.setattr(Service, 'host', '127.0.0.1')
         monkeypatch.setattr(Service, 'port', insanic_server.port)
-        service_instance = Service('location')
+        service_instance = Service('test')
 
-        nation_id = "192839"
+        some_id = "192839"
 
-        async with service_instance.grpc(namespace='service', service_method='GetNation') as stub:
+        async with service_instance.grpc(namespace='monkey', service_method='ApeMonkey') as stub:
             try:
-                r = await stub(nation_id=nation_id)
+                r = await stub(id=some_id)
             except Exception as e:
                 raise e
 
-            assert r.id == int(nation_id)
-            assert r.name == "testlocation"
+            assert r.id == int(some_id)
