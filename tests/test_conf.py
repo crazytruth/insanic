@@ -336,6 +336,47 @@ class TestVaultConfig:
         assert self.config.SERVICE_SECRET_SETTING == "service secret setting"
         assert self.config.SERVICE_CONFIG_SETTING == "service config setting"
 
+    def test_load_from_new_vault_order(self, monkeypatch):
+        """
+        test to check order in which the settings get loaded
+        1. common 2. secret 3. config
+
+        :param monkeypatch:
+        :return:
+        """
+
+        self.undo_mock_load_from_vault(monkeypatch)
+
+        env = "test"
+        service_name = "testservice"
+
+        def mock_data(path, **kwargs):
+            if path == self.config.vault_common_path.format(env=env):
+                return {'data': {"WHO_AM_I": "common", "COMMON": "common",
+                                 "SECRET": "common", "CONFIG": "common"}}
+            elif path == self.config.vault_service_secret_path.format(env=env, service_name=service_name):
+                return {'data': {"WHO_AM_I": "secret", "SECRET": "secret", "S": "s"}}
+            elif path == self.config.vault_service_config_path.format(env=env, service_name=service_name):
+                return {'data': {"WHO_AM_I": "config", "CONFIG": "config", "C": "c"}}
+            else:
+                raise Forbidden(f"Forbidden: {path}")
+
+        monkeypatch.setattr(self.config, "_service_name", service_name)
+        monkeypatch.setenv('MMT_ENV', env)
+        monkeypatch.setattr(self.config.vault_client, "read", mock_data)
+
+        self.config.load_from_vault()
+
+        assert hasattr(self.config, "COMMON") is True
+        assert hasattr(self.config, "SECRET") is True
+        assert hasattr(self.config, "CONFIG") is True
+        assert hasattr(self.config, "WHO_AM_I") is True
+
+        assert self.config.WHO_AM_I == "config"
+        assert self.config.COMMON == "common"
+        assert self.config.SECRET == "secret"
+        assert self.config.CONFIG == "config"
+
     def test_load_from_vault(self, monkeypatch):
         self.undo_mock_load_from_vault(monkeypatch)
 

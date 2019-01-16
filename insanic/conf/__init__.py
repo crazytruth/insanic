@@ -190,6 +190,10 @@ class VaultConfig(BaseConfig):
         2. config
         3. secrets
 
+        updated to https://github.com/MyMusicTaste/insanic/issues/159
+        1. common
+        2. secrets
+        3. config
 
         :param raise_exception:
         :return:
@@ -224,8 +228,8 @@ class VaultConfig(BaseConfig):
                     )
                     service_settings = service_settings['data']
                 else:
-                    service_settings = service_config_settings['data']
-                    for k, v in service_secret_settings['data'].items():
+                    service_settings = service_secret_settings['data']
+                    for k, v in service_config_settings['data'].items():
                         service_settings.update({k.upper(): v})
 
             except Forbidden:

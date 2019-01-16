@@ -11,6 +11,7 @@ Changelog for insanic
 - CHORE: fix tests for new grpclib release 0.2.1
 - CHORE: refactor tests to use test package
 - FEAT: add error codes, method, path and uri template to network logs for better logging 
+- FEAT: changes the order in which the settings from vault are loaded from  common/config/secret to common/secret/config
 
 0.6.7 (2018-12-18)
 ------------------
