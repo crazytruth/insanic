@@ -138,9 +138,6 @@ import importlib
 import inspect
 from grpclib.client import ServiceMethod
 
-from grpc_location_service.service_grpc import LocationStub
-from grpc_location_service.service_pb2 import NationRequest
-
 
 def is_stub(m):
     return inspect.isclass(m) and not inspect.isabstract(m)
@@ -192,8 +189,6 @@ class ContextStub:
         self.stub.channel = None
 
 
-
-
 class GRPCClient:
     _dispatch_stub = None
     _health_stub = None
@@ -212,6 +207,7 @@ class GRPCClient:
             gp = importlib.import_module("_".join([prefix, service, namespace]))
 
             try:
+
                 _, module = inspect.getmembers(gp, is_grpc_module)[0]
             except KeyError:
                 raise RuntimeError(f'Error while loading {package_name}. '
@@ -234,6 +230,14 @@ class GRPCClient:
                                                                            response_type=method.reply_type)})
 
     def grpc(self, namespace, service_method):
+        """
+        general grpc stub interface to send request to target service running the respective grpc service
+
+        :param namespace: the namespace of the stub (eg. if grpc-test-monkey, "monkey" is the namespace)
+        :param service_method: the actual stub name
+        :return:
+        :rtype: ContextStub
+        """
         try:
             stub, request_type, response_type = self._stub[namespace][service_method]
         except KeyError:
@@ -243,28 +247,6 @@ class GRPCClient:
             raise ImportError(f"GRPC service method for {namespace} and {service_method} was not found.")
 
         return ContextStub(self.channel_manager, stub, request_type, response_type)
-
-    # def GetNation(self, namespace, **kwargs):
-    #     inspect.signature(NationRequest)
-    #     # kwargs.keys() == NationRequest signature
-    #
-    #
-    #
-    #     NationRequest(id=id, include=include)
-    #
-    #
-    # get_service('location').GetNation(namespace='v2', id="", include='')
-    #
-    # get_service('location').v2.GetNation(id="", include="")
-    #
-    # get_service('location').grpc(namespace='v2', service_method='GetNation', params={})
-    #
-    # get_service('location').http_dispatch(method='', endpoint='', query_params={})
-
-    # with get_service('location').grpc(namespace='v2', service_method='GetNation') as stub:
-    #     response = await stub(id='', include='')
-
-
 
     @property
     def grpc_port(self):
