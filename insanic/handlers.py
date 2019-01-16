@@ -1,13 +1,13 @@
-from enum import Enum
+import ujson as json
 
 from sanic import exceptions as sanic_exceptions
-from sanic.response import json
 from sanic.handlers import ErrorHandler as SanicErrorHandler, format_exc, SanicException
 
 from insanic import exceptions, status
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.log import error_logger
+from insanic.responses import json_response
 from insanic.utils import _unpack_enum_error_message
 
 
@@ -76,6 +76,8 @@ class ErrorHandler(SanicErrorHandler):
             else:
                 return self.handle_uncaught_exception(request, exception)
         response.exception = exception
+        response.error_code = json.loads(response.body)['error_code']
+
         return response
 
     def default(self, request, exception):
@@ -88,7 +90,7 @@ class ErrorHandler(SanicErrorHandler):
             if getattr(exception, 'wait', None):
                 headers['Retry-After'] = '%d' % exception.wait
 
-            response = json(
+            response = json_response(
                 {"message": getattr(exception, 'message', status.REVERSE_STATUS[exception.status_code]),
                  "description": getattr(exception, 'description', exception.args[0]),
                  "error_code": _unpack_enum_error_message(
@@ -98,7 +100,7 @@ class ErrorHandler(SanicErrorHandler):
             )
         elif issubclass(type(exception), SanicException):
 
-            response = json(
+            response = json_response(
                 {
                     "message": status.REVERSE_STATUS[exception.status_code],
                     "description": getattr(exception, 'description', exception.args[0]),
@@ -115,7 +117,7 @@ class ErrorHandler(SanicErrorHandler):
 
     def handle_uncaught_exception(self, request, exception, custom_message=INTERNAL_SERVER_ERROR_JSON):
 
-        return json(custom_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return json_response(custom_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def get_authenticate_header(self, request):
         """

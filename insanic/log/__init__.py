@@ -61,7 +61,7 @@ def get_logging_config():
             "json": {
                 "()": "insanic.log.formatters.JSONFormatter",
                 "format": {"level": "%(levelname)s", "hostname": "%(hostname)s", "where": "%(module)s.%(funcName)s",
-                           "ts": "%(asctime)s", "method": "%(request)s", "message": "%(message)s",
+                           "ts": "%(asctime)s", "request": "%(request)s", "message": "%(message)s",
                            "status": "%(status)d", "size": "%(byte)d", "name": "%(name)s", "thread": "%(thread)s",
                            "process": "%(process)s", "thread_name": "%(threadName)s", "service": "%(service)s",
                            "environment": "%(environment)s", "insanic_version": "%(insanic_version)s",
@@ -70,7 +70,14 @@ def get_logging_config():
                            "sampled": "%(ot_sampled)s", "request_duration": "%(request_duration)s",
                            "parent_id": "%(ot_parent_id)s", "correlation_id": "%(correlation_id)s",
                            "exc_text": "%(exc_text)s", "request_service": "%(request_service)s",
-                           "is_grpc": "%(is_grpc)d"},
+                           "is_grpc": "%(is_grpc)d",
+                           # added in 0.6.8
+                           "error_code_name": "%(error_code_name)s",
+                           "error_code_value": "%(error_code_value)s",
+                           "method": "%(method)s",
+                           "path": "%(path)s",
+                           "uri_template": "%(uri_template)s"
+                           },
                 'datefmt': '%Y-%m-%dT%H:%M:%S.%%(msecs)d%z'
             }
         }
