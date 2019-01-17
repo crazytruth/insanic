@@ -5,6 +5,7 @@ import ujson as json
 from types import SimpleNamespace
 
 from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.core.exceptions import exceptions
 from aws_xray_sdk.core.models import http
 from aws_xray_sdk.ext.util import inject_trace_header, strip_url
 
@@ -25,7 +26,10 @@ LOCAL_EXCEPTIONS = (
 
 async def begin_subsegment(session, trace_config_ctx, params):
     name = trace_config_ctx.name if trace_config_ctx.name else strip_url(str(params.url))
-    subsegment = xray_recorder.begin_subsegment(name, REMOTE_NAMESPACE)
+    try:
+        subsegment = xray_recorder.begin_subsegment(name, REMOTE_NAMESPACE)
+    except exceptions.SegmentNotFoundException:
+        subsegment = None
 
     # No-op if subsegment is `None` due to `LOG_ERROR`.
     if not subsegment:
