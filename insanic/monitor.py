@@ -1,4 +1,5 @@
 import asyncio
+import psutil
 import time
 
 from sanic import Blueprint
@@ -13,7 +14,7 @@ from insanic.status import HTTP_200_OK
 from insanic.views import InsanicView
 
 blueprint_monitor = Blueprint('monitor', strict_slashes=True)
-
+p = psutil.Process()
 
 # A service has an health check API endpoint (e.g. HTTP /health) that returns the health of the service.
 # The API endpoint handler performs various checks, such as
@@ -85,3 +86,23 @@ def health_check(request):
         "insanic_version": __version__,
         "ip": get_my_ip()
     }, status=HTTP_200_OK)
+
+
+@blueprint_monitor.route('/metrics/', methods=("GET",))
+def metrics(request):
+    total_task_count = 0
+    active_task_count = 0
+    for task in asyncio.Task.all_tasks():
+        total_task_count += 1
+        if not task.done():
+            active_task_count += 1
+
+    return json({
+        "total_task_count": total_task_count,
+        "active_task_count": active_task_count,
+        "request_count": request.app.metrics['request_count']._value.get(),
+        "proc_rss_mem_bytes": p.memory_info().rss,
+        "proc_rss_mem_perc": p.memory_percent(),
+        "proc_cpu_perc": p.cpu_percent(),
+        "timestamp": time.time()
+    })
