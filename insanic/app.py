@@ -1,8 +1,8 @@
 import os
 import string
 
+from prometheus_client import Counter
 from sanic import Sanic
-from sanic.app import WebSocketProtocol
 from sanic.views import CompositionView
 from sanic_useragent import SanicUserAgent
 
@@ -21,8 +21,13 @@ MIDDLEWARE_TYPES = ('request', 'response')
 class Insanic(Sanic):
     database = None
     _public_routes = empty
+    metrics = {}
 
     def __init__(self, name, router=None, error_handler=None, app_config=()):
+
+        if "request_count" not in self.metrics:
+            self.metrics['request_count'] = Counter('request_count',
+                                                    'The number of requests this application has handled')
 
         if error_handler is None:
             error_handler = ErrorHandler()
@@ -126,7 +131,6 @@ class Insanic(Sanic):
 
         super().run(host, port, debug, ssl, sock, workers, protocol, backlog,
                     stop_event, register_sys_signals, access_log)
-
 
     def _helper(self, host=None, port=None, debug=False,
                 ssl=None, sock=None, workers=1, loop=None,
