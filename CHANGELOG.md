@@ -14,6 +14,7 @@ Changelog for insanic
 - FEAT: add error codes, method, path and uri template to network logs for better logging 
 - FEAT: changes the order in which the settings from vault are loaded from  common/config/secret to common/secret/config
 - FEAT: introduce metrics endpoint which exposes cpu/mem usages and task counts
+- FEAT: introduce new config to turn off infuse (INFUSE_ENABLED=0)
 
 0.6.7 (2018-12-18)
 ------------------

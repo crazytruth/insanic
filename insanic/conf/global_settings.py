@@ -21,8 +21,8 @@ ALLOWED_HOSTS = []
 
 LOG_IP_FAIL_TYPE = "hard"
 
-INFUSE_FAIL_TYPE = "soft"
-
+INFUSE_ENABLED = 0
+INFUSE_FAIL_TYPE = "soft"  # | "hard"
 
 INSANIC_CACHES = {
     "insanic": {
