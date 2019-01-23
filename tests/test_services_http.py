@@ -891,7 +891,7 @@ class TestRequestTaskContext:
         remote_addrs = []
         for i in range(10):
             async with amazon.session().request(method='GET', url=url, allow_redirects=False) as resp:
-                remote_addrs.append(resp._protocol.transport._sock.getpeername()[0])
+                remote_addrs.append(resp._protocol.transport.get_extra_info('peername')[0])
 
         assert len(remote_addrs) == 10
         assert len(set(remote_addrs)) > 1

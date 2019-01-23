@@ -107,7 +107,7 @@ class Insanic(Sanic):
     def run(self, host=None, port=None, debug=False, ssl=None,
             sock=None, workers=1, protocol=None,
             backlog=100, stop_event=None, register_sys_signals=True,
-            access_log=True):
+            access_log=True, **kwargs):
         """Run the HTTP Server and listen until keyboard interrupt or term
         signal. On termination, drain connections before closing.
 
@@ -130,12 +130,12 @@ class Insanic(Sanic):
             protocol = InsanicHttpProtocol
 
         super().run(host, port, debug, ssl, sock, workers, protocol, backlog,
-                    stop_event, register_sys_signals, access_log)
+                    stop_event, register_sys_signals, access_log, **kwargs)
 
     def _helper(self, host=None, port=None, debug=False,
                 ssl=None, sock=None, workers=1, loop=None,
                 protocol=InsanicHttpProtocol, backlog=100, stop_event=None,
-                register_sys_signals=True, run_async=False, access_log=True):
+                register_sys_signals=True, run_async=False, auto_reload=False):
 
         if port:
             settings.SERVICE_PORT = port
@@ -147,9 +147,9 @@ class Insanic(Sanic):
 
         settings.WORKERS = workers
 
-        server_settings = super()._helper(host, port, debug, ssl, sock, workers, loop,
-                                          protocol, backlog, stop_event,
-                                          register_sys_signals, run_async, access_log)
+        server_settings = super()._helper(host, port, debug, ssl, sock,
+                                          workers, loop, protocol, backlog, stop_event,
+                                          register_sys_signals, run_async, auto_reload)
         return server_settings
 
     def public_routes(self):

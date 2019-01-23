@@ -5,6 +5,7 @@ Changelog for insanic
 0.6.8 (unreleased)
 ------------------
 
+- FEAT: update sanic dependency to 18.12.0
 - FEAT: load grpc server classes and serves
 - FEAT: searches installed grpc packages and binds to service client object
 - CHORE: remove grpc health in place of grpclib health  

@@ -80,8 +80,8 @@ class TestLogFormats:
                 if isinstance(response_meta, Exception):
                     assert r.error_code_value == getattr(response_meta, 'error_code_value',
                                                          GlobalErrorCodes.unknown_error).value
-                    assert r.error_code_name == getattr(response_meta, 'error_code_name',
-                                                        GlobalErrorCodes.unknown_error).name
+                    assert r.error_code_name.endswith(getattr(response_meta, 'error_code_name',
+                                                              GlobalErrorCodes.unknown_error).name)
                 else:
                     assert r.error_code_value == None
                     assert r.error_code_name == None

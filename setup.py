@@ -37,7 +37,8 @@ test_requires = [
     "pact-python",
     "requests",
     "aioresponses",
-    "grpc-location-service"
+    "grpc-test-monkey"
+
     # "beautifulsoup4"
     # "docker",
     # "aiobotocore",
@@ -67,14 +68,14 @@ setup(
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     setup_requires=["zest.releaser[recommended]", "setuptools"],
     install_requires=[
-        'sanic==0.7.0',
+        'sanic==18.12.0',
         'sanic-useragent',
         'aiohttp>=3.0.0',
         'aiodns',
         # 'yarl==1.1.1',
         'aioredis>=1.1.0',
         'PyJWT',
-        'aws-xray-sdk==1.1.2',
+        'aws-xray-sdk==1.1.1',
         "python-consul",
         "hvac",
         "aiotask_context",
@@ -84,6 +85,7 @@ setup(
         "grpclib==0.2.1",
         "googleapis-common-protos",
         "aio-pika==3.2.1",
+        "prometheus-client==0.5.0"
     ],
     # test_suite='nose.collector',
     tests_require=test_requires,

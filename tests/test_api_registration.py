@@ -335,8 +335,8 @@ class TestKongGateway:
 
         assert self.gateway.service_id is None
 
-    @pytest.mark.parametrize("routes_prefix", [r.replace("public", "prefix") for r in ROUTES])
-    @pytest.mark.parametrize("routes_suffix", [r.replace("public", "suffix") for r in ROUTES])
+    @pytest.mark.parametrize("routes_prefix", [r.replace("public", "prefix").format(type="prefix") for r in ROUTES])
+    @pytest.mark.parametrize("routes_suffix", [r.replace("public", "suffix").format(type="suffix") for r in ROUTES])
     async def test_register_routes_with_public_facing(self, monkeypatch, insanic_application,
                                                       routes_prefix, routes_suffix):
 
@@ -374,8 +374,8 @@ class TestKongGateway:
         self.gateway.deregister_service()
         assert self.gateway.service_id is None
 
-    @pytest.mark.parametrize("routes_prefix", [r.replace("public", "prefix") for r in ROUTES])
-    @pytest.mark.parametrize("routes_suffix", [r.replace("public", "suffix") for r in ROUTES])
+    @pytest.mark.parametrize("routes_prefix", [r.format(type="prefix") for r in ROUTES])
+    @pytest.mark.parametrize("routes_suffix", [r.format(type="suffix") for r in ROUTES])
     async def test_routes_with_jwt_plugin_enabled(self, monkeypatch, insanic_application, kong_jwt_test_fixture,
                                                   routes_prefix, routes_suffix):
         monkeypatch.setattr(settings._wrapped, "ALLOWED_HOSTS", ['test.mmt.local'], raising=False)
@@ -421,8 +421,8 @@ class TestKongGateway:
         self.gateway.deregister_routes()
         self.gateway.deregister_service()
 
-    @pytest.mark.parametrize("routes_prefix", [r.replace("public", "prefix") for r in ROUTES])
-    @pytest.mark.parametrize("routes_suffix", [r.replace("public", "suffix") for r in ROUTES])
+    @pytest.mark.parametrize("routes_prefix", [r.format(type="prefix") for r in ROUTES])
+    @pytest.mark.parametrize("routes_suffix", [r.format(type="suffix") for r in ROUTES])
     async def test_deregister_routes_with_disabling_plugins(self, monkeypatch, insanic_application,
                                                             routes_prefix, routes_suffix):
         monkeypatch.setattr(settings._wrapped, "ALLOWED_HOSTS", ['test.msa.local'], raising=False)

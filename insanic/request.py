@@ -4,11 +4,11 @@ import time
 import uuid
 
 from cgi import parse_header
+from multidict import CIMultiDict
 from pprint import pformat
 from urllib.parse import parse_qs
 
 from sanic.exceptions import InvalidUsage
-from sanic.server import CIDict
 from sanic.request import Request as SanicRequest, RequestParameters, File
 
 from insanic import exceptions
@@ -63,7 +63,7 @@ class Request(SanicRequest):
         request_headers = {k: v for k, v in request_message.headers.items()}
 
         req = cls(url_bytes=request_message.endpoint,
-                  headers=CIDict(request_headers),
+                  headers=CIMultiDict(request_headers),
                   version=2, method=request_message.method, transport=stream._stream._transport)
 
         req._id = request_message.request_id

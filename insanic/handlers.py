@@ -30,8 +30,13 @@ class ErrorHandler(SanicErrorHandler):
     def sanic_exception_handler(self, request, exception):
 
         if hasattr(exceptions, f"Sanic{exception.__class__.__name__}"):
-            exception = getattr(exceptions, f"Sanic{exception.__class__.__name__}")(exception.args[0],
-                                                                                    status_code=exception.status_code)
+            insanic_exception = getattr(exceptions, f"Sanic{exception.__class__.__name__}")(exception.args[0],
+                                                                                            status_code=exception.status_code)
+            if hasattr(exception, "headers"):
+                insanic_exception.headers = exception.headers
+            exception = insanic_exception
+
+
         return self.default(request, exception)
 
     def not_authenticated_handler(self, request, exception):
@@ -61,7 +66,7 @@ class ErrorHandler(SanicErrorHandler):
                 response = handler(request=request, exception=exception)
             if response is None:
                 response = self.default(request=request, exception=exception)
-        except Exception:
+        except Exception as e:
             exc = format_exc()
             self.log(exc)
             if self.debug:
@@ -89,6 +94,13 @@ class ErrorHandler(SanicErrorHandler):
                 headers['WWW-Authenticate'] = exception.auth_header
             if getattr(exception, 'wait', None):
                 headers['Retry-After'] = '%d' % exception.wait
+            if getattr(exception, 'headers', None):
+                for k, v in exception.headers.items():
+                    if k.lower() == "content-length":
+                        continue
+
+                    headers.update({k: v})
+
 
             response = json_response(
                 {"message": getattr(exception, 'message', status.REVERSE_STATUS[exception.status_code]),
@@ -96,10 +108,10 @@ class ErrorHandler(SanicErrorHandler):
                  "error_code": _unpack_enum_error_message(
                      getattr(exception, 'error_code', GlobalErrorCodes.unknown_error))},
                 status=getattr(exception, 'status_code', status.HTTP_500_INTERNAL_SERVER_ERROR),
-                headers=getattr(exception, 'headers', headers),
+                headers=headers,
             )
         elif issubclass(type(exception), SanicException):
-
+            # if this error is raised then, need to specify an api exeception
             response = json_response(
                 {
                     "message": status.REVERSE_STATUS[exception.status_code],

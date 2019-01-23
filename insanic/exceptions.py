@@ -184,3 +184,9 @@ class SanicNotFound(APIException):
     status_code = status.HTTP_404_NOT_FOUND
     message = "Not Found"
     error_code = GlobalErrorCodes.not_found
+
+
+class SanicMethodNotSupported(APIException):
+    status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+    message = "Method not allowed."
+    error_code = GlobalErrorCodes.method_not_allowed

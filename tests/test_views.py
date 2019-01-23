@@ -226,6 +226,8 @@ def test_sanic_error_handling(sanic_exception):
 
     if sanic_exception.status_code == 416:
         raised_exception = sanic_exception("a", ContentRange())
+    elif sanic_exception.status_code == 405:
+        raised_exception = sanic_exception("a", 'HEAD', ['GET'])
     else:
         raised_exception = sanic_exception("a")
 
@@ -248,5 +250,8 @@ def test_sanic_error_handling(sanic_exception):
 
     if hasattr(raised_exception, "headers"):
         for k, v in raised_exception.headers.items():
+            if raised_exception.status_code == 405 and k.lower() == 'content-length':
+                continue
+
             assert k in response.headers.keys()
             assert str(v) == response.headers[k]
