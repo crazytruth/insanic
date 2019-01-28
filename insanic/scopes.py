@@ -103,13 +103,18 @@ def public_facing(fn=None, *, params=None):
                             for qp in o.query_params:
                                 if qp not in params:
                                     error_logger.error(f"Request with invalid params detected! "
-                                                       f"{qp} no in {', '.join(params)}.")
+                                                       f"{qp} not in {', '.join(params)}.")
 
                                     raise BadRequest(description=f"Invalid query params. Allowed: {', '.join(params)}",
                                                      error_code=GlobalErrorCodes.invalid_query_params)
                             break
                     else:
-                        raise 400
+                        """
+                        if here, this means request object was not found... 
+                        """
+                        raise RuntimeError("`request` object was not found. "
+                                           "Must decorate a view function "
+                                           "or class view method.")
 
                 return fn(*args, **kwargs)
 

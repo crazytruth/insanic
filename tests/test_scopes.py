@@ -95,3 +95,42 @@ class TestPublicFacingScope:
 
         request, response = insanic_application.test_client.get(endpoint)
         assert response.status == expected_status_code
+
+    @pytest.mark.parametrize("decorator,query_params,expected_status_code", (
+            (public_facing, None, 200),  # this means anything is allowed
+            (public_facing, "trash=a", 200),  # this means anything is allowed
+            (public_facing(), None, 200),  # this means anything is allowed
+            (public_facing(), "trash=a", 200),  # this means anything is allowed
+            (public_facing(params=[]), None, 200),  # this means that no query params are allowed
+            (public_facing(params=[]), 'trash=a', 400),  # this means that no query params are allowed
+            (public_facing(params=["trash"]), None, 200),  # only `trash` is allowed
+            (public_facing(params=["trash"]), 'trash=a', 200),  # only `trash` is allowed
+            (public_facing(params=["trash"]), 'trash=a&ssuregi=b', 400),  # only `trash` is allowed
+            (public_facing(params=["trash", "rubbish"]), None, 200),  # only `trash` and `rubbish` is allowed
+            (public_facing(params=["trash", "rubbish"]), 'trash=a', 200),  # only `trash` and `rubbish` is allowed
+            (public_facing(params=["trash", "rubbish"]), 'trash=a&rubbish=b', 200),
+            # only `trash` and `rubbish` is allowed
+            (public_facing(params=["trash", "rubbish"]), 'trash=a&ssuregi=b', 400),
+            # only `trash` and `rubbish` is allowed
+
+    ))
+    def test_query_params_validation_async(self, insanic_application, decorator, query_params, expected_status_code):
+        get_response = {"method": "get"}
+        post_response = {"method": "post"}
+
+        class MockView(InsanicView):
+            authentication_classes = ()
+            permission_classes = ()
+
+            @decorator
+            async def get(self, request, user_id, *args, **kwargs):
+                return json(get_response, status=200)
+
+        insanic_application.add_route(MockView.as_view(), '/test/<user_id>')
+
+        endpoint = "/test/1234"
+        if query_params is not None:
+            endpoint = f"{endpoint}?{query_params}"
+
+        request, response = insanic_application.test_client.get(endpoint)
+        assert response.status == expected_status_code
