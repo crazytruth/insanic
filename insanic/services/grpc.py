@@ -25,6 +25,7 @@ from insanic.functional import cached_property
 from insanic.grpc.dispatch.dispatch_grpc import DispatchStub
 from insanic.grpc.dispatch.dispatch_pb2 import ServiceRequest, ContextUser, ContextService, FileList
 from insanic.log import error_logger, logger
+from insanic.models import to_header_value
 from insanic.services.utils import context_user, context_correlation_id
 
 GRPC_HTTP_STATUS_MAP = OrderedDict([
@@ -158,18 +159,19 @@ GRPCStubSignature = namedtuple('GRPCStubSignature', ['method', 'request_type', '
 
 class ContextStub:
 
-    def __init__(self, channel_manager, stub, request_type, reply_type):
+    def __init__(self, channel_manager, stub, request_type, reply_type, service):
         self.channel_manager = channel_manager
         self.stub = stub
         self.request_type = request_type
         self.reply_type = reply_type
+        self.service = service
 
     async def __aenter__(self):
         stub = self.stub
         stub.channel = await self.channel_manager.get_channel()
 
         @wraps(self.stub)
-        def decorate_stub(message=None, **kwargs):
+        def decorate_stub(message=None, *, metadata=None, **kwargs):
             if message is None:
                 message_params = {}
                 for k in self.request_type.DESCRIPTOR.fields_by_name:
@@ -181,7 +183,15 @@ class ContextStub:
                 if not isinstance(message, self.request_type):
                     raise RuntimeError(f"Invalid Usage. `message` must be of {self.request_type}")
 
-            return self.stub(message)
+            if metadata is None:
+                metadata = {}
+
+            #  update metadata with context user
+            metadata.update({"context-request-user": to_header_value(context_user())})
+            metadata.update({"context-request-service": json.dumps(self.service.service_payload)})
+            metadata.update({"context-request-id": context_correlation_id()})
+
+            return self.stub(message, metadata=metadata)
 
         return decorate_stub
 
@@ -246,7 +256,7 @@ class GRPCClient:
                                f"in your requirements.")
             raise ImportError(f"GRPC service method for {namespace} and {service_method} was not found.")
 
-        return ContextStub(self.channel_manager, stub, request_type, response_type)
+        return ContextStub(self.channel_manager, stub, request_type, response_type, self)
 
     @property
     def grpc_port(self):

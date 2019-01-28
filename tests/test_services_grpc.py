@@ -2,6 +2,7 @@ import asyncio
 import aiotask_context
 import pytest
 import time
+import ujson as json
 import uuid
 
 from insanic import status, permissions, authentication
@@ -11,7 +12,7 @@ from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.exceptions import RequestTimeoutError, APIException
 from insanic.grpc.server import GRPCServer
-from insanic.models import User, AnonymousUser
+from insanic.models import User, AnonymousUser, to_header_value
 from insanic.responses import json_response
 from insanic.services import Service
 from insanic.views import InsanicView
@@ -266,7 +267,7 @@ class TestClientStubs:
         class TestApeService(ApeServiceBase):
             async def ApeMonkey(self, stream):
                 request = await stream.recv_message()
-                response = ApeMonkeyResponse(id=int(request.id))
+                response = ApeMonkeyResponse(id=int(request.id), extra=json.dumps(dict(stream.metadata)))
                 await stream.send_message(response)
 
         monkeypatch.setattr(settings, 'GRPC_SERVER', [TestApeService, ])
@@ -280,7 +281,7 @@ class TestClientStubs:
 
         return loop.run_until_complete(test_server(insanic_application))
 
-    async def test_grpc_context_manager(self, monkeypatch, insanic_server):
+    async def test_grpc_context_manager_interface(self, monkeypatch, insanic_server):
         monkeypatch.setattr(Service, 'host', '127.0.0.1')
         monkeypatch.setattr(Service, 'port', insanic_server.port)
         service_instance = Service('test')
@@ -294,3 +295,30 @@ class TestClientStubs:
                 raise e
 
             assert r.id == int(some_id)
+
+    async def test_grpc_context_in_request(self, monkeypatch, insanic_server):
+
+        monkeypatch.setattr(Service, 'host', '127.0.0.1')
+        monkeypatch.setattr(Service, 'port', insanic_server.port)
+        service_instance = Service('test')
+
+        some_id = "192839"
+
+        async with service_instance.grpc(namespace='monkey', service_method='ApeMonkey') as stub:
+            try:
+                r = await stub(id=some_id)
+            except Exception as e:
+                raise e
+
+            context_metadata = json.loads(r.extra)
+
+            assert "context-request-user" in context_metadata
+            assert context_metadata['context-request-user'] == to_header_value(AnonymousUser)
+
+            assert "context-request-service" in context_metadata
+            request_service = json.loads(context_metadata['context-request-service'])
+            assert request_service['source'] == settings.SERVICE_NAME
+            assert request_service['aud'] == service_instance.service_name
+
+            assert "context-request-id" in context_metadata
+            assert context_metadata['context-request-id'] == "unknown"
