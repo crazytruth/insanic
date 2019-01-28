@@ -1,22 +1,125 @@
+import inspect
 import os
 import urllib.request
 import socket
 
 from functools import wraps
 
-from insanic.log import logger
+from insanic.log import logger, error_logger
+from insanic.errors import GlobalErrorCodes
+from insanic.exceptions import BadRequest
 
 
 AWS_ECS_METADATA_ENDPOINT = "169.254.170.2/v2/metadata"
 
 
-def public_facing(f):
-    @wraps(f)
-    def public_f(*args, **kwargs):
-        return f(*args, **kwargs)
+# class public_facing(object):
+#     # scope = True
+#
+#     def __new__(cls, *args, **kwargs):
+#         try:
+#             params = args[0]
+#             if inspect.isfunction(params):
+#                 return cls
+#             else:
+#                 raise IndexError
+#         except IndexError:
+#
+#             return super().__new__(cls)
+#
+#     def __init__(self, *args, **kwargs):
+#
+#
+#
+#         self.params = params
+#
+#     def __call__(self, f, *args, **kwargs):
+#
+#         @wraps(f)
+#         def public_f(*args, **kwargs):
+#             return f(*args, **kwargs)
+#
+#         setattr(public_f, "scope", "public")
+#         return public_f
 
-    setattr(public_f, "scope", "public")
-    return public_f
+
+# def public_facing(*, params=None):
+#     if isinstance(params, function):
+#         @wraps()
+#         def public_f(*args, **kwargs):
+#             return f(*args, **kwargs)
+#
+#         setattr(public_f, "scope", "public")
+#         return public_f
+#     else:
+#         def wrap(f):
+#
+#             @wraps(f)
+#             def public_f(*args, **kwargs):
+#                 return f(*args, **kwargs)
+#
+#             setattr(public_f, "scope", "public")
+#             return public_f
+#         return wrap
+
+def public_facing(fn=None, *, params=None):
+    """
+    depending on usage can be used to validate query params
+    @public_facing  -> does not validate query params and anything is allowed
+    @public_facing() -> same as above
+    @public_facing(params=[]) -> does not allow any query_params. hard failure (returns 400)
+    @public_facing(params=['rabbit']) -> only allows query param "rabbit"
+
+    :param fn: view to decorate
+    :param params: params to validate against
+    :return: function
+    :raise: BadRequest if query_params doesn't validate
+    """
+
+    if fn and inspect.isfunction(fn):
+        """
+        called with just @public_facing and don't need to worry about `params`
+        """
+
+        @wraps(fn)
+        def public_f(*args, **kwargs):
+            return fn(*args, **kwargs)
+
+        setattr(public_f, "scope", "public")
+        return public_f
+
+    else:
+        """
+        called with args @public_facing()
+        """
+        from insanic.request import Request
+
+        def wrap(fn):
+            @wraps(fn)
+            def public_f(*args, **kwargs):
+                if params is not None:
+                    for o in args:
+                        if isinstance(o, Request):
+                            for qp in o.query_params:
+                                if qp not in params:
+                                    error_logger.error(f"Request with invalid params detected! "
+                                                       f"{qp} no in {', '.join(params)}.")
+
+                                    raise BadRequest(description=f"Invalid query params. Allowed: {', '.join(params)}",
+                                                     error_code=GlobalErrorCodes.invalid_query_params)
+                            break
+                    else:
+                        raise 400
+
+                return fn(*args, **kwargs)
+
+            setattr(public_f, "scope", "public")
+            return public_f
+
+        return wrap
+
+
+
 
 def _is_docker():
     try:

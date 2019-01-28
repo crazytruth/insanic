@@ -16,6 +16,7 @@ Changelog for insanic
 - FEAT: introduce metrics endpoint which exposes cpu/mem usages and task counts
 - FEAT: introduce new config to turn off infuse (INFUSE_ENABLED=0)
 - FEAT: include context in grpc stub requests
+- FEAT: query param validation upon instantiation
 
 0.6.7 (2018-12-18)
 ------------------

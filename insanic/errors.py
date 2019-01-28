@@ -23,6 +23,7 @@ class GlobalErrorCodes(Enum):
     redis_unable_to_process = 999301
 
     # general errors
+    invalid_query_params = 999400
     invalid_usage = 999401
     not_found = 999404
 
