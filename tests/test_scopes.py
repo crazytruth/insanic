@@ -11,20 +11,10 @@ class TestPublicFacingScope:
 
     @pytest.mark.parametrize("decorator", (
             public_facing,  # this means anything is allowed
-            public_facing,  # this means anything is allowed
-            public_facing(),  # this means anything is allowed
             public_facing(),  # this means anything is allowed
             public_facing(params=[]),  # this means that no query params are allowed
-            public_facing(params=[]),  # this means that no query params are allowed
-            public_facing(params=["trash"]),  # only `trash` is allowed
-            public_facing(params=["trash"]),  # only `trash` is allowed
             public_facing(params=["trash"]),  # only `trash` is allowed
             public_facing(params=["trash", "rubbish"]),  # only `trash` and `rubbish` is allowed
-            public_facing(params=["trash", "rubbish"]),  # only `trash` and `rubbish` is allowed
-            public_facing(params=["trash", "rubbish"]),
-            # only `trash` and `rubbish` is allowed
-            public_facing(params=["trash", "rubbish"]),
-            # only `trash` and `rubbish` is allowed
     ))
     def test_public_facing_decorator(self, insanic_application, decorator):
         class PublicView(InsanicView):
