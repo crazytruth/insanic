@@ -1,30 +1,50 @@
 import pytest
 
 from sanic.response import json
+from insanic.functional import empty
 from insanic.scopes import public_facing
 from insanic.views import InsanicView
 
 
+
 class TestPublicFacingScope:
 
-    def test_public_facing_decorator(self, insanic_application):
+    @pytest.mark.parametrize("decorator", (
+            public_facing,  # this means anything is allowed
+            public_facing,  # this means anything is allowed
+            public_facing(),  # this means anything is allowed
+            public_facing(),  # this means anything is allowed
+            public_facing(params=[]),  # this means that no query params are allowed
+            public_facing(params=[]),  # this means that no query params are allowed
+            public_facing(params=["trash"]),  # only `trash` is allowed
+            public_facing(params=["trash"]),  # only `trash` is allowed
+            public_facing(params=["trash"]),  # only `trash` is allowed
+            public_facing(params=["trash", "rubbish"]),  # only `trash` and `rubbish` is allowed
+            public_facing(params=["trash", "rubbish"]),  # only `trash` and `rubbish` is allowed
+            public_facing(params=["trash", "rubbish"]),
+            # only `trash` and `rubbish` is allowed
+            public_facing(params=["trash", "rubbish"]),
+            # only `trash` and `rubbish` is allowed
+    ))
+    def test_public_facing_decorator(self, insanic_application, decorator):
         class PublicView(InsanicView):
             authentication_classes = ()
             permission_classes = ()
 
-            @public_facing
+            @decorator
             def get(self, request, *args, **kwargs):
                 return json({})
 
             def post(self, request, *args, **kwargs):
                 return json({})
 
-            @public_facing
+            @decorator
             def delete(self, request, *args, **kwargs):
                 return json({})
 
         route = '/hello'
         insanic_application.add_route(PublicView.as_view(), route)
+        assert insanic_application._public_routes is empty
 
         public_routes = insanic_application.public_routes()
 
@@ -73,7 +93,6 @@ class TestPublicFacingScope:
             # only `trash` and `rubbish` is allowed
             (public_facing(params=["trash", "rubbish"]), 'trash=a&ssuregi=b', 400),
     # only `trash` and `rubbish` is allowed
-
     ))
     def test_query_params_validation(self, insanic_application, decorator, query_params, expected_status_code):
         get_response = {"method": "get"}
