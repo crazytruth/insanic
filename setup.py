@@ -85,7 +85,8 @@ setup(
         "grpclib==0.2.1",
         "googleapis-common-protos",
         "aio-pika==3.2.1",
-        "prometheus-client==0.5.0"
+        "prometheus-client==0.5.0",
+        # "tenacity==5.0.2"
     ],
     # test_suite='nose.collector',
     tests_require=test_requires,

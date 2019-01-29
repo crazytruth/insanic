@@ -7,6 +7,7 @@ from grpclib.exceptions import ProtocolError
 from inspect import isawaitable
 from sanic.constants import HTTP_METHODS
 from sanic.request import File
+# from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from yarl import URL
 
 from insanic import exceptions, status
@@ -355,6 +356,10 @@ class Service(GRPCClient):
 
         return data
 
+    # @retry(stop=stop_after_attempt(3), reraise=True,
+    #        wait=wait_exponential(multiplier=1, min=1, max=10),
+    #        retry=retry_if_exception_type((asyncio.TimeoutError,
+    #                                       aiohttp.client_exceptions.ClientConnectorError)))
     async def _dispatch_fetch(self, method, url, headers, data, **kwargs):
 
         request_params = {
@@ -479,6 +484,10 @@ class Service(GRPCClient):
             exc = exceptions.RequestTimeoutError(description=f'Request to {self.service_name} took too long!',
                                                  error_code=GlobalErrorCodes.request_timeout,
                                                  status_code=status.HTTP_408_REQUEST_TIMEOUT)
+            # exc = exceptions.ServiceTimeoutError(description=f'{self.service_name} has timed out.',
+            #                                      error_code=GlobalErrorCodes.service_timeout,
+            #                                      status_code=status.HTTP_504_GATEWAY_TIMEOUT)
+
         except aiohttp.client_exceptions.ClientPayloadError as e:
             exc = e
         except aiohttp.client_exceptions.InvalidURL as e:
