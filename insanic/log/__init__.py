@@ -92,8 +92,8 @@ def get_logging_config():
                 'datefmt': '%Y-%m-%dT%H:%M:%S.%%(msecs)d%z'
             },
             "access_grpc": {
-                "format": "%(asctime)s - (%(name)s)[%(levelname)s][%(authority)s]: " +
-                          "GRPC %(cardinality)s %(scheme)s://%(authority)s%(path)s %(message)s %(status)s %(grpc_status)s",
+                "format": "%(asctime)s - (%(name)s)[%(levelname)s][%(host)s]: " +
+                          "GRPC %(cardinality)s %(scheme)s://%(host)s%(path)s %(message)s %(status)s %(grpc_status)s",
                 "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
                 "class": "logging.Formatter"
             },
@@ -144,6 +144,6 @@ logger = logging.getLogger('root')
 grpc_logger = logging.getLogger('root.grpc')
 rabbitmq_logger = logging.getLogger('root.rabbitmq')
 error_logger = logging.getLogger('sanic.error')
-grpc_error_logger = logging.getLogger('sanic.grpc.error')
+grpc_error_logger = logging.getLogger('sanic.error.grpc')
 access_logger = logging.getLogger('sanic.access')
 grpc_access_logger = logging.getLogger('sanic.grpc')

@@ -6,7 +6,7 @@ from traceback import format_exc
 from sanic.exceptions import ServerError
 from insanic import status
 from insanic.handlers import INTERNAL_SERVER_ERROR_JSON
-from insanic.log import error_logger, grpc_access_logger as access_logger
+from insanic.log import error_logger, access_logger
 from insanic.request import Request as InsanicRequest
 from insanic.responses import json_response
 from insanic.grpc.dispatch.dispatch_grpc import DispatchBase

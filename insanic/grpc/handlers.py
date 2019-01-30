@@ -127,6 +127,8 @@ async def request_handler(mapping, _stream, headers, codec, release_stream):
             if k.startswith(":"):
                 extra.update({k[1:]: v})
 
+        extra.update({"host": extra.get('authority', '')})
+
         if response_headers is not None:
             response_headers_mapping = dict(response_headers)
             extra.update({"status": response_headers_mapping.get(':status', 200)})
