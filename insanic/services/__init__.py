@@ -1,6 +1,8 @@
 import asyncio
-import io
 import aiohttp
+import io
+# import time
+
 
 from asyncio import get_event_loop
 from grpclib.exceptions import ProtocolError
@@ -15,7 +17,7 @@ from insanic.authentication.handlers import jwt_service_encode_handler, jwt_serv
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.functional import cached_property_with_ttl
-from insanic.log import error_logger
+from insanic.log import error_logger, access_logger
 from insanic.models import to_header_value
 from insanic.services.response import InsanicResponse
 from insanic.scopes import is_docker
@@ -395,6 +397,7 @@ class Service(GRPCClient):
         :param request_timeout: int
         :return:
         """
+        # request_start_time = time.monotonic()
 
         url = self._construct_url(endpoint, query_params=query_params)
         headers = self._prepare_headers(headers, files)
@@ -402,6 +405,7 @@ class Service(GRPCClient):
 
         # outbound_request = self.create_request_object(method, url, query_params, headers, data)
         exc = None
+        # _response_obj = None
         try:
             _response_obj = await self._dispatch_fetch(method, url, headers, data,
                                                        skip_breaker=skip_breaker,
@@ -496,4 +500,43 @@ class Service(GRPCClient):
             return response, response_status
         finally:
             if exc:
+                # self._log_failed(exc, request_start_time)
                 raise exc
+
+    #
+    # def _log_failed(self, exc, request_start_time):
+    #     """
+    #     possible outcomes that this method should log
+    #     1. a response from target server where status is 500 or above (api error)
+    #     2. an error from aiohttp where target server could not be reached (not an api error)
+    #     3.
+    #
+    #     :param response:
+    #     :param exc:
+    #     :param request_start_time:
+    #     :return:
+    #     """
+    #
+    #     if isinstance(exc, exceptions.APIException):
+    #         if exc.status_code >= status.HTTP_500_INTERNAL_SERVER_ERROR:
+    #             extra = {
+    #                 'status': exc.status_code,
+    #                 'byte': -1,
+    #                 'host': f'{self.request.socket[0]}:{self.request.socket[1]}',
+    #                 'request': f'{self.request.method} {self.request.url}',
+    #                 'request_duration': int(time.time() * 1000000) - (self.request._request_time),
+    #                 'method': self.request.method,
+    #                 'path': self.request.path,
+    #                 'error_code_name': None,
+    #                 'error_code_value': None,
+    #                 'uri_template': self.request.uri_template
+    #
+    #             }
+    #
+    #
+    #
+    #
+    #
+    #
+    #         access_logger.exception('', extra=extra, exc_info=exc)
+    #

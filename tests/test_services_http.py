@@ -327,6 +327,24 @@ class TestServiceClass:
                     assert e.status_code == response_code
                     raise e
 
+    # def test_dispatch_actual_internal_server_error(self, caplog):
+    #     """
+    #     raise for actual 500 error
+    #
+    #     :param monkeypatch:
+    #     :return:
+    #     """
+    #     loop = uvloop.new_event_loop()
+    #
+    #     with pytest.raises(APIException):
+    #         try:
+    #             response = loop.run_until_complete(self.service.http_dispatch('GET', '/', payload={}, files={}, headers={},
+    #                       propagate_error=True))
+    #         except APIException as e:
+    #             assert e.status_code == 500
+    #             raise e
+
+
     # @pytest.mark.parametrize("raise_exception", (
     #     aiohttp.client_exceptions.ClientError,
     #     aiohttp.client_exceptions.ClientResponseError,
@@ -339,7 +357,7 @@ class TestServiceClass:
     #     aiohttp.client_exceptions.ServerDisconnectedError,
     #     aiohttp.client_exceptions.ServerTimeoutError,
     #     aiohttp.client_exceptions.ClientPayloadError,
-    #     aiohttp.client_exceptions.InvalidURL
+    #     aiohttp.client_exceptions.InvalidURL,
     # ))
     # def test_http_dispatch_raise_for_exception(self, raise_exception):
     #     """
