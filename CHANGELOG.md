@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.7.0 (unreleased)
+0.7.0 (2019-01-30)
 ------------------
 
 - FEAT: update sanic dependency to 18.12.0
