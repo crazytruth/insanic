@@ -6,6 +6,7 @@ Changelog for insanic
 ------------------
 
 - FIX: include psutil in requirements
+- FIX: add config for sanic update
 
 
 0.7.0 (2019-01-30)

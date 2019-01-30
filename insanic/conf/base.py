@@ -68,7 +68,10 @@ class BaseConfig:
         self.KEEP_ALIVE_TIMEOUT = 5  # 5 seconds
         self.WEBSOCKET_MAX_SIZE = 2 ** 20  # 1 megabytes
         self.WEBSOCKET_MAX_QUEUE = 32
+        self.WEBSOCKET_READ_LIMIT = 2 ** 16
+        self.WEBSOCKET_WRITE_LIMIT = 2 ** 16
         self.GRACEFUL_SHUTDOWN_TIMEOUT = 15.0  # 15 sec
+        self.ACCESS_LOG = True
 
         if load_env:
             prefix = INSANIC_PREFIX if load_env is True else load_env
