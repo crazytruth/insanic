@@ -1,15 +1,18 @@
 import asyncio
 import logging
 
-from grpclib.server import Server
+# from grpclib.server import Server
 from grpclib.health.check import ServiceStatus
 from grpclib.health.service import Health
 
 from insanic.conf import settings
 from insanic.grpc.dispatch.server import DispatchServer
-
-from insanic.log import grpc_logger
+from insanic.log import grpc_logger, logger
 from insanic.utils import load_class
+
+from .handlers import Server
+
+
 
 
 class GRPCServer:
@@ -85,6 +88,7 @@ class GRPCServer:
                 klass = s
 
             servers.append(klass())
+            logger.info(f"[GRPC] Preparing to load {klass.__module__}.{klass.__name__} for GRPC serving.")
 
         self.health = {s: [ServiceStatus(loop=loop)] for s in servers}
         self._grpc_server = Server(servers + [Health(self.health)], loop=loop)

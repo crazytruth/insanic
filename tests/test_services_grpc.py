@@ -5,13 +5,14 @@ import time
 import ujson as json
 import uuid
 
-from insanic import status, permissions, authentication
+from insanic import status, permissions, authentication, scopes
 from insanic.app import Insanic
 from insanic.choices import UserLevels
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.exceptions import RequestTimeoutError, APIException
 from insanic.grpc.server import GRPCServer
+from insanic.log import get_logging_config
 from insanic.models import User, AnonymousUser, to_header_value
 from insanic.responses import json_response
 from insanic.services import Service
@@ -260,7 +261,7 @@ class TestClientStubs:
 
     @pytest.fixture
     def insanic_application(self, monkeypatch):
-
+        monkeypatch.setattr(scopes, 'is_docker', True)
         from grpc_test_monkey.monkey_grpc import ApeServiceBase
         from grpc_test_monkey.monkey_pb2 import ApeMonkeyResponse
 
@@ -322,3 +323,41 @@ class TestClientStubs:
 
             assert "context-request-id" in context_metadata
             assert context_metadata['context-request-id'] == "unknown"
+
+    async def test_grpc_stub_general_logging(self, monkeypatch, insanic_server, caplog):
+        logging_config = get_logging_config()
+
+        monkeypatch.setattr(Service, 'host', '127.0.0.1')
+        monkeypatch.setattr(Service, 'port', insanic_server.port)
+        service_instance = Service('test')
+
+        some_id = "192839"
+
+        async with service_instance.grpc(namespace='monkey', service_method='ApeMonkey') as stub:
+            r = await stub(id=some_id)
+
+            assert r.id == int(some_id)
+            assert caplog.records[0]
+
+            log_message = logging_config['formatters']['access_grpc']['format'] % caplog.records[0].__dict__
+
+            assert log_message
+
+    async def test_grpc_stub_general_logging_json(self, monkeypatch, insanic_server, caplog):
+
+        logging_config = get_logging_config()
+
+        monkeypatch.setattr(Service, 'host', '127.0.0.1')
+        monkeypatch.setattr(Service, 'port', insanic_server.port)
+        service_instance = Service('test')
+
+        some_id = "192839"
+
+        async with service_instance.grpc(namespace='monkey', service_method='ApeMonkey') as stub:
+            r = await stub(id=some_id)
+
+            assert r.id == int(some_id)
+            assert caplog.records[0]
+
+            for k, v in logging_config['formatters']['json_grpc']['format'].items():
+                lm = v % caplog.records[0].__dict__

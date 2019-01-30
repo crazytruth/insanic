@@ -17,6 +17,7 @@ Changelog for insanic
 - FEAT: introduce new config to turn off infuse (INFUSE_ENABLED=0)
 - FEAT: include context in grpc stub requests
 - FEAT: query param validation upon instantiation
+- FEAT: add grpc network logging stub communications
 
 0.6.7 (2018-12-18)
 ------------------
