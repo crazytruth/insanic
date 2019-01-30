@@ -5,7 +5,7 @@ Changelog for insanic
 0.7.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: include psutil in requirements
 
 
 0.7.0 (2019-01-30)
@@ -25,11 +25,13 @@ Changelog for insanic
 - FEAT: query param validation upon instantiation
 - FEAT: add grpc network logging stub communications
 
+
 0.6.7 (2018-12-18)
 ------------------
 
 - CHORE: sanic access logger to always log for info level
 - FEAT: userip http call to buffer into mq 
+
 
 0.6.6 (2018-12-04)
 ------------------
