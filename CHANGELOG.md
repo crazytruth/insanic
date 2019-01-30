@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.7.1 (unreleased)
+0.7.1 (2019-01-30)
 ------------------
 
 - FIX: include psutil in requirements
