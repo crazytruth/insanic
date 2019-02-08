@@ -422,7 +422,7 @@ class Service(GRPCClient):
             if isawaitable(message):
                 message = await message
 
-            error_logger.exception(f"ClientResponseError: {message}")
+            error_logger.info(f"ClientResponseError: {message}")
 
             response = try_json_decode(message)
             try:

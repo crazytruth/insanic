@@ -5,7 +5,7 @@ Changelog for insanic
 0.7.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- CHORE: lowers log level for 4xx status codes from exception(error) to info
 
 
 0.7.1 (2019-01-30)
