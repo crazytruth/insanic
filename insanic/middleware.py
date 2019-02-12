@@ -1,10 +1,7 @@
-import asyncio
-
 import aiotask_context
 
 from insanic.conf import settings
 from insanic.log import logger
-from insanic.rabbitmq.connections import RabbitMQConnectionHandler
 
 
 def request_middleware(request):
@@ -34,7 +31,7 @@ async def response_userip_middleware(request, response):
                     return
 
                 message = {'user_id': user.id, 'ip_addr': request.client_ip}
-                asyncio.ensure_future(fire_message_to_rabbitmq(message))
+                # asyncio.ensure_future(fire_message_to_rabbitmq(message))
 
                 if settings.MMT_ENV == "test":
                     response.headers["userip"] = "fired"
@@ -42,11 +39,3 @@ async def response_userip_middleware(request, response):
             except:
                 pass
 
-
-async def fire_message_to_rabbitmq(message):
-    exchange_name = 'userip'
-    routing_key = 'userip.create'
-
-    rabbit = RabbitMQConnectionHandler.instance()
-    await rabbit.produce_message(routing_key=routing_key, message=message, exchange_name=exchange_name)
-    logger.info(f'message fired: {message}')

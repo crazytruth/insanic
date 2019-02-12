@@ -5,6 +5,7 @@ Changelog for insanic
 0.7.2 (unreleased)
 ------------------
 
+- BREAKING: remove rabbitmq integration
 - CHORE: lowers log level for 4xx status codes from exception(error) to info
 
 
