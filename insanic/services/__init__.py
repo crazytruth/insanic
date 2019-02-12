@@ -422,13 +422,17 @@ class Service(GRPCClient):
             if isawaitable(message):
                 message = await message
 
-            error_logger.info(f"ClientResponseError: {message}")
-
             response = try_json_decode(message)
             try:
                 status_code = e.code
             except AttributeError:
                 status_code = getattr(e, 'status', status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            base_error_message = f"ClientResponseError: {method} {url} {status_code} {message} {data._value.decode()}"
+            if status_code >= 500:
+                error_logger.error(base_error_message)
+            else:
+                error_logger.info(base_error_message)
 
             error_code = GlobalErrorCodes.invalid_usage if status_code == status.HTTP_400_BAD_REQUEST \
                 else GlobalErrorCodes.unknown_error
