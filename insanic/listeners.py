@@ -45,7 +45,7 @@ async def before_server_stop_stop_grpc(app, loop=None, **kwargs):
     await GRPCServer.stop()
 
 
-def after_server_start_register_service(app, loop, **kwargs):
+async def after_server_start_register_service(app, loop, **kwargs):
     # need to leave session because we need this in hardjwt to get consumer
     gateway.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ttl_dns_cache=300))
     gateway.register(app)

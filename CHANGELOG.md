@@ -7,7 +7,7 @@ Changelog for insanic
 
 - BREAKING: remove rabbitmq integration
 - CHORE: lowers log level for 4xx status codes from exception(error) to info
-
+- CHORE: fixes issue when creating gateway aiohttp clientsession   
 
 0.7.1 (2019-01-30)
 ------------------
