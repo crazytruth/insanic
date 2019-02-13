@@ -334,6 +334,7 @@ class TestServiceClass:
                               k >= 400])
     @pytest.mark.parametrize('log_level', (logging.INFO, logging.ERROR))
     def test_log_level_for_raise_for_status(self, status_code, expected_log_level, log_level, caplog):
+        from insanic.utils.obfuscating import get_safe_dict
         error_logger.setLevel(log_level)
         loop = uvloop.new_event_loop()
 
@@ -347,8 +348,10 @@ class TestServiceClass:
 
             with pytest.raises(APIException):
                 try:
+                    payload = {"password": "asd", "username": "hello"}
+
                     response = loop.run_until_complete(
-                        self.service.http_dispatch(method, '/', payload={}, files={}, headers={},
+                        self.service.http_dispatch(method, '/', payload=payload, files={}, headers={},
                                                    propagate_error=True)
                     )
                 except APIException as e:
@@ -357,7 +360,7 @@ class TestServiceClass:
                     else:
                         log_record = caplog.records[-1]
                         assert log_record.levelno == expected_log_level
-                        assert f"{method} {endpoint} {status_code}" in log_record.message
+                        assert f"{method} {endpoint} {status_code} {ujson.dumps(response)} {ujson.dumps(get_safe_dict(payload))}" in log_record.message
 
                     raise e
 

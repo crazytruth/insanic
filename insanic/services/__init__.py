@@ -1,6 +1,8 @@
 import asyncio
 import aiohttp
 import io
+import ujson as json
+import ujson as json
 # import time
 
 
@@ -423,13 +425,16 @@ class Service(GRPCClient):
             if isawaitable(message):
                 message = await message
 
+            'ClientResponseError: PATCH http://test:8000/ 401 {"error":"401 error"} {"password":"*********","username":"hello"}'
+            'ClientResponseError: PATCH http://test:8000/ 401 {"error": "401 error"} {"password":"*********","username":"hello"}'
             response = try_json_decode(message)
             try:
                 status_code = e.code
             except AttributeError:
                 status_code = getattr(e, 'status', status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            base_error_message = f"ClientResponseError: {method} {url} {status_code} {message} {get_safe_dict(data._value.decode())}"
+            base_error_message = f"ClientResponseError: {method} {url} {status_code} " \
+                                 f"{json.dumps(json.loads(message))} {json.dumps(get_safe_dict(json.loads(data._value.decode())))}"
             if status_code >= 500:
                 error_logger.error(base_error_message)
             else:
