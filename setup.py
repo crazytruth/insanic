@@ -30,7 +30,6 @@ test_requires = [
     "pytest-sanic",
     "pytest-sugar",
     "pytest-xdist",
-    "pytest-rabbitmq",
     "chardet",
     "pytest-flake8",
     "asynctest",
@@ -42,6 +41,7 @@ test_requires = [
     # "beautifulsoup4"
     # "docker",
     # "aiobotocore",
+
     # "pytest",
     # "pytest-asyncio",
 ]
@@ -84,7 +84,6 @@ setup(
         "packaging",
         "grpclib==0.2.1",
         "googleapis-common-protos",
-        "aio-pika==3.2.1",
         "prometheus-client==0.5.0",
         "psutil==5.4.3"
         # "tenacity==5.0.2"

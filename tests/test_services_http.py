@@ -2,6 +2,7 @@ import aiohttp
 import aiotask_context
 import asyncio
 import jwt
+import logging
 import uvloop
 import pytest
 import random
@@ -17,6 +18,7 @@ from insanic import status
 from insanic.authentication import handlers
 from insanic.conf import settings
 from insanic.exceptions import RequestTimeoutError, APIException
+from insanic.log import error_logger
 from insanic.models import User, UserLevels, AnonymousRequestService, AnonymousUser, to_header_value
 from insanic.permissions import AllowAny
 from insanic.services import ServiceRegistry, Service
@@ -325,6 +327,38 @@ class TestServiceClass:
                               propagate_error=True))
                 except APIException as e:
                     assert e.status_code == response_code
+                    raise e
+
+    @pytest.mark.parametrize('status_code,expected_log_level',
+                             [(k, logging.INFO if k < 500 else logging.ERROR) for k in status.REVERSE_STATUS if
+                              k >= 400])
+    @pytest.mark.parametrize('log_level', (logging.INFO, logging.ERROR))
+    def test_log_level_for_raise_for_status(self, status_code, expected_log_level, log_level, caplog):
+        error_logger.setLevel(log_level)
+        loop = uvloop.new_event_loop()
+
+        endpoint = "http://test:8000/"
+        response = {"error": f"{status_code} error"}
+        method = random.choice(['GET', 'POST', 'PATCH', 'DELETE', 'PUT'])
+
+        with aioresponses() as m:
+            m.add(endpoint, method=method, status=status_code, payload=response,
+                  response_class=InsanicResponse)
+
+            with pytest.raises(APIException):
+                try:
+                    response = loop.run_until_complete(
+                        self.service.http_dispatch(method, '/', payload={}, files={}, headers={},
+                                                   propagate_error=True)
+                    )
+                except APIException as e:
+                    if log_level > expected_log_level:
+                        assert 0 == len(caplog.records)
+                    else:
+                        log_record = caplog.records[-1]
+                        assert log_record.levelno == expected_log_level
+                        assert f"{method} {endpoint} {status_code}" in log_record.message
+
                     raise e
 
     # def test_dispatch_actual_internal_server_error(self, caplog):
