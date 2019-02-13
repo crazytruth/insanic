@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.7.2 (unreleased)
+0.7.2 (2019-02-13)
 ------------------
 
 - BREAKING: remove rabbitmq integration
