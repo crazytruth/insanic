@@ -4,7 +4,8 @@ import ujson as json
 from insanic import __version__
 from insanic.conf import settings
 from insanic.log import logger
-from insanic.tracing.utils import get_safe_dict, abbreviate_for_xray
+from insanic.tracing.utils import abbreviate_for_xray
+from insanic.utils.obfuscating import get_safe_dict
 
 try:
     from aws_xray_sdk.core import xray_recorder

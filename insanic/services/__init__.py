@@ -25,6 +25,7 @@ from insanic.tracing.clients import aws_xray_trace_config
 from insanic.tracing.utils import tracing_name
 from insanic.utils import try_json_decode
 from insanic.utils.datetime import get_utc_datetime
+from insanic.utils.obfuscating import get_safe_dict
 
 from insanic.services.utils import context_user, context_correlation_id
 
@@ -428,7 +429,7 @@ class Service(GRPCClient):
             except AttributeError:
                 status_code = getattr(e, 'status', status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            base_error_message = f"ClientResponseError: {method} {url} {status_code} {message} {data._value.decode()}"
+            base_error_message = f"ClientResponseError: {method} {url} {status_code} {message} {get_safe_dict(data._value.decode())}"
             if status_code >= 500:
                 error_logger.error(base_error_message)
             else:

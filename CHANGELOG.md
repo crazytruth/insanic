@@ -5,7 +5,7 @@ Changelog for insanic
 0.7.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- HOTFIX: cleanses body of logs when error occurs
 
 
 0.7.2 (2019-02-13)
