@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.7.5 (unreleased)
+0.7.5 (2019-03-18)
 ------------------
 
 - HOTFIX: remove prometheus counter 
