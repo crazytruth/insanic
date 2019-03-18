@@ -5,7 +5,7 @@ Changelog for insanic
 0.7.4 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- HOTFIX: move global process variable into function 
 
 
 0.7.3 (2019-02-13)
