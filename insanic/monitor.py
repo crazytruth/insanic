@@ -102,7 +102,7 @@ def metrics(request):
     return json({
         "total_task_count": total_task_count,
         "active_task_count": active_task_count,
-        "request_count": request.app.metrics['request_count']._value.get(),
+        # "request_count": request.app.metrics['request_count']._value.get(),
         "proc_rss_mem_bytes": p.memory_info().rss,
         "proc_rss_mem_perc": p.memory_percent(),
         "proc_cpu_perc": p.cpu_percent(),
