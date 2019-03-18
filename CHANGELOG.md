@@ -6,6 +6,7 @@ Changelog for insanic
 ------------------
 
 - HOTFIX: move global process variable into function 
+- HOTFIX: lower library restrictions for aws xray sdk
 
 
 0.7.3 (2019-02-13)
