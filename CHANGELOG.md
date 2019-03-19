@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.7.6 (unreleased)
+0.7.6 (2019-03-19)
 ------------------
 
 - HOTFIX: set uvloop requirements to 0.12.0
