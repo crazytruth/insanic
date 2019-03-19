@@ -1,0 +1,40 @@
+FROM python:3.6-slim-stretch as base
+LABEL maintainer crazytruth
+
+FROM base as builder
+
+RUN mkdir /install
+WORKDIR /install
+
+ARG ADDITIONAL_APK
+COPY requirements.txt /tmp
+
+RUN echo "deb http://deb.debian.org/debian buster main" >> /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends gcc python3.6-dev $ADDITIONAL_APK && \
+    pip install --upgrade \
+    --index http://nexus.mmt.local:8081/repository/pypi/pypi \
+    --index-url http://nexus.mmt.local:8081/repository/pypi/simple \
+    --extra-index-url https://pypi.python.org/simple \
+    --trusted-host nexus.mmt.local \
+    --install-option="--prefix=/install" \
+    -r /tmp/requirements.txt && \
+    apt-get remove -y python3.6-dev gcc binutils binutils-common && \
+    apt -y autoremove && \
+    rm -rf /var/lib/apt/lists/* && \
+    rm /tmp/requirements.txt && \
+    adduser -D -u 1001 noroot
+
+FROM base
+
+ONBUILD ARG SERVICE
+
+
+ENV INSTALL_PATH /app
+RUN mkdir -p $INSTALL_PATH
+WORKDIR $INSTALL_PATH
+
+
+ONBUILD USER noroot
+
+CMD ["/bin/sh"]

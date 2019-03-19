@@ -5,7 +5,7 @@ Changelog for insanic
 0.7.10 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- HOTFIX: aws-xray-sdk and aiohttp setuppy bug fix 
 
 
 0.7.9 (2019-03-19)
