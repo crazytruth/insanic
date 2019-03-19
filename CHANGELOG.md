@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.7.9 (unreleased)
+0.7.9 (2019-03-19)
 ------------------
 
 - HOTFIX: aiohttp version
