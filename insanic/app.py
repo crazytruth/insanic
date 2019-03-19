@@ -1,7 +1,7 @@
 import os
 import string
 
-# from prometheus_client import Counter
+from prometheus_client import Counter
 from sanic import Sanic
 from sanic.views import CompositionView
 from sanic_useragent import SanicUserAgent
@@ -25,9 +25,9 @@ class Insanic(Sanic):
 
     def __init__(self, name, router=None, error_handler=None, app_config=()):
 
-        # if "request_count" not in self.metrics:
-        #     self.metrics['request_count'] = Counter('request_count',
-        #                                             'The number of requests this application has handled')
+        if "request_count" not in self.metrics:
+            self.metrics['request_count'] = Counter('request_count',
+                                                    'The number of requests this application has handled')
 
         if error_handler is None:
             error_handler = ErrorHandler()
