@@ -68,6 +68,7 @@ setup(
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     setup_requires=["zest.releaser[recommended]", "setuptools"],
     install_requires=[
+        'uvloop==0.12.0',
         'sanic==18.12.0',
         'sanic-useragent',
         'aiohttp>=3.0.0',
