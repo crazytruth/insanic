@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.7.8 (unreleased)
+0.7.8 (2019-03-19)
 ------------------
 
 - HOTFIX: set aws-xray-sdk to 1.1.2 
