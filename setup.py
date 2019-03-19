@@ -85,7 +85,7 @@ setup(
         "packaging",
         "grpclib==0.2.1",
         "googleapis-common-protos",
-        "prometheus-client==0.5.0",
+        "prometheus-client==0.6.0",
         "psutil==5.4.3"
         # "tenacity==5.0.2"
     ],
