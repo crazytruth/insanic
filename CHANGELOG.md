@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.7.7 (unreleased)
+0.7.7 (2019-03-19)
 ------------------
 
 - REVERT: up aws xray sdk
