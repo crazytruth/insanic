@@ -6,6 +6,8 @@ Changelog for insanic
 ------------------
 
 - HOTFIX: set uvloop requirements to 0.12.0
+- REVERT: revert prometheus client
+- CHORE: up prometheus client version
 
 
 0.7.5 (2019-03-18)
