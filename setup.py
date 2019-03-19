@@ -76,7 +76,7 @@ setup(
         # 'yarl==1.1.1',
         'aioredis>=1.1.0',
         'PyJWT',
-        'aws-xray-sdk>=1.1.1',
+        'aws-xray-sdk>=1.1.2',
         "python-consul",
         "hvac",
         "aiotask_context",
