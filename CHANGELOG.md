@@ -5,7 +5,7 @@ Changelog for insanic
 0.7.11 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- FIX: activate unhealthy function in healthcheck forward to target
 
 
 0.7.10 (2019-03-19)
