@@ -13,7 +13,7 @@ UPSTREAM_OBJECT = {
             "http_path": empty,
             "healthy": {
                 "interval": 30,
-                "http_statuses": [200, 302],
+                "http_statuses": [],
                 "successes": 3
             },
             "unhealthy": {
