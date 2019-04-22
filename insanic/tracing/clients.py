@@ -10,8 +10,8 @@ from aws_xray_sdk.core.models import http
 from aws_xray_sdk.ext.util import inject_trace_header, strip_url
 
 from insanic import status
-from insanic.tracing.utils import get_safe_dict
 from insanic.utils import try_json_decode
+from insanic.utils.obfuscating import get_safe_dict
 
 # All aiohttp calls will entail outgoing HTTP requests, only in some ad-hoc
 # exceptions the namespace will be flip back to local.

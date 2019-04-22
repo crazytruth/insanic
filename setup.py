@@ -14,7 +14,7 @@ def read(fname):
     return open(os.path.join(here, fname)).read()
 
 
-version = '0.7.2.dev0'
+version = '0.7.11.dev0'
 
 
 def pytest_command():
@@ -30,7 +30,6 @@ test_requires = [
     "pytest-sanic",
     "pytest-sugar",
     "pytest-xdist",
-    "pytest-rabbitmq",
     "chardet",
     "pytest-flake8",
     "asynctest",
@@ -42,6 +41,7 @@ test_requires = [
     # "beautifulsoup4"
     # "docker",
     # "aiobotocore",
+
     # "pytest",
     # "pytest-asyncio",
 ]
@@ -68,9 +68,10 @@ setup(
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     setup_requires=["zest.releaser[recommended]", "setuptools"],
     install_requires=[
+        'uvloop==0.12.0',
         'sanic==18.12.0',
         'sanic-useragent',
-        'aiohttp>=3.0.0',
+        'aiohttp>=3.1.0',
         'aiodns',
         # 'yarl==1.1.1',
         'aioredis>=1.1.0',
@@ -84,7 +85,6 @@ setup(
         "packaging",
         "grpclib==0.2.1",
         "googleapis-common-protos",
-        "aio-pika==3.2.1",
         "prometheus-client==0.5.0",
         "psutil==5.4.8"
         # "tenacity==5.0.2"

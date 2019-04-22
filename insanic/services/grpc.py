@@ -1,15 +1,18 @@
 import aiodns
 import asyncio
+import importlib
+import inspect
 import io
 import random
+
 import time
 import ujson as json
 
 from aiodns.error import DNSError
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from enum import IntEnum
 from functools import wraps
-from grpclib.client import Channel
+from grpclib.client import Channel, ServiceMethod
 from grpclib.exceptions import GRPCError, ProtocolError
 from grpclib.health.v1.health_grpc import HealthStub
 from grpclib.health.v1.health_pb2 import HealthCheckRequest
@@ -134,12 +137,6 @@ class ChannelManager:
         except KeyError:
             pass
 
-
-import importlib
-import inspect
-from grpclib.client import ServiceMethod
-
-
 def is_stub(m):
     return inspect.isclass(m) and not inspect.isabstract(m)
 
@@ -150,9 +147,6 @@ def is_grpc_module(m):
 
 def is_service_method(m):
     return isinstance(m, ServiceMethod)
-
-
-from collections import namedtuple
 
 GRPCStubSignature = namedtuple('GRPCStubSignature', ['method', 'request_type', 'response_type'])
 

@@ -2,11 +2,70 @@ Changelog for insanic
 =====================
 
 
-0.7.2 (unreleased)
+0.7.11 (unreleased)
+-------------------
+
+- Nothing changed yet.
+
+
+0.7.10 (2019-03-19)
+-------------------
+
+- HOTFIX: aws-xray-sdk and aiohttp setuppy bug fix 
+
+
+0.7.9 (2019-03-19)
 ------------------
 
-- CHORE: lowers log level for 4xx status codes from exception(error) to info
+- HOTFIX: aiohttp version
 
+
+0.7.8 (2019-03-19)
+------------------
+
+- HOTFIX: set aws-xray-sdk to 1.1.2 
+
+
+0.7.7 (2019-03-19)
+------------------
+
+- REVERT: up aws xray sdk
+
+
+0.7.6 (2019-03-19)
+------------------
+
+- HOTFIX: set uvloop requirements to 0.12.0
+- REVERT: revert prometheus client
+- CHORE: up prometheus client version
+
+
+0.7.5 (2019-03-18)
+------------------
+
+- HOTFIX: remove prometheus counter 
+
+
+0.7.4 (2019-03-18)
+------------------
+
+- HOTFIX: move global process variable into function 
+- HOTFIX: lower library restrictions for aws xray sdk
+
+
+0.7.3 (2019-02-13)
+------------------
+
+- HOTFIX: cleanses body of logs when error occurs
+
+
+0.7.2 (2019-02-13)
+------------------
+
+- BREAKING: remove rabbitmq integration
+- CHORE: lowers log level for 4xx status codes from exception(error) to info
+- FEAT: more information on client response errors
+- CHORE: fixes issue when creating gateway aiohttp clientsession   
 
 0.7.1 (2019-01-30)
 ------------------

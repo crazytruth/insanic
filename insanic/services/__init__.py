@@ -1,6 +1,8 @@
 import asyncio
 import aiohttp
 import io
+import ujson as json
+import ujson as json
 # import time
 
 
@@ -25,6 +27,7 @@ from insanic.tracing.clients import aws_xray_trace_config
 from insanic.tracing.utils import tracing_name
 from insanic.utils import try_json_decode
 from insanic.utils.datetime import get_utc_datetime
+from insanic.utils.obfuscating import get_safe_dict
 
 from insanic.services.utils import context_user, context_correlation_id
 
@@ -422,13 +425,20 @@ class Service(GRPCClient):
             if isawaitable(message):
                 message = await message
 
-            error_logger.info(f"ClientResponseError: {message}")
-
+            'ClientResponseError: PATCH http://test:8000/ 401 {"error":"401 error"} {"password":"*********","username":"hello"}'
+            'ClientResponseError: PATCH http://test:8000/ 401 {"error": "401 error"} {"password":"*********","username":"hello"}'
             response = try_json_decode(message)
             try:
                 status_code = e.code
             except AttributeError:
                 status_code = getattr(e, 'status', status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            base_error_message = f"ClientResponseError: {method} {url} {status_code} " \
+                f"{json.dumps(json.loads(message))} {json.dumps(get_safe_dict(json.loads(data._value.decode())))}"
+            if status_code >= 500:
+                error_logger.error(base_error_message)
+            else:
+                error_logger.info(base_error_message)
 
             error_code = GlobalErrorCodes.invalid_usage if status_code == status.HTTP_400_BAD_REQUEST \
                 else GlobalErrorCodes.unknown_error
