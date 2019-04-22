@@ -86,7 +86,7 @@ setup(
         "googleapis-common-protos",
         "aio-pika==3.2.1",
         "prometheus-client==0.5.0",
-        "psutil==5.4.3"
+        "psutil==5.4.8"
         # "tenacity==5.0.2"
     ],
     # test_suite='nose.collector',
