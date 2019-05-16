@@ -394,7 +394,7 @@ class TestXffUniqueMachines(XffTestingBase):
 
         @insanic_application.middleware('request')
         def add_headers2(request):
-            request.headers['x_forwarded_for'] = '0.0.0.0, 1.1.1.1, 7.7.7.7'
+            request.headers['x-forwarded-for'] = '0.0.0.0, 1.1.1.1, 7.7.7.7'
 
         request, response = insanic_application.test_client.get('/')
 
@@ -406,7 +406,7 @@ class TestXffUniqueMachines(XffTestingBase):
 
         @insanic_application.middleware('request')
         def add_headers2(request):
-            request.headers['x_forwarded_for'] = '0.0.0.0, 7.7.7.7, 2.2.2.2'
+            request.headers['x-forwarded-for'] = '0.0.0.0, 7.7.7.7, 2.2.2.2'
 
         request, response = insanic_application.test_client.get('/')
 

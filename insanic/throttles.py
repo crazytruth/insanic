@@ -27,13 +27,7 @@ class BaseThrottle(object):
         if present and number of proxies is > 0. If not use all of
         HTTP_X_FORWARDED_FOR if it is available, if not use REMOTE_ADDR.
         """
-        xff = request.headers.get('x_forwarded_for')
-        if xff is None:
-            logger.error("X-Forwarded-For is None!")
-        else:
-            logger.error(f"X-Forwarded-For: {xff}")
-        logger.error(f"dir(request.headers): {dir()}")
-
+        xff = request.headers.get('x-forwarded-for')
         remote_addr = request.ip
         num_proxies = settings.THROTTLES['NUM_PROXIES']
 
