@@ -14,7 +14,7 @@ def read(fname):
     return open(os.path.join(here, fname)).read()
 
 
-version = '0.7.11.dev0'
+version = '0.7.11.dev1'
 
 
 def pytest_command():
@@ -85,8 +85,8 @@ setup(
         "packaging",
         "grpclib==0.2.1",
         "googleapis-common-protos",
-        "prometheus-client==0.6.0",
-        "psutil==5.4.3"
+        "prometheus-client==0.5.0",
+        "psutil==5.4.8"
         # "tenacity==5.0.2"
     ],
     # test_suite='nose.collector',

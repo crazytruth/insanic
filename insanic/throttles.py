@@ -5,6 +5,7 @@ import ujson as json
 from insanic.conf import settings
 from insanic.connections import get_connection
 from insanic.exceptions import ImproperlyConfigured
+from insanic.log import logger
 
 THROTTLE_CACHE = "throttle"
 
@@ -26,9 +27,8 @@ class BaseThrottle(object):
         if present and number of proxies is > 0. If not use all of
         HTTP_X_FORWARDED_FOR if it is available, if not use REMOTE_ADDR.
         """
-        xff = request.headers.get('x_forwarded_for')
+        xff = request.headers.get('x-forwarded-for')
         remote_addr = request.ip
-
         num_proxies = settings.THROTTLES['NUM_PROXIES']
 
         if num_proxies is not None:

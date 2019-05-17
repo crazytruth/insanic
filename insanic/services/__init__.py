@@ -434,7 +434,7 @@ class Service(GRPCClient):
                 status_code = getattr(e, 'status', status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             base_error_message = f"ClientResponseError: {method} {url} {status_code} " \
-                                 f"{json.dumps(json.loads(message))} {json.dumps(get_safe_dict(json.loads(data._value.decode())))}"
+                f"{json.dumps(json.loads(message))} {json.dumps(get_safe_dict(json.loads(data._value.decode())))}"
             if status_code >= 500:
                 error_logger.error(base_error_message)
             else:

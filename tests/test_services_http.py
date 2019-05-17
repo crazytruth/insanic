@@ -360,7 +360,8 @@ class TestServiceClass:
                     else:
                         log_record = caplog.records[-1]
                         assert log_record.levelno == expected_log_level
-                        assert f"{method} {endpoint} {status_code} {ujson.dumps(response)} {ujson.dumps(get_safe_dict(payload))}" in log_record.message
+                        assert f"{method} {endpoint} {status_code} {ujson.dumps(response)} " \
+                               f"{ujson.dumps(get_safe_dict(payload))}" in log_record.message
 
                     raise e
 
