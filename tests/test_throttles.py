@@ -346,7 +346,8 @@ class XffTestingBase:
             request.headers['x_forwarded_for'] = '0.0.0.0, 1.1.1.1, 2.2.2.2'
 
     def config_proxy(self, num_proxies, monkeypatch):
-        monkeypatch.setitem(settings.THROTTLES, 'NUM_PROXIES', num_proxies)
+        # monkeypatch.setitem(settings.THROTTLES, 'NUM_PROXIES', num_proxies)
+        monkeypatch.setattr(settings, 'THROTTLES_NUM_PROXIES', num_proxies, raising=False)
 
 
 class TestIdWithXffBasic(XffTestingBase):

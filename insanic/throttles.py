@@ -29,7 +29,7 @@ class BaseThrottle(object):
         """
         xff = request.headers.get('x-forwarded-for')
         remote_addr = request.ip
-        num_proxies = settings.THROTTLES['NUM_PROXIES']
+        num_proxies = settings.THROTTLES_NUM_PROXIES
 
         if num_proxies is not None:
             if num_proxies == 0 or xff is None:
@@ -61,7 +61,7 @@ class SimpleRateThrottle(BaseThrottle):
     timer = time.time
     cache_format = 'throttle_%(scope)s_%(ident)s'
     scope = None
-    THROTTLE_RATES = settings.THROTTLES['DEFAULT_THROTTLE_RATES']
+    THROTTLE_RATES = settings.THROTTLES_DEFAULT_THROTTLE_RATES
 
     def __init__(self):
         if not getattr(self, 'rate', None):

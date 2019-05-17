@@ -125,12 +125,10 @@ SAMPLING_RULES = {
     }
 }
 
-THROTTLES = {
-    "NUM_PROXIES": None,
-    "DEFAULT_THROTTLE_RATES": {
-        'user': None,
-        'anon': None,
-    },
+THROTTLES_NUM_PROXIES = None
+THROTTLES_DEFAULT_THROTTLE_RATES = {
+    'user': None,
+    'anon': None
 }
 
 GATEWAY_REGISTRATION_ENABLED = True
