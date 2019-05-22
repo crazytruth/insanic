@@ -125,11 +125,16 @@ SAMPLING_RULES = {
     }
 }
 
-THROTTLES_NUM_PROXIES = None
+# THROTTLES_NUM_PROXIES = None # deprecated
 THROTTLES_DEFAULT_THROTTLE_RATES = {
     'user': None,
     'anon': None
 }
+
+PROXIES_COUNT = -1
+FORWARDED_FOR_HEADER = "X-Forwarded-For"
+REAL_IP_HEADER = "X-Real-IP"
+
 
 GATEWAY_REGISTRATION_ENABLED = True
 

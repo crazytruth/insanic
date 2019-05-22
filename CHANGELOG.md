@@ -11,7 +11,7 @@ Changelog for insanic
 - FIX: grpc channel close when exiting context manager
 - CHORE: fixes throttle tests in compliability with header
 - REFACTOR: unpack throttle settings
-
+- DEPRECATE: THROTTLE_NUM_PROXIES deprecated in favor of PROXIES_COUNT
 
 0.7.10 (2019-03-19)
 -------------------

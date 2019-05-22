@@ -69,7 +69,7 @@ class InsanicXRayMiddleware:
             segment.put_http_meta(http.METHOD, request.method)
             segment.put_http_meta(http.USER_AGENT, headers.get('User-Agent'))
 
-            client_ip = headers.get('X-Forwarded-For') or headers.get('HTTP_X_FORWARDED_FOR') or request.ip
+            client_ip = headers.get(settings.FORWARDED_FOR_HEADER) or headers.get('HTTP_X_FORWARDED_FOR')
             if client_ip:
                 segment.put_http_meta(http.CLIENT_IP, client_ip)
                 segment.put_http_meta(http.X_FORWARDED_FOR, True)
