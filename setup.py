@@ -69,7 +69,7 @@ setup(
     setup_requires=["zest.releaser[recommended]", "setuptools"],
     install_requires=[
         'uvloop==0.12.0',
-        'sanic==18.12.0',
+        'sanic==19.3.1',
         'sanic-useragent',
         'aiohttp>=3.1.0',
         'aiodns',

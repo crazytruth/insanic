@@ -5,6 +5,7 @@ Changelog for insanic
 0.7.11 (unreleased)
 -------------------
 
+- UPGRADE: upgrade sanic version to 19.3.1
 - FIX: activate unhealthy function in healthcheck forward to target
 - FIX: throttle bug where headers aren't properly read
 - FIX: grpc channel close when exiting context manager
