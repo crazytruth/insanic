@@ -14,6 +14,7 @@ Changelog for insanic
 - CHORE: fixes throttle tests in compliability with header
 - REFACTOR: unpack throttle settings
 - CHORE: remove pact integration
+- CHORE: remove userip middleware
 
 
 0.7.10 (2019-03-19)
