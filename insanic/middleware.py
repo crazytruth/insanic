@@ -24,13 +24,13 @@ async def response_userip_middleware(request, response):
     else:
         if user.is_authenticated and not service.is_authenticated and service_name != 'userip':
             try:
-                if not request.client_ip:
-                    logger.warn(f"warning: client_ip value is None\n"
-                                f"requester's ip: {request.ip}\n"
+                if not request.remote_addr:
+                    logger.warn(f"warning: remote_addr value is None\n"
+                                f"requester's ip: {request.remote_addr}\n"
                                 f"requester's headers: {request.headers}")
                     return
 
-                message = {'user_id': user.id, 'ip_addr': request.client_ip}
+                message = {'user_id': user.id, 'ip_addr': request.remote_addr}
                 # asyncio.ensure_future(fire_message_to_rabbitmq(message))
 
                 if settings.MMT_ENV == "test":

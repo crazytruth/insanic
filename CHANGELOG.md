@@ -5,13 +5,16 @@ Changelog for insanic
 0.7.11 (unreleased)
 -------------------
 
+- BREAKING: THROTTLE_NUM_PROXIES deprecated in favor of PROXIES_COUNT
+- BREAKING: remove client_ip attribute from Request object in favor or remote_addr
 - UPGRADE: upgrade sanic version to 19.3.1
 - FIX: activate unhealthy function in healthcheck forward to target
 - FIX: throttle bug where headers aren't properly read
 - FIX: grpc channel close when exiting context manager
 - CHORE: fixes throttle tests in compliability with header
 - REFACTOR: unpack throttle settings
-- DEPRECATE: THROTTLE_NUM_PROXIES deprecated in favor of PROXIES_COUNT
+
+
 
 0.7.10 (2019-03-19)
 -------------------
