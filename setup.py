@@ -33,7 +33,6 @@ test_requires = [
     "chardet",
     "pytest-flake8",
     "asynctest",
-    "pact-python",
     "requests",
     "aioresponses",
     "grpc-test-monkey"

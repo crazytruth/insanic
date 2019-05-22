@@ -21,7 +21,6 @@ from insanic.loading import get_service
 from insanic.models import User
 from insanic.services import Service
 from insanic.testing.helpers import MockService
-from insanic.testing.pact import Pact, PactMockService
 from insanic.registration import gateway
 
 xray_recorder.configure(sampling=False, context_missing="LOG_ERROR")
@@ -373,24 +372,3 @@ async def run_services(request, test_session_id, session_unused_tcp_port_factory
 
 def pytest_runtest_setup(item):
     pass
-
-
-pact = Pact()
-
-
-@pytest.fixture(scope='session')
-def pact_server():
-    pact.start_pact()
-    yield
-    pact.stop_pact()
-
-
-@pytest.fixture(scope='session')
-def pact_verify(pact_server):
-    yield
-    pact.verify()
-
-
-@pytest.fixture(scope='function')
-def mock_url(monkeypatch):
-    monkeypatch.setattr('insanic.services.Service.url', PactMockService.url)

@@ -13,7 +13,7 @@ Changelog for insanic
 - FIX: grpc channel close when exiting context manager
 - CHORE: fixes throttle tests in compliability with header
 - REFACTOR: unpack throttle settings
-
+- CHORE: remove pact integration
 
 
 0.7.10 (2019-03-19)
