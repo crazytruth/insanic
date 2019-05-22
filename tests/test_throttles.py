@@ -343,7 +343,7 @@ class XffTestingBase:
         @insanic_application.middleware("request")
         def add_headers(request):
             request.headers['remote_addr'] = '3.3.3.3'
-            request.headers['x_forwarded_for'] = '0.0.0.0, 1.1.1.1, 2.2.2.2'
+            request.headers['x-forwarded-for'] = '0.0.0.0, 1.1.1.1, 2.2.2.2'
 
     def config_proxy(self, num_proxies, monkeypatch):
         # monkeypatch.setitem(settings.THROTTLES, 'NUM_PROXIES', num_proxies)
@@ -370,7 +370,7 @@ class TestXffSpoofing(XffTestingBase):
 
         @insanic_application.middleware('request')
         def add_headers2(request):
-            request.headers['x_forwarded_for'] = '4.4.4.4, 5.5.5.5, 2.2.2.2'
+            request.headers['x-forwarded-for'] = '4.4.4.4, 5.5.5.5, 2.2.2.2'
 
         request, response = insanic_application.test_client.get('/')
         assert response.status == 429
@@ -382,7 +382,7 @@ class TestXffSpoofing(XffTestingBase):
 
         @insanic_application.middleware('request')
         def add_headers2(request):
-            request.headers['x_forwarded_for'] = '4.4.4.4, 1.1.1.1, 2.2.2.2'
+            request.headers['x-forwarded-for'] = '4.4.4.4, 1.1.1.1, 2.2.2.2'
 
         request, response = insanic_application.test_client.get('/')
         assert response.status == 429

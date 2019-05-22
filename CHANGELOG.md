@@ -9,6 +9,7 @@ Changelog for insanic
 - FIX: activate unhealthy function in healthcheck forward to target
 - FIX: throttle bug where headers aren't properly read
 - FIX: grpc channel close when exiting context manager
+- CHORE: fixes throttle tests in compliability with header
 - REFACTOR: unpack throttle settings
 
 
