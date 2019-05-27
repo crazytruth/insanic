@@ -15,6 +15,8 @@ Changelog for insanic
 - REFACTOR: unpack throttle settings
 - CHORE: remove pact integration
 - CHORE: remove userip middleware
+- REVERT: keep alive timeout on inter service to 15s
+- REFACTOR: added SERVICE_CONNECTION_KEEP_ALIVE_TIMEOUT in settings to change keepalive_timeout
 
 
 0.7.10 (2019-03-19)
