@@ -137,14 +137,17 @@ class Service(GRPCClient):
             # not the most elegant solution because now each connection will open and close
             # force_close seems to absolutely close the connection so don't use because we need to get
             # meta data from the connection even if it is closed
-            cls._session = aiohttp.ClientSession(loop=get_event_loop(),
-                                                 connector=aiohttp.TCPConnector(limit=100,
-                                                                                keepalive_timeout=settings.SERVICE_CONNECTION_KEEP_ALIVE_TIMEOUT,
-                                                                                limit_per_host=10,
-                                                                                ttl_dns_cache=10),
-                                                 response_class=InsanicResponse,
-                                                 read_timeout=DEFAULT_SERVICE_REQUEST_TIMEOUT,
-                                                 trace_configs=[aws_xray_trace_config()])
+            cls._session = aiohttp.ClientSession(
+                loop=get_event_loop(),
+                connector=aiohttp.TCPConnector(
+                    limit=100,
+                    keepalive_timeout=int(settings.SERVICE_CONNECTION_KEEP_ALIVE_TIMEOUT),
+                    limit_per_host=10,
+                    ttl_dns_cache=10),
+                response_class=InsanicResponse,
+                read_timeout=DEFAULT_SERVICE_REQUEST_TIMEOUT,
+                trace_configs=[aws_xray_trace_config()]
+            )
 
         return cls._session
 
