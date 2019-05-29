@@ -17,6 +17,7 @@ import pytest
     ("test", False, True, True, None),    # Failed scenario : user is not authenticated user
     ("test", True, False, False, None)    # Failed scenario : x-fowarded-for does not exist in the headers
 ])
+@pytest.mark.skip(reason="DEPRECATED")
 def test_userip_middleware(service_name, has_token, has_service_token, has_x_forwarded_for, expected,
                          test_user_token_factory, test_service_token_factory, monkeypatch):
 
