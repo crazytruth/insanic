@@ -248,8 +248,8 @@ class Request(SanicRequest):
                     self._remote_addr = remote_addrs[0]
                 elif len(remote_addrs) >= settings.PROXIES_COUNT:
                     self._remote_addr = remote_addrs[
-                        -(int(settings.PROXIES_COUNT))
-                    ]
+                        -1 * settings.PROXIES_COUNT
+                        ]
                 else:
                     self._remote_addr = ""
             else:
