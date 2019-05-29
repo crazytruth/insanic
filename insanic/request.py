@@ -225,29 +225,31 @@ class Request(SanicRequest):
         :return: original client ip.
         """
         if not hasattr(self, "_remote_addr"):
-            if self.app.config.PROXIES_COUNT == 0:
+            if settings.PROXIES_COUNT == 0:
                 self._remote_addr = ""
-            elif self.app.config.REAL_IP_HEADER and self.headers.get(
-                    self.app.config.REAL_IP_HEADER
+            # elif settings.REAL_IP_HEADER and self.headers.get(
+            #         settings.REAL_IP_HEADER
+            # ):
+            #     self._remote_addr = self.headers[
+            #         settings.REAL_IP_HEADER
+            #     ]
+            elif settings.FORWARDED_FOR_HEADER and self.headers.get(
+                    settings.FORWARDED_FOR_HEADER
             ):
-                self._remote_addr = self.headers[
-                    self.app.config.REAL_IP_HEADER
-                ]
-            elif self.app.config.FORWARDED_FOR_HEADER:
                 forwarded_for = self.headers.get(
-                    self.app.config.FORWARDED_FOR_HEADER, ""
+                    settings.FORWARDED_FOR_HEADER, ""
                 ).split(",")
                 remote_addrs = [
                     addr
                     for addr in [addr.strip() for addr in forwarded_for]
                     if addr
                 ]
-                if self.app.config.PROXIES_COUNT == -1:
+                if settings.PROXIES_COUNT == -1:
                     self._remote_addr = remote_addrs[0]
-                elif len(remote_addrs) >= self.app.config.PROXIES_COUNT:
+                elif len(remote_addrs) >= settings.PROXIES_COUNT:
                     self._remote_addr = remote_addrs[
-                        -self.app.config.PROXIES_COUNT
-                    ]
+                        -1 * settings.PROXIES_COUNT
+                        ]
                 else:
                     self._remote_addr = ""
             else:

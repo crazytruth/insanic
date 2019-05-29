@@ -507,6 +507,10 @@ class TestAnonRateThrottle:
             headers = {}
 
             @property
+            def remote_addr(self, *args, **kwargs):
+                return None
+
+            @property
             async def user(self):
                 return user
 

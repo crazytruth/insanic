@@ -929,6 +929,7 @@ class TestRequestTaskContext:
     async def test_client_dns_balancing(self, monkeypatch):
         ServiceRegistry.reset()
         monkeypatch.setattr(settings, "SERVICE_CONNECTIONS", ["amazon"])
+        monkeypatch.setattr(settings, "SERVICE_CONNECTION_KEEP_ALIVE_TIMEOUT", 1)
 
         from insanic.loading import get_service
         amazon = get_service("amazon")
@@ -945,9 +946,11 @@ class TestRequestTaskContext:
         url = amazon._construct_url('/')
 
         remote_addrs = []
-        for i in range(10):
+        import time
+        for i in range(5):
+            time.sleep(1)
             async with amazon.session().request(method='GET', url=url, allow_redirects=False) as resp:
                 remote_addrs.append(resp._protocol.transport.get_extra_info('peername')[0])
 
-        assert len(remote_addrs) == 10
+        assert len(remote_addrs) == 5
         assert len(set(remote_addrs)) > 1
