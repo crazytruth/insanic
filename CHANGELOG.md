@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.7.11 (unreleased)
+0.7.11 (2019-05-29)
 -------------------
 
 - BREAKING: THROTTLE_NUM_PROXIES deprecated in favor of PROXIES_COUNT
