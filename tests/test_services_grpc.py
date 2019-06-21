@@ -10,7 +10,7 @@ from insanic.app import Insanic
 from insanic.choices import UserLevels
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
-from insanic.exceptions import RequestTimeoutError, APIException
+from insanic.exceptions import ResponseTimeoutError, APIException
 from insanic.grpc.server import GRPCServer
 from insanic.log import get_logging_config
 from insanic.models import User, AnonymousUser, to_header_value
@@ -135,14 +135,14 @@ class TestGRPCServiceClass:
         assert response == self.mock_response
         assert status_code == self.mock_status
 
-    async def test_dispatch_request_timeout(self, service_instance):
+    async def test_dispatch_response_timeout(self, service_instance):
 
-        response = await service_instance.grpc_dispatch('GET', '/timeout', request_timeout=3)
+        response = await service_instance.grpc_dispatch('GET', '/timeout', response_timeout=3)
         assert response == self.mock_response
 
-        with pytest.raises(RequestTimeoutError):
+        with pytest.raises(ResponseTimeoutError):
             response, status_code = await service_instance.grpc_dispatch('GET', '/timeout',
-                                                                         request_timeout=1,
+                                                                         response_timeout=1,
                                                                          include_status_code=True)
 
     @pytest.mark.parametrize("payload,files,headers", (
