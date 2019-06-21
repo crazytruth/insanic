@@ -190,6 +190,8 @@ class ContextStub:
         return decorate_stub
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self.stub.channel:
+            self.stub.channel.close()
         self.stub.channel = None
 
 

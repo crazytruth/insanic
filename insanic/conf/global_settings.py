@@ -15,6 +15,7 @@ SERVICE_CONNECTIONS = []
 SERVICE_GLOBAL_SCHEMA = "http"
 SERVICE_GLOBAL_HOST_TEMPLATE = "{}"
 SERVICE_GLOBAL_PORT = "8000"
+SERVICE_CONNECTION_KEEP_ALIVE_TIMEOUT = 15
 
 REQUIRED_SERVICE_CONNECTIONS = ["userip", "user"]
 ALLOWED_HOSTS = []
@@ -125,13 +126,16 @@ SAMPLING_RULES = {
     }
 }
 
-THROTTLES = {
-    "NUM_PROXIES": None,
-    "DEFAULT_THROTTLE_RATES": {
-        'user': None,
-        'anon': None,
-    },
+# THROTTLES_NUM_PROXIES = None # deprecated
+THROTTLES_DEFAULT_THROTTLE_RATES = {
+    'user': None,
+    'anon': None
 }
+
+PROXIES_COUNT = -1
+FORWARDED_FOR_HEADER = "X-Forwarded-For"
+REAL_IP_HEADER = "X-Real-IP"
+
 
 GATEWAY_REGISTRATION_ENABLED = True
 
@@ -150,8 +154,6 @@ KONG_PLUGIN = {"JSONWebTokenAuthentication": "jwt",
 REQUEST_ID_HEADER_FIELD = "X-Insanic-Request-ID"
 INTERNAL_REQUEST_USER_HEADER = 'x-insanic-request-user'
 
-
-PACT_BROKER_URL = 'http://pact'
 SERVICE_UNAVAILABLE_MESSAGE = "{} is currently unavailable."
 
 GRPC_SERVE = True
@@ -159,31 +161,4 @@ GRPC_HOST = '0.0.0.0'
 GRPC_PORT_DELTA = 1000
 # needs to be something like "{service_name}.{server_class}"
 GRPC_SERVER = []
-
-RABBITMQ_SERVE = False
-RABBITMQ_USERNAME = "guest"
-RABBITMQ_PASSWORD = "guest"
-RABBITMQ_HOST = ""
-RABBITMQ_PORT = 5672  # RabbitMQ default port
-"""
-QUEUE SETTING TEMPLATE
-
-Example:
-
-QUEUE_SETTING = {
-    "EXCHANGE_NAME" : "",
-    "ROUTING_KEYS" : [],
-    "CALLBACK": "",
-    "PREFETCH_COUNT: int,
-}
-"""
-RABBITMQ_QUEUE_SETTINGS = []
-"""
-RABBITMQ_QUEUE_SETTINGS = [{
-    "EXCHANGE_NAME": "",
-    "ROUTING_KEYS": [],
-    "CALLBACK": "",
-    "PREFETCH_COUNT": 1,
-}]
-"""
 

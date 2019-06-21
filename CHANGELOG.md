@@ -2,10 +2,27 @@ Changelog for insanic
 =====================
 
 
-0.7.11 (unreleased)
+0.7.12 (unreleased)
 -------------------
 
 - Nothing changed yet.
+
+
+0.7.11 (2019-05-29)
+-------------------
+
+- BREAKING: THROTTLE_NUM_PROXIES deprecated in favor of PROXIES_COUNT
+- BREAKING: remove client_ip attribute from Request object in favor or remote_addr
+- UPGRADE: upgrade sanic version to 19.3.1
+- FIX: activate unhealthy function in healthcheck forward to target
+- FIX: throttle bug where headers aren't properly read
+- FIX: grpc channel close when exiting context manager
+- CHORE: fixes throttle tests in compliability with header
+- REFACTOR: unpack throttle settings
+- CHORE: remove pact integration
+- CHORE: remove userip middleware
+- REVERT: keep alive timeout on inter service to 15s
+- REFACTOR: added SERVICE_CONNECTION_KEEP_ALIVE_TIMEOUT in settings to change keepalive_timeout
 
 
 0.7.10 (2019-03-19)

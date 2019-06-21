@@ -14,7 +14,7 @@ def read(fname):
     return open(os.path.join(here, fname)).read()
 
 
-version = '0.7.11.dev0'
+version = '0.7.12.dev0'
 
 
 def pytest_command():
@@ -33,7 +33,6 @@ test_requires = [
     "chardet",
     "pytest-flake8",
     "asynctest",
-    "pact-python",
     "requests",
     "aioresponses",
     "grpc-test-monkey"
@@ -69,7 +68,7 @@ setup(
     setup_requires=["zest.releaser[recommended]", "setuptools"],
     install_requires=[
         'uvloop==0.12.0',
-        'sanic==18.12.0',
+        'sanic==19.3.1',
         'sanic-useragent',
         'aiohttp>=3.1.0',
         'aiodns',

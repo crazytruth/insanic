@@ -17,6 +17,7 @@ import pytest
     ("test", False, True, True, None),    # Failed scenario : user is not authenticated user
     ("test", True, False, False, None)    # Failed scenario : x-fowarded-for does not exist in the headers
 ])
+@pytest.mark.skip(reason="DEPRECATED")
 def test_userip_middleware(service_name, has_token, has_service_token, has_x_forwarded_for, expected,
                          test_user_token_factory, test_service_token_factory, monkeypatch):
 
@@ -34,7 +35,7 @@ def test_userip_middleware(service_name, has_token, has_service_token, has_x_for
         headers.update({"Authorization": service_token})
 
     if has_x_forwarded_for:
-        headers.update({"x-forwarded-for": '59.10.109.21, 52.78.247.162, 20.2.131.209'})
+        headers.update({settings.FORWARDED_FOR_HEADER: '59.10.109.21, 52.78.247.162, 20.2.131.209'})
 
     class TestView(InsanicView):
         permission_classes = []

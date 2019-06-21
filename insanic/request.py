@@ -48,6 +48,15 @@ class Request(SanicRequest):
 
     def __init__(self, url_bytes, headers, version, method, transport,
                  authenticators=None):
+        """
+
+        :param url_bytes:
+        :param headers: should be an instance of CIMultiDict
+        :param version:
+        :param method:
+        :param transport:
+        :param authenticators:
+        """
 
         super().__init__(url_bytes, headers, version, method, transport)
 
@@ -199,9 +208,54 @@ class Request(SanicRequest):
 
         return self.parsed_form
 
+    # @property
+    # def client_ip(self):
+    #     """
+    #     deprecated in favor of remote_addr
+    #     :return:
+    #     """
+    #
+    #     return self.headers.get('x-forwarded-for', '').split(",")[0] if self.headers.get('x-forwarded-for') else None
+
     @property
-    def client_ip(self):
-        return self.headers.get('x-forwarded-for', '').split(",")[0] if self.headers.get('x-forwarded-for') else None
+    def remote_addr(self):
+        """Attempt to return the original client ip based on X-Forwarded-For
+        or X-Real-IP. If HTTP headers are unavailable or untrusted, returns
+        an empty string.
+        :return: original client ip.
+        """
+        if not hasattr(self, "_remote_addr"):
+            if settings.PROXIES_COUNT == 0:
+                self._remote_addr = ""
+            # elif settings.REAL_IP_HEADER and self.headers.get(
+            #         settings.REAL_IP_HEADER
+            # ):
+            #     self._remote_addr = self.headers[
+            #         settings.REAL_IP_HEADER
+            #     ]
+            elif settings.FORWARDED_FOR_HEADER and self.headers.get(
+                    settings.FORWARDED_FOR_HEADER
+            ):
+                forwarded_for = self.headers.get(
+                    settings.FORWARDED_FOR_HEADER, ""
+                ).split(",")
+                remote_addrs = [
+                    addr
+                    for addr in [addr.strip() for addr in forwarded_for]
+                    if addr
+                ]
+                if settings.PROXIES_COUNT == -1:
+                    self._remote_addr = remote_addrs[0]
+                elif len(remote_addrs) >= settings.PROXIES_COUNT:
+                    self._remote_addr = remote_addrs[
+                        -1 * settings.PROXIES_COUNT
+                        ]
+                else:
+                    self._remote_addr = ""
+            else:
+                self._remote_addr = ""
+        return self._remote_addr
+
 
     async def _authenticate(self):
         """

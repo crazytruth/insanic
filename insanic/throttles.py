@@ -1,6 +1,5 @@
 import time
 import ujson as json
-# from django.core.cache import cache as default_cache
 
 from insanic.conf import settings
 from insanic.connections import get_connection
@@ -20,24 +19,34 @@ class BaseThrottle(object):
         """
         raise NotImplementedError('.allow_request() must be overridden')
 
+    # def get_ident(self, request):
+    #     """
+    #     Identify the machine making the request by parsing HTTP_X_FORWARDED_FOR
+    #     if present and number of proxies is > 0. If not use all of
+    #     HTTP_X_FORWARDED_FOR if it is available, if not use REMOTE_ADDR.
+    #     """
+    #     xff = request.headers.get(settings.FORWARDED_FOR_HEADER)
+    #     remote_addr = request.ip
+    #     num_proxies = settings.PROXIES_COUNT
+    #
+    #     if num_proxies is not -1:
+    #         if num_proxies == 0 or xff is None:
+    #             return remote_addr
+    #         addrs = xff.split(',')
+    #         client_addr = addrs[-min(num_proxies, len(addrs))]
+    #         return client_addr.strip()
+    #
+    #     return ''.join(xff.split()) if xff else remote_addr
+
+
     def get_ident(self, request):
-        """
-        Identify the machine making the request by parsing HTTP_X_FORWARDED_FOR
-        if present and number of proxies is > 0. If not use all of
-        HTTP_X_FORWARDED_FOR if it is available, if not use REMOTE_ADDR.
-        """
-        xff = request.headers.get('x_forwarded_for')
-        remote_addr = request.ip
 
-        num_proxies = settings.THROTTLES['NUM_PROXIES']
+        xff = request.headers.get(settings.FORWARDED_FOR_HEADER)
+        remote_addr = request.remote_addr
+        num_proxies = settings.PROXIES_COUNT
 
-        if num_proxies is not None:
-            if num_proxies == 0 or xff is None:
-                return remote_addr
-            addrs = xff.split(',')
-            client_addr = addrs[-min(num_proxies, len(addrs))]
-            return client_addr.strip()
-
+        if num_proxies is not -1 and remote_addr:
+            return remote_addr
         return ''.join(xff.split()) if xff else remote_addr
 
     def wait(self):
@@ -61,7 +70,7 @@ class SimpleRateThrottle(BaseThrottle):
     timer = time.time
     cache_format = 'throttle_%(scope)s_%(ident)s'
     scope = None
-    THROTTLE_RATES = settings.THROTTLES['DEFAULT_THROTTLE_RATES']
+    THROTTLE_RATES = settings.THROTTLES_DEFAULT_THROTTLE_RATES
 
     def __init__(self):
         if not getattr(self, 'rate', None):
