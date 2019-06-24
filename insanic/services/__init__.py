@@ -71,7 +71,6 @@ class ServiceRegistry(dict):
 class Service(GRPCClient):
     _session = None
     _semaphore = None
-    _default_timeout = None
 
     def __init__(self, service_type):
         self._service_name = service_type
