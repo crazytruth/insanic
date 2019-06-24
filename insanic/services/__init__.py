@@ -147,7 +147,7 @@ class Service(GRPCClient):
                     limit_per_host=10,
                     ttl_dns_cache=10),
                 response_class=InsanicResponse,
-                read_timeout=default_timeout,
+                timeout=default_timeout,
                 trace_configs=[aws_xray_trace_config()]
             )
 
