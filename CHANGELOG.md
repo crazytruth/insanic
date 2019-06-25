@@ -7,10 +7,11 @@ Changelog for insanic
 
 - BREAKING: `request_timeout` arguments of dispatch methods have been changed to
 `response_timeout`.
-- BRAEKING: If the response has timed out, Insanic will raise `503 Service Unavailable` with message `{service_name} has timed out.`,
+- BREAKING: If the response has timed out, Insanic will raise `503 Service Unavailable` with message `{service_name} has timed out.`,
 not `408 Request Timeout` anymore.
 - FIX: All timeout variables will be used as `ClientTimeout` class, not primitive integer.
 See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts)
+- UPGRADE: minimum requirement for aiohttp updated from 3.1.0 -> 3.3.0 
 - UPGRADE: increase log level to critical for uncaught exceptions
 - CHORE: changed ttl_dns_cache on service session to reflect dns cache ttl of route53
 
