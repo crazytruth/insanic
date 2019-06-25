@@ -11,6 +11,7 @@ Changelog for insanic
 not `408 Request Timeout` anymore.
 - FIX: All timeout variables will be used as `ClientTimeout` class, not primitive integer.
 See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts)
+- UPGRADE: increase log level to critical for uncaught exceptions
 
 
 0.7.11 (2019-05-29)
