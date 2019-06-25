@@ -76,7 +76,7 @@ class ErrorHandler(SanicErrorHandler):
                     'Exception raised in exception handler "{}" '
                     'for uri: "{}"\n{}').format(
                     handler.__name__, url, format_exc())
-                error_logger.error(response_message)
+                error_logger.critical(response_message)
                 return self.handle_uncaught_exception(request, exception, response_message)
             else:
                 return self.handle_uncaught_exception(request, exception)
