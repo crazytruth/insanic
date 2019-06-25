@@ -31,7 +31,7 @@ from insanic.utils.obfuscating import get_safe_dict
 
 from insanic.services.utils import context_user, context_correlation_id
 
-DEFAULT_SERVICE_REQUEST_TIMEOUT = 1
+DEFAULT_SERVICE_RESPONSE_TIMEOUT = 1
 
 from insanic.services.grpc import GRPCClient
 
@@ -131,8 +131,9 @@ class Service(GRPCClient):
 
     @classmethod
     def session(cls):
-
         if cls._session is None or cls._session.closed or cls._session.loop._closed:
+            default_timeout = aiohttp.ClientTimeout(total=DEFAULT_SERVICE_RESPONSE_TIMEOUT)
+
             # 20181128 changed TCPConnector from keepalive_timeout=15 to 0 to stop connections getting reused
             # not the most elegant solution because now each connection will open and close
             # force_close seems to absolutely close the connection so don't use because we need to get
@@ -145,7 +146,7 @@ class Service(GRPCClient):
                     limit_per_host=10,
                     ttl_dns_cache=60),
                 response_class=InsanicResponse,
-                read_timeout=DEFAULT_SERVICE_REQUEST_TIMEOUT,
+                timeout=default_timeout,
                 trace_configs=[aws_xray_trace_config()]
             )
 
@@ -160,7 +161,7 @@ class Service(GRPCClient):
     async def dispatch(self, method, endpoint, *, query_params=None, payload=None,
                        files=None, headers=None,
                        propagate_error=False, skip_breaker=False,
-                       include_status_code=False, request_timeout=None):
+                       include_status_code=False, response_timeout=None):
         """
         Common interface for attempting interservice communications.
         Tries grpc if target service is able to accept grpc, otherwise fallback to http.
@@ -174,7 +175,7 @@ class Service(GRPCClient):
         :param propagate_error:
         :param skip_breaker:
         :param include_status_code:
-        :param request_timeout:
+        :param response_timeout:
         :return:
         """
 
@@ -187,7 +188,7 @@ class Service(GRPCClient):
                                                     files=files, headers=headers,
                                                     propagate_error=propagate_error, skip_breaker=skip_breaker,
                                                     include_status_code=include_status_code,
-                                                    request_timeout=request_timeout)
+                                                    response_timeout=response_timeout)
             else:
                 http_fallback = True
         except exceptions.APIException as e:
@@ -213,7 +214,7 @@ class Service(GRPCClient):
                                                     files=files, headers=headers,
                                                     propagate_error=propagate_error, skip_breaker=skip_breaker,
                                                     include_status_code=include_status_code,
-                                                    request_timeout=request_timeout)
+                                                    response_timeout=response_timeout)
 
         if response is None:
             self.raise_503()
@@ -223,7 +224,7 @@ class Service(GRPCClient):
     async def grpc_dispatch(self, method, endpoint, *, query_params=None, payload=None,
                             files=None, headers=None,
                             propagate_error=False, skip_breaker=False,
-                            include_status_code=False, request_timeout=None):
+                            include_status_code=False, response_timeout=None):
         files = files or {}
         query_params = query_params or {}
         payload = payload or {}
@@ -237,7 +238,7 @@ class Service(GRPCClient):
                                                           headers=headers, payload=payload, files=files,
                                                           propagate_error=propagate_error,
                                                           skip_breaker=skip_breaker,
-                                                          request_timeout=request_timeout)
+                                                          response_timeout=response_timeout)
 
         if include_status_code:
             return response, status_code
@@ -246,7 +247,7 @@ class Service(GRPCClient):
     async def http_dispatch(self, method, endpoint, *, query_params=None, payload=None,
                             files=None, headers=None,
                             propagate_error=False, skip_breaker=False,
-                            include_status_code=False, request_timeout=None):
+                            include_status_code=False, response_timeout=None):
         """
         Interface for sending requests to other services.
 
@@ -268,8 +269,8 @@ class Service(GRPCClient):
         :type skip_breaker: bool
         :param include_status_code: if you want this method to return the response with the status code
         :type include_status_code: bool
-        :param request_timeout: if you want to increase the timeout for this requests
-        :type request_timeout: int
+        :param response_timeout: if you want to increase the timeout for this requests
+        :type response_timeout: int
         :return:
         :rtype: dict or tuple(dict, int)
         """
@@ -287,7 +288,7 @@ class Service(GRPCClient):
                                                      headers=headers,
                                                      propagate_error=propagate_error,
                                                      skip_breaker=skip_breaker,
-                                                     request_timeout=request_timeout)
+                                                     response_timeout=response_timeout)
 
         if include_status_code:
             return response, status_code
@@ -377,8 +378,9 @@ class Service(GRPCClient):
             "data": data
         }
 
-        timeout = kwargs.pop('request_timeout', None)
+        timeout = kwargs.pop('response_timeout', None)
         if timeout:
+            timeout = aiohttp.ClientTimeout(total=timeout, connect=None, sock_connect=None, sock_read=None)
             request_params.update({"timeout": timeout})
 
         request_params.update({"trace_request_ctx": {"name": tracing_name(self.service_name)}})
@@ -389,7 +391,7 @@ class Service(GRPCClient):
                 return resp
 
     async def _dispatch(self, method, endpoint, *, query_params, payload, files, headers,
-                        propagate_error=False, skip_breaker=False, request_timeout=None):
+                        propagate_error=False, skip_breaker=False, response_timeout=None):
         """
 
         :param method:
@@ -400,7 +402,7 @@ class Service(GRPCClient):
         :param headers: dict
         :param propagate_error: bool
         :param skip_breaker: bool
-        :param request_timeout: int
+        :param response_timeout: int
         :return:
         """
         # request_start_time = time.monotonic()
@@ -415,7 +417,7 @@ class Service(GRPCClient):
         try:
             _response_obj = await self._dispatch_fetch(method, url, headers, data,
                                                        skip_breaker=skip_breaker,
-                                                       request_timeout=request_timeout)
+                                                       response_timeout=response_timeout)
 
             if propagate_error:
                 _response_obj.raise_for_status()
@@ -498,12 +500,7 @@ class Service(GRPCClient):
                                           status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         except asyncio.TimeoutError:
-            exc = exceptions.RequestTimeoutError(description=f'Request to {self.service_name} took too long!',
-                                                 error_code=GlobalErrorCodes.request_timeout,
-                                                 status_code=status.HTTP_408_REQUEST_TIMEOUT)
-            # exc = exceptions.ServiceTimeoutError(description=f'{self.service_name} has timed out.',
-            #                                      error_code=GlobalErrorCodes.service_timeout,
-            #                                      status_code=status.HTTP_504_GATEWAY_TIMEOUT)
+            exc = exceptions.ResponseTimeoutError(description=f'{self.service_name} has timed out.')
 
         except aiohttp.client_exceptions.ClientPayloadError as e:
             exc = e

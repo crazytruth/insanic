@@ -70,7 +70,7 @@ setup(
         'uvloop==0.12.0',
         'sanic==19.3.1',
         'sanic-useragent',
-        'aiohttp>=3.1.0',
+        'aiohttp>=3.3.0',
         'aiodns',
         # 'yarl==1.1.1',
         'aioredis>=1.1.0',

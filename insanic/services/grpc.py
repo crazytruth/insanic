@@ -398,7 +398,7 @@ class GRPCClient:
         return packed_files
 
     async def _dispatch_grpc(self, *, method, endpoint, query_params, headers, payload, files,
-                             request_timeout, propagate_error, skip_breaker):
+                             response_timeout, propagate_error, skip_breaker):
 
         if not await self.health_status():
             raise ConnectionRefusedError("not healthy")
@@ -421,7 +421,7 @@ class GRPCClient:
         )
         dispatch_stub = await self.dispatch_stub
         try:
-            response = await dispatch_stub.handle_grpc(request, timeout=request_timeout)
+            response = await dispatch_stub.handle_grpc(request, timeout=response_timeout)
             response_body = json.loads(response.body)
             if propagate_error:
                 if 400 <= response.status_code:
@@ -433,9 +433,7 @@ class GRPCClient:
             raise self._status_translations(e)
         except asyncio.TimeoutError as e:
             self.channel_manager.remove_channel(dispatch_stub.handle_grpc.channel)
-            raise exceptions.RequestTimeoutError(description=f'Request to {self.service_name} took too long!',
-                                                 error_code=GlobalErrorCodes.request_timeout,
-                                                 status_code=status.HTTP_408_REQUEST_TIMEOUT)
+            raise exceptions.ResponseTimeoutError(description=f'{self.service_name} has timed out.')
         except ProtocolError as e:
             self.channel_manager.remove_channel(dispatch_stub.handle_grpc.channel)
             error_logger.exception(f"GRPC Protocol Error: {e.msg}", exc_info=e)
