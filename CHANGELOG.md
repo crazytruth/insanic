@@ -6,6 +6,7 @@ Changelog for insanic
 -------------------
 
 - UPGRADE: increase log level to critical for uncaught exceptions
+- CHORE: changed ttl_dns_cache on service session to reflect dns cache ttl of route53
 
 
 0.7.11 (2019-05-29)

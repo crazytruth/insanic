@@ -143,7 +143,7 @@ class Service(GRPCClient):
                     limit=100,
                     keepalive_timeout=int(settings.SERVICE_CONNECTION_KEEP_ALIVE_TIMEOUT),
                     limit_per_host=10,
-                    ttl_dns_cache=10),
+                    ttl_dns_cache=60),
                 response_class=InsanicResponse,
                 read_timeout=DEFAULT_SERVICE_REQUEST_TIMEOUT,
                 trace_configs=[aws_xray_trace_config()]
