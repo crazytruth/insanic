@@ -17,6 +17,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 - UPDATE: default response timeout for inter-service to 5s
 - UPDATE: added default connection timeout to 1s
 - CHORE: updated config to include sanic's default configs
+- FIX: logger now sets value as exception message
 
 
 0.7.11 (2019-05-29)

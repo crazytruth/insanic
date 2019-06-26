@@ -94,3 +94,22 @@ class TestLogFormats:
 
                 assert hasattr(r, 'uri_template')
                 assert r.uri_template == endpoint
+
+    @pytest.mark.parametrize(
+        "exc,expected_message",
+        (
+                (Exception, "<class 'Exception'>"),
+                (ValueError, "<class 'ValueError'>"),
+                (ValueError("asd"), "asd"),
+                (BadRequest, "<class 'insanic.exceptions.BadRequest'>"),
+                (BadRequest('bad'), "bad"),
+        )
+    )
+    def test_exception_logging(self, exc, expected_message, caplog, monkeypatch):
+        monkeypatch.setattr(scopes, 'is_docker', True)
+        app = Insanic('test')
+        from insanic.log import error_logger
+
+        error_logger.exception(exc)
+
+        assert caplog.record_tuples[4][2] == expected_message

@@ -121,6 +121,8 @@ class JSONFormatter(logging.Formatter):
             except ValueError:
                 msg = record.getMessage()
                 self._add_dic(data, {'message': msg})
+        elif isinstance(msg, Exception):
+            self._add_dic(data, {"message": str(msg)})
         else:
             self._add_dic(data, {'message': msg})
 
