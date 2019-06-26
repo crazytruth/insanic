@@ -206,7 +206,7 @@ class TestServiceClass:
         # _disp = getattr(self.service, dispatch_type)
 
         async def _mock_dispatch_fetch(*args, **kwargs):
-            await asyncio.sleep(2)
+            await asyncio.sleep(Service.DEFAULT_SERVICE_RESPONSE_TIMEOUT + 1)
             return {"status": "OK"}
 
         Service._session = None

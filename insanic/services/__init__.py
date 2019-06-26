@@ -30,9 +30,6 @@ from insanic.utils.datetime import get_utc_datetime
 from insanic.utils.obfuscating import get_safe_dict
 
 from insanic.services.utils import context_user, context_correlation_id
-
-DEFAULT_SERVICE_RESPONSE_TIMEOUT = 1
-
 from insanic.services.grpc import GRPCClient
 
 
@@ -69,6 +66,9 @@ class ServiceRegistry(dict):
 
 
 class Service(GRPCClient):
+    DEFAULT_SERVICE_RESPONSE_TIMEOUT = 5
+    DEFAULT_CONNECT_TIMEOUT = 1
+
     _session = None
     _semaphore = None
 
@@ -132,7 +132,8 @@ class Service(GRPCClient):
     @classmethod
     def session(cls):
         if cls._session is None or cls._session.closed or cls._session.loop._closed:
-            default_timeout = aiohttp.ClientTimeout(total=DEFAULT_SERVICE_RESPONSE_TIMEOUT)
+            default_timeout = aiohttp.ClientTimeout(total=cls.DEFAULT_SERVICE_RESPONSE_TIMEOUT,
+                                                    connect=cls.DEFAULT_CONNECT_TIMEOUT)
 
             # 20181128 changed TCPConnector from keepalive_timeout=15 to 0 to stop connections getting reused
             # not the most elegant solution because now each connection will open and close
@@ -380,7 +381,8 @@ class Service(GRPCClient):
 
         timeout = kwargs.pop('response_timeout', None)
         if timeout:
-            timeout = aiohttp.ClientTimeout(total=timeout, connect=None, sock_connect=None, sock_read=None)
+            timeout = aiohttp.ClientTimeout(total=timeout, connect=self.DEFAULT_CONNECT_TIMEOUT,
+                                            sock_connect=None, sock_read=None)
             request_params.update({"timeout": timeout})
 
         request_params.update({"trace_request_ctx": {"name": tracing_name(self.service_name)}})

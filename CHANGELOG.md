@@ -14,6 +14,8 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 - UPGRADE: minimum requirement for aiohttp updated from 3.1.0 -> 3.3.0 
 - UPGRADE: increase log level to critical for uncaught exceptions
 - CHORE: changed ttl_dns_cache on service session to reflect dns cache ttl of route53
+- UPDATE: default response timeout for inter-service to 5s
+- UPDATE: added default connection timeout to 1s
 
 
 0.7.11 (2019-05-29)
