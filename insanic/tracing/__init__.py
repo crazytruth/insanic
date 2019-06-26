@@ -21,7 +21,7 @@ class InsanicTracer:
             logger.critical(error_message)
             raise EnvironmentError(error_message)
         else:
-            logger.warn(error_message)
+            logger.warning(error_message)
 
     @classmethod
     def _check_prerequisites(cls, app):
