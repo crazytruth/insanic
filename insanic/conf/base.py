@@ -3,6 +3,8 @@ import os
 import types
 import sys
 
+from sanic.config import DEFAULT_CONFIG
+
 from insanic.conf import global_settings
 from insanic.functional import empty
 from insanic.log import logger
@@ -56,22 +58,23 @@ class BaseConfig:
 
     def __init__(self, load_env=True, keep_alive=True, settings_module=None):
 
+        self.from_dict(DEFAULT_CONFIG)
         self.from_object(global_settings)
 
         if self.SERVICE_NAME is None:
             self.SERVICE_NAME = empty
 
-        self.REQUEST_MAX_SIZE = 100000000  # 100 megabytes
-        self.REQUEST_TIMEOUT = 60  # 60 seconds
-        self.RESPONSE_TIMEOUT = 60  # 60 seconds
-        self.KEEP_ALIVE = keep_alive
-        self.KEEP_ALIVE_TIMEOUT = 5  # 5 seconds
-        self.WEBSOCKET_MAX_SIZE = 2 ** 20  # 1 megabytes
-        self.WEBSOCKET_MAX_QUEUE = 32
-        self.WEBSOCKET_READ_LIMIT = 2 ** 16
-        self.WEBSOCKET_WRITE_LIMIT = 2 ** 16
-        self.GRACEFUL_SHUTDOWN_TIMEOUT = 15.0  # 15 sec
-        self.ACCESS_LOG = True
+        # self.REQUEST_MAX_SIZE = 100000000  # 100 megabytes
+        # self.REQUEST_TIMEOUT = 60  # 60 seconds
+        # self.RESPONSE_TIMEOUT = 60  # 60 seconds
+        # self.KEEP_ALIVE = keep_alive
+        # self.KEEP_ALIVE_TIMEOUT = 5  # 5 seconds
+        # self.WEBSOCKET_MAX_SIZE = 2 ** 20  # 1 megabytes
+        # self.WEBSOCKET_MAX_QUEUE = 32
+        # self.WEBSOCKET_READ_LIMIT = 2 ** 16
+        # self.WEBSOCKET_WRITE_LIMIT = 2 ** 16
+        # self.GRACEFUL_SHUTDOWN_TIMEOUT = 15.0  # 15 sec
+        # self.ACCESS_LOG = True
 
         if load_env:
             prefix = INSANIC_PREFIX if load_env is True else load_env
@@ -132,6 +135,15 @@ class BaseConfig:
             if key.isupper():
                 try:
                     setattr(self, key, getattr(obj, key))
+                except AttributeError:
+                    pass
+
+    def from_dict(self, settings):
+
+        for key, value in settings.items():
+            if key.isupper():
+                try:
+                    setattr(self, key, value)
                 except AttributeError:
                     pass
 
