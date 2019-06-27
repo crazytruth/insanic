@@ -163,6 +163,12 @@ class ServiceUnavailable503Error(APIException):
     message = "Service unavailable."
 
 
+class ResponseTimeoutError(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    error_code = GlobalErrorCodes.service_timeout
+    message = "Response timeout."
+
+
 class RequestTimeoutError(APIException):
     status_code = status.HTTP_408_REQUEST_TIMEOUT
     message = "Request timeout."

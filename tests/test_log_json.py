@@ -1,5 +1,6 @@
 import pytest
 import uuid
+import ujson as json
 
 from insanic import scopes, status
 from insanic.app import Insanic
@@ -94,3 +95,27 @@ class TestLogFormats:
 
                 assert hasattr(r, 'uri_template')
                 assert r.uri_template == endpoint
+
+    @pytest.mark.parametrize(
+        "exc,expected_message",
+        (
+                (Exception, "<class 'Exception'>"),
+                (ValueError, "<class 'ValueError'>"),
+                (ValueError("asd"), "asd"),
+                (BadRequest, "<class 'insanic.exceptions.BadRequest'>"),
+                (BadRequest('bad'), "bad"),
+        )
+    )
+    def test_exception_logging(self, exc, expected_message, capsys, monkeypatch):
+        monkeypatch.setattr(scopes, 'is_docker', True)
+        app = Insanic('test')
+        from insanic.log import error_logger
+
+        error_logger.exception(exc)
+
+        out, err = capsys.readouterr()
+        print(err)
+
+        logs = [json.loads(m) for m in err.strip().split('\n')]
+
+        assert logs[-1]['message'] == expected_message

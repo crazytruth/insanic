@@ -14,7 +14,7 @@ def read(fname):
     return open(os.path.join(here, fname)).read()
 
 
-version = '0.7.11.dev1'
+version = '0.7.12.dev0'
 
 
 def pytest_command():
@@ -70,7 +70,7 @@ setup(
         'uvloop==0.12.0',
         'sanic==19.3.1',
         'sanic-useragent',
-        'aiohttp>=3.1.0',
+        'aiohttp>=3.3.0',
         'aiodns',
         # 'yarl==1.1.1',
         'aioredis>=1.1.0',

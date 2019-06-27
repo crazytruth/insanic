@@ -17,7 +17,7 @@ from sanic.response import json
 from insanic import status
 from insanic.authentication import handlers
 from insanic.conf import settings
-from insanic.exceptions import RequestTimeoutError, APIException
+from insanic.exceptions import ResponseTimeoutError, APIException
 from insanic.log import error_logger
 from insanic.models import User, UserLevels, AnonymousRequestService, AnonymousUser, to_header_value
 from insanic.permissions import AllowAny
@@ -150,41 +150,41 @@ class TestServiceClass:
             assert status_code == mock_status_code
 
     @dispatch_tests
-    def test_dispatch_request_timeout(self, monkeypatch, dispatch_type):
+    def test_dispatch_response_timeout(self, monkeypatch, dispatch_type):
         _disp = getattr(self.service, dispatch_type)
 
         async def _mock_dispatch(*args, **kwargs):
-            assert "request_timeout" in kwargs
-            return {"request_timeout": kwargs.get('request_timeout')}, 200
+            assert "response_timeout" in kwargs
+            return {"response_timeout": kwargs.get('response_timeout')}, 200
 
         monkeypatch.setattr(self.service, '_dispatch', _mock_dispatch)
 
         loop = uvloop.new_event_loop()
 
         response = loop.run_until_complete(_disp('GET', '/'))
-        assert response['request_timeout'] is None
+        assert response['response_timeout'] is None
 
         loop = uvloop.new_event_loop()
 
         response = loop.run_until_complete(
-            _disp('POST', '/', payload={"a": "b"}, request_timeout=10))
-        assert response['request_timeout'] is 10
+            _disp('POST', '/', payload={"a": "b"}, response_timeout=10))
+        assert response['response_timeout'] is 10
 
     @dispatch_tests
-    def test_dispatch_dispatch_fetch_request_timeout(self, monkeypatch, dispatch_type):
+    def test_dispatch_dispatch_fetch_response_timeout(self, monkeypatch, dispatch_type):
         _disp = getattr(self.service, dispatch_type)
 
         async def _mock_dispatch_fetch(*args, **kwargs):
-            assert "request_timeout" in kwargs
+            assert "response_timeout" in kwargs
 
             class MockResponse:
                 status = 200
 
                 async def json(self, *args, **method_kwargs):
-                    return {"request_timeout": kwargs['request_timeout']}
+                    return {"response_timeout": kwargs['response_timeout']}
 
                 async def text(self, *args, **method_kwargs):
-                    return ujson.dumps({"request_timeout": kwargs['request_timeout']})
+                    return ujson.dumps({"response_timeout": kwargs['response_timeout']})
 
             return MockResponse()
 
@@ -194,25 +194,25 @@ class TestServiceClass:
 
         response = loop.run_until_complete(
             _disp('PUT', '/', payload={"a": "b"}))
-        assert response['request_timeout'] == None
+        assert response['response_timeout'] == None
 
         loop = uvloop.new_event_loop()
 
         response = loop.run_until_complete(
-            _disp('POST', '/', payload={"a": "b"}, request_timeout=10))
-        assert response['request_timeout'] == 10
+            _disp('POST', '/', payload={"a": "b"}, response_timeout=10))
+        assert response['response_timeout'] == 10
 
     async def test_dispatch_catch_timeout(self, monkeypatch):
         # _disp = getattr(self.service, dispatch_type)
 
         async def _mock_dispatch_fetch(*args, **kwargs):
-            await asyncio.sleep(2)
+            await asyncio.sleep(Service.DEFAULT_SERVICE_RESPONSE_TIMEOUT + 1)
             return {"status": "OK"}
 
         Service._session = None
         monkeypatch.setattr(self.service.session()._connector, 'connect', _mock_dispatch_fetch)
 
-        with pytest.raises(RequestTimeoutError):
+        with pytest.raises(ResponseTimeoutError):
             await self.service.http_dispatch('GET', '/')
 
     @pytest.mark.parametrize("payload,files,headers, expect_content_type, final_content_type", (

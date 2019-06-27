@@ -212,6 +212,12 @@ class TestBaseSettings:
         self.base_config.load_from_service()
         self.assert_settings_with_module(intest_config)
 
+    def test_sanic_default_config(self):
+        from sanic.config import DEFAULT_CONFIG
+
+        for k, v in DEFAULT_CONFIG.items():
+            assert hasattr(self.base_config, k)
+
 
 from hvac import Client
 from consul import Consul
