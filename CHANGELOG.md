@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.7.12 (unreleased)
+0.7.12 (2019-06-27)
 -------------------
 
 - BREAKING: `request_timeout` arguments of dispatch methods have been changed to
