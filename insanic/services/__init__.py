@@ -2,16 +2,13 @@ import asyncio
 import aiohttp
 import io
 import ujson as json
-import ujson as json
 # import time
-
 
 from asyncio import get_event_loop
 from grpclib.exceptions import ProtocolError
 from inspect import isawaitable
 from sanic.constants import HTTP_METHODS
 from sanic.request import File
-# from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from yarl import URL
 
 from insanic import exceptions, status
@@ -366,10 +363,6 @@ class Service(GRPCClient):
 
         return data
 
-    # @retry(stop=stop_after_attempt(3), reraise=True,
-    #        wait=wait_exponential(multiplier=1, min=1, max=10),
-    #        retry=retry_if_exception_type((asyncio.TimeoutError,
-    #                                       aiohttp.client_exceptions.ClientConnectorError)))
     async def _dispatch_fetch(self, method, url, headers, data, **kwargs):
 
         request_params = {
@@ -432,8 +425,6 @@ class Service(GRPCClient):
             if isawaitable(message):
                 message = await message
 
-            'ClientResponseError: PATCH http://test:8000/ 401 {"error":"401 error"} {"password":"*********","username":"hello"}'
-            'ClientResponseError: PATCH http://test:8000/ 401 {"error": "401 error"} {"password":"*********","username":"hello"}'
             response = try_json_decode(message)
             try:
                 status_code = e.code
@@ -454,6 +445,7 @@ class Service(GRPCClient):
                                           status_code=status_code)
             exc.message = response.get('message', GlobalErrorCodes.unknown_error.name)
             # raise exc
+
         except aiohttp.client_exceptions.ClientConnectorError as e:
 
             """subset of connection errors that are initiated by an OSError exception"""
@@ -483,9 +475,10 @@ class Service(GRPCClient):
                                                             status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
             elif isinstance(e, aiohttp.client_exceptions.ServerTimeoutError):
                 """server operation timeout, (read timeout, etc)"""
-                exc = exceptions.APIException(description=e.args[0],
-                                              error_code=GlobalErrorCodes.service_timeout,
-                                              status_code=status.HTTP_504_GATEWAY_TIMEOUT)
+                # exc = exceptions.APIException(description=e.args[0],
+                #                               error_code=GlobalErrorCodes.service_timeout,
+                #                               status_code=status.HTTP_504_GATEWAY_TIMEOUT)
+                exc = exceptions.ResponseTimeoutError(description=f'{self.service_name} has timed out.')
             else:
                 msg = settings.SERVICE_UNAVAILABLE_MESSAGE.format(self._service_name)
                 exc = exceptions.ServiceUnavailable503Error(description=msg,
@@ -529,7 +522,7 @@ class Service(GRPCClient):
     #     :return:
     #     """
     #
-    #     if isinstance(exc, exceptions.APIException):
+    #     if not isinstance(exc, exceptions.APIException):
     #         if exc.status_code >= status.HTTP_500_INTERNAL_SERVER_ERROR:
     #             extra = {
     #                 'status': exc.status_code,
