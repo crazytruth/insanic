@@ -1,5 +1,6 @@
 import pytest
 import uuid
+import ujson as json
 
 from insanic import scopes, status
 from insanic.app import Insanic
@@ -105,11 +106,16 @@ class TestLogFormats:
                 (BadRequest('bad'), "bad"),
         )
     )
-    def test_exception_logging(self, exc, expected_message, caplog, monkeypatch):
+    def test_exception_logging(self, exc, expected_message, capsys, monkeypatch):
         monkeypatch.setattr(scopes, 'is_docker', True)
         app = Insanic('test')
         from insanic.log import error_logger
 
         error_logger.exception(exc)
 
-        assert caplog.record_tuples[4][2] == expected_message
+        out, err = capsys.readouterr()
+        print(err)
+
+        logs = [json.loads(m) for m in err.strip().split('\n')]
+
+        assert logs[-1]['message'] == expected_message
