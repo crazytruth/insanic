@@ -37,12 +37,6 @@ test_requires = [
     "aioresponses",
     "grpc-test-monkey"
 
-    # "beautifulsoup4"
-    # "docker",
-    # "aiobotocore",
-
-    # "pytest",
-    # "pytest-asyncio",
 ]
 
 setup(
@@ -79,23 +73,19 @@ setup(
         "python-consul",
         "hvac",
         "aiotask_context",
-        # "infuse>=0.1.0",
+
         "python-dateutil",
         "packaging",
         "grpclib==0.2.1",
         "googleapis-common-protos",
         "prometheus-client==0.5.0",
         "psutil==5.4.8"
-        # "tenacity==5.0.2"
+
     ],
-    # test_suite='nose.collector',
+
     tests_require=test_requires,
     test_suite='tests',
-    # entry_points={
-    #     'pytest11': [
-    #         'insanic = insanic.testing.plugin',
-    #     ]
-    # },
+
     extras_require={
         "testing": test_requires,
         "dev": ["zest.releaser[recommended]", "flake8"],
