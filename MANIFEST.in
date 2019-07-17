@@ -12,5 +12,6 @@ exclude insanic_ascii
 exclude tests
 exclude tests/intest
 exclude tests/tracing
+graft .github
 recursive-exclude tests *.py
 recursive-exclude insanic *.proto
