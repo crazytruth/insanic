@@ -34,7 +34,7 @@ UPSTREAM_OBJECT = {
                 "http_statuses": [404],
                 "tcp_failures": 3,
                 "timeouts": 3,
-                "http_failures": 2
+                "http_failures": 0
             }
         }
     }
