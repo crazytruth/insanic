@@ -170,3 +170,11 @@ def monkeypatch_redis(redis_proc):
     # because of aynschronous issues while testing, aioredis needs to be monkeypatched
     settings.REDIS_PORT = redis_proc.port
     settings.REDIS_HOST = redis_proc.host
+
+
+@pytest.fixture(scope='function', autouse=True)
+def monkeypatch_service(request, monkeypatch, test_user):
+    if "runservices" in request.keywords.keys():
+        pass
+    else:
+        monkeypatch.setattr(Service, 'http_dispatch', partial(MockService.mock_dispatch, test_user=test_user))

@@ -5,7 +5,7 @@ Changelog for insanic
 0.7.14 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- HOTFIX: reverts monkeypatching mock service delete
 
 
 0.7.13 (2019-07-17)
