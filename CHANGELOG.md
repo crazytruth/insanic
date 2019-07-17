@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.7.13 (unreleased)
+0.7.13 (2019-07-17)
 -------------------
 
 - CHORE: remove docker dependency on tests
