@@ -1,3 +1,5 @@
+from aioresponses import aioresponses
+
 from insanic import Insanic, status, __version__
 
 
