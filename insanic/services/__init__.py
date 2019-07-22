@@ -2,7 +2,6 @@ import asyncio
 import aiohttp
 import io
 import ujson as json
-# import time
 
 from asyncio import get_event_loop
 from grpclib.exceptions import ProtocolError
@@ -20,14 +19,14 @@ from insanic.log import error_logger, access_logger
 from insanic.models import to_header_value
 from insanic.services.response import InsanicResponse
 from insanic.scopes import is_docker
-from insanic.tracing.clients import aws_xray_trace_config
-from insanic.tracing.utils import tracing_name
 from insanic.utils import try_json_decode
 from insanic.utils.datetime import get_utc_datetime
 from insanic.utils.obfuscating import get_safe_dict
-
-from insanic.services.utils import context_user, context_correlation_id
 from insanic.services.grpc import GRPCClient
+from insanic.services.utils import context_user, context_correlation_id
+
+DEFAULT_SERVICE_REQUEST_TIMEOUT = 1
+
 
 
 class ServiceRegistry(dict):
@@ -68,6 +67,7 @@ class Service(GRPCClient):
 
     _session = None
     _semaphore = None
+    extra_session_configs = {}
 
     def __init__(self, service_type):
         self._service_name = service_type
@@ -136,7 +136,7 @@ class Service(GRPCClient):
             # not the most elegant solution because now each connection will open and close
             # force_close seems to absolutely close the connection so don't use because we need to get
             # meta data from the connection even if it is closed
-            cls._session = aiohttp.ClientSession(
+            _client_session_configs = dict(
                 loop=get_event_loop(),
                 connector=aiohttp.TCPConnector(
                     limit=100,
@@ -144,9 +144,11 @@ class Service(GRPCClient):
                     limit_per_host=10,
                     ttl_dns_cache=60),
                 response_class=InsanicResponse,
-                timeout=default_timeout,
-                trace_configs=[aws_xray_trace_config()]
+                read_timeout=DEFAULT_SERVICE_REQUEST_TIMEOUT,
             )
+            _client_session_configs.update(**cls.extra_session_configs)
+
+            cls._session = aiohttp.ClientSession(**cls.extra_session_configs)
 
         return cls._session
 
@@ -378,8 +380,6 @@ class Service(GRPCClient):
                                             sock_connect=None, sock_read=None)
             request_params.update({"timeout": timeout})
 
-        request_params.update({"trace_request_ctx": {"name": tracing_name(self.service_name)}})
-
         async with self.semaphore():
             async with self.session().request(**request_params) as resp:
                 await resp.read()
@@ -405,10 +405,8 @@ class Service(GRPCClient):
         url = self._construct_url(endpoint, query_params=query_params)
         headers = self._prepare_headers(headers, files)
         data = self._prepare_body(headers, payload, files)
-
-        # outbound_request = self.create_request_object(method, url, query_params, headers, data)
         exc = None
-        # _response_obj = None
+
         try:
             _response_obj = await self._dispatch_fetch(method, url, headers, data,
                                                        skip_breaker=skip_breaker,

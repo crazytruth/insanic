@@ -12,7 +12,6 @@ from insanic.handlers import ErrorHandler
 from insanic.monitor import blueprint_monitor
 from insanic.log import get_logging_config, error_logger, logger
 from insanic.protocol import InsanicHttpProtocol
-from insanic.tracing import InsanicTracer
 
 LISTENER_TYPES = ("before_server_start", "after_server_start", "before_server_stop", "after_server_stop")
 MIDDLEWARE_TYPES = ('request', 'response')
@@ -91,7 +90,6 @@ class Insanic(Sanic):
 
     def attach_plugins(self):
         SanicUserAgent.init_app(self)
-        InsanicTracer.init_app(self)
 
         if self.config.get('INFUSE_ENABLED'):
             try:

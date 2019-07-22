@@ -65,6 +65,8 @@ class BaseConfig:
             self.SERVICE_NAME = empty
 
         # self.REQUEST_MAX_SIZE = 100000000  # 100 megabytes
+        # 60 seconds How long a request can take to arrive (sec)
+        # https://sanic.readthedocs.io/en/latest/sanic/config.html#request-timeout
         # self.REQUEST_TIMEOUT = 60  # 60 seconds
         # self.RESPONSE_TIMEOUT = 60  # 60 seconds
         # self.KEEP_ALIVE = keep_alive
