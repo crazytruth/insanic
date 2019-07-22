@@ -23,6 +23,13 @@ blueprint_monitor = Blueprint('monitor', strict_slashes=True)
 # the status of the host, e.g. disk space
 # application specific logic
 
+PING_ENDPOINT = '/ping/'
+HEALTH_ENDPOINT = '/health/'
+METRICS_ENDPOINT = '/metrics/'
+
+MONITOR_ENDPOINTS = (PING_ENDPOINT, HEALTH_ENDPOINT, METRICS_ENDPOINT)
+
+
 async def response_time(func, *args, **kwargs):
     start = time.time()
     try:
@@ -74,10 +81,10 @@ class PingPongView(InsanicView):
         })
 
 
-blueprint_monitor.add_route(PingPongView.as_view(), '/ping/', methods=['GET'], strict_slashes=True)
+blueprint_monitor.add_route(PingPongView.as_view(), PING_ENDPOINT, methods=['GET'], strict_slashes=True)
 
 
-@blueprint_monitor.route('/health/')
+@blueprint_monitor.route(HEALTH_ENDPOINT)
 def health_check(request):
     return json({
         "service": settings.SERVICE_NAME,
@@ -88,7 +95,7 @@ def health_check(request):
     }, status=HTTP_200_OK)
 
 
-@blueprint_monitor.route('/metrics/', methods=("GET",))
+@blueprint_monitor.route(METRICS_ENDPOINT, methods=("GET",))
 def metrics(request):
     p = psutil.Process()
 
