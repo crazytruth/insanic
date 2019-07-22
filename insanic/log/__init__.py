@@ -87,7 +87,9 @@ def get_logging_config():
                            "error_code_value": "%(error_code_value)s",
                            "method": "%(method)s",
                            "path": "%(path)s",
-                           "uri_template": "%(uri_template)s"
+                           "uri_template": "%(uri_template)s",
+                           # added in 0.8.0
+                           "squad": "%(squad)s"
                            },
                 'datefmt': '%Y-%m-%dT%H:%M:%S.%%(msecs)d%z'
             },
@@ -113,6 +115,8 @@ def get_logging_config():
                            "grpc_status": "%(grpc_status)s",
                            "stream_id": "%(stream_id)s",
                            "cardinality": "%(cardinality)s",
+                           # added in 0.8.0
+                           "squad": "%(squad)s"
 
                            # "size": "%(byte)d",
                            # "trace_id": "%(ot_trace_id)s",
