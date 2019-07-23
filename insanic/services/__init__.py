@@ -144,11 +144,11 @@ class Service(GRPCClient):
                     limit_per_host=10,
                     ttl_dns_cache=60),
                 response_class=InsanicResponse,
-                read_timeout=DEFAULT_SERVICE_REQUEST_TIMEOUT,
+                timeout=default_timeout,
             )
             _client_session_configs.update(**cls.extra_session_configs)
 
-            cls._session = aiohttp.ClientSession(**cls.extra_session_configs)
+            cls._session = aiohttp.ClientSession(**_client_session_configs)
 
         return cls._session
 
