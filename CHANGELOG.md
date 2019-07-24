@@ -7,6 +7,7 @@ Changelog for insanic
 
 - UPGRADE: upgrades sanic dependency to 19.6.2
 - FIX: fixes request initialization which includes app as parameter
+- CHORE: updates tests for 416 content range behavior
 
 
 0.7.14 (2019-07-17)
