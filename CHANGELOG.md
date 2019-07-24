@@ -5,7 +5,8 @@ Changelog for insanic
 0.7.15 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- UPGRADE: upgrades sanic dependency to 19.6.2
+- FIX: fixes request initialization which includes app as parameter
 
 
 0.7.14 (2019-07-17)

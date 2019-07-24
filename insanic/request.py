@@ -46,7 +46,7 @@ class Request(SanicRequest):
         '_request_time', '_segment', '_service', '_id', 'grpc_request_message'
     )
 
-    def __init__(self, url_bytes, headers, version, method, transport,
+    def __init__(self, url_bytes, headers, version, method, transport, app,
                  authenticators=None):
         """
 
@@ -58,7 +58,7 @@ class Request(SanicRequest):
         :param authenticators:
         """
 
-        super().__init__(url_bytes, headers, version, method, transport)
+        super().__init__(url_bytes, headers, version, method, transport, app)
 
         self._request_time = int(time.time() * 1000000)
         self._id = empty
@@ -67,13 +67,13 @@ class Request(SanicRequest):
         self.grpc_request_message = empty
 
     @classmethod
-    def from_protobuf_message(cls, request_message, stream):
+    def from_protobuf_message(cls, request_message, stream, app):
 
         request_headers = {k: v for k, v in request_message.headers.items()}
 
         req = cls(url_bytes=request_message.endpoint,
                   headers=CIMultiDict(request_headers),
-                  version=2, method=request_message.method, transport=stream._stream._transport)
+                  version=2, method=request_message.method, transport=stream._stream._transport, app=app)
 
         req._id = request_message.request_id
         req.parsed_json = {k: json.loads(v) for k, v in request_message.body.items()}

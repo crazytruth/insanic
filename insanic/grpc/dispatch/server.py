@@ -22,7 +22,7 @@ class DispatchServer(DispatchBase):
     async def handle_grpc(self, stream):
         rpc_request = await stream.recv_message()
 
-        request = InsanicRequest.from_protobuf_message(rpc_request, stream)
+        request = InsanicRequest.from_protobuf_message(rpc_request, stream, self.app)
         try:
 
             request.app = self.app
