@@ -136,3 +136,11 @@ def test_service_token_factory_pre_0_4():
             [settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_service_encode_handler(payload)])
 
     return factory
+
+
+@pytest.fixture(autouse=True)
+def clear_prometheus_registry():
+    yield
+
+    from insanic.metrics import InsanicMetrics
+    InsanicMetrics.reset()

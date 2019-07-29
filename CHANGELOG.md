@@ -5,9 +5,11 @@ Changelog for insanic
 0.7.15 (unreleased)
 -------------------
 
+- BREAKING: original metrics response now needs `json` query string for json response
 - UPGRADE: upgrades sanic dependency to 19.6.2
 - FIX: fixes request initialization which includes app as parameter
 - CHORE: updates tests for 416 content range behavior
+- UPGRADE: metrics endpoint now returns prometheus formatted response
 
 
 0.7.14 (2019-07-17)
