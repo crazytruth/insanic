@@ -62,8 +62,11 @@ class ServiceRegistry(dict):
 
 
 class Service(GRPCClient):
-    DEFAULT_SERVICE_RESPONSE_TIMEOUT = 5
-    DEFAULT_CONNECT_TIMEOUT = 1
+    DEFAULT_SERVICE_RESPONSE_TIMEOUT = 10
+    DEFAULT_CONNECT_TIMEOUT = 5
+    DEFAULT_CONNECTOR_LIMIT = 200
+    DEFAULT_CONNECTOR_LIMIT_PER_HOST = 30
+    DEFAULT_CONNECTOR_TTL_DNS_CACHE = 60
 
     _session = None
     _semaphore = None
@@ -139,10 +142,10 @@ class Service(GRPCClient):
             _client_session_configs = dict(
                 loop=get_event_loop(),
                 connector=aiohttp.TCPConnector(
-                    limit=100,
+                    limit=cls.DEFAULT_CONNECTOR_LIMIT,
                     keepalive_timeout=int(settings.SERVICE_CONNECTION_KEEP_ALIVE_TIMEOUT),
-                    limit_per_host=10,
-                    ttl_dns_cache=60),
+                    limit_per_host=cls.DEFAULT_CONNECTOR_LIMIT_PER_HOST,
+                    ttl_dns_cache=cls.DEFAULT_CONNECTOR_TTL_DNS_CACHE),
                 response_class=InsanicResponse,
                 timeout=default_timeout,
             )

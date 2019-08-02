@@ -10,6 +10,8 @@ Changelog for insanic
 - FIX: fixes request initialization which includes app as parameter
 - CHORE: updates tests for 416 content range behavior
 - UPGRADE: metrics endpoint now returns prometheus formatted response
+- UPGRADE: more lenient timeouts on interservice requests
+- UPGRADE: larger connection pool for interservice request
 
 
 0.7.14 (2019-07-17)
