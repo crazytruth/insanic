@@ -12,6 +12,7 @@ Changelog for insanic
 - UPGRADE: metrics endpoint now returns prometheus formatted response
 - UPGRADE: more lenient timeouts on interservice requests
 - UPGRADE: larger connection pool for interservice request
+- UPGRADE: set interservice's client session's json serializer to ujson
 
 
 0.7.14 (2019-07-17)

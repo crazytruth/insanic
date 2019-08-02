@@ -148,6 +148,7 @@ class Service(GRPCClient):
                     ttl_dns_cache=cls.DEFAULT_CONNECTOR_TTL_DNS_CACHE),
                 response_class=InsanicResponse,
                 timeout=default_timeout,
+                json_serialize=json.dumps
             )
             _client_session_configs.update(**cls.extra_session_configs)
 
