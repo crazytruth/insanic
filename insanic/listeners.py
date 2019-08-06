@@ -2,9 +2,7 @@ import aiohttp
 import aiotask_context
 import asyncio
 
-from insanic.conf import settings
 from insanic.connections import _connections
-from insanic.grpc.server import GRPCServer
 from insanic.registration import gateway
 from insanic.services import ServiceRegistry
 
@@ -30,19 +28,6 @@ async def after_server_start_connect_database(app, loop=None, **kwargs):
     _connections.loop = loop
 
 
-async def after_server_start_start_grpc(app, loop=None, **kwargs):
-    if settings.GRPC_SERVE:
-        port = int(settings.SERVICE_PORT) + settings.GRPC_PORT_DELTA
-
-        grpc = GRPCServer(app, loop)
-        await grpc.start(host=settings.GRPC_HOST, port=port)
-        grpc.set_status(True)
-    else:
-        GRPCServer.logger("info", f"GRPC_SERVE is turned off")
-
-
-async def before_server_stop_stop_grpc(app, loop=None, **kwargs):
-    await GRPCServer.stop()
 
 
 async def after_server_start_register_service(app, loop, **kwargs):

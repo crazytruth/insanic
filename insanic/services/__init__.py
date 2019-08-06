@@ -4,7 +4,6 @@ import io
 import ujson as json
 
 from asyncio import get_event_loop
-from grpclib.exceptions import ProtocolError
 from inspect import isawaitable
 from sanic.constants import HTTP_METHODS
 from sanic.request import File
@@ -22,7 +21,6 @@ from insanic.scopes import is_docker
 from insanic.utils import try_json_decode
 from insanic.utils.datetime import get_utc_datetime
 from insanic.utils.obfuscating import get_safe_dict
-from insanic.services.grpc import GRPCClient
 from insanic.services.utils import context_user, context_correlation_id
 
 DEFAULT_SERVICE_REQUEST_TIMEOUT = 1
@@ -61,7 +59,7 @@ class ServiceRegistry(dict):
         cls.__instance = None
 
 
-class Service(GRPCClient):
+class Service(object):
     DEFAULT_SERVICE_RESPONSE_TIMEOUT = 10
     DEFAULT_CONNECT_TIMEOUT = 5
     DEFAULT_CONNECTOR_LIMIT = 200
@@ -161,92 +159,6 @@ class Service(GRPCClient):
         if len(query_params):
             url = url.with_query(**query_params)
         return url
-
-    async def dispatch(self, method, endpoint, *, query_params=None, payload=None,
-                       files=None, headers=None,
-                       propagate_error=False, skip_breaker=False,
-                       include_status_code=False, response_timeout=None):
-        """
-        Common interface for attempting interservice communications.
-        Tries grpc if target service is able to accept grpc, otherwise fallback to http.
-
-        :param method:
-        :param endpoint:
-        :param query_params:
-        :param payload:
-        :param files:
-        :param headers:
-        :param propagate_error:
-        :param skip_breaker:
-        :param include_status_code:
-        :param response_timeout:
-        :return:
-        """
-
-
-        http_fallback = False
-        response = None
-        try:
-            if await self.health_status():
-                response = await self.grpc_dispatch(method, endpoint, query_params=query_params, payload=payload,
-                                                    files=files, headers=headers,
-                                                    propagate_error=propagate_error, skip_breaker=skip_breaker,
-                                                    include_status_code=include_status_code,
-                                                    response_timeout=response_timeout)
-            else:
-                http_fallback = True
-        except exceptions.APIException as e:
-            if propagate_error:
-                raise
-            else:
-                if include_status_code:
-                    return e.__dict__(), e.status_code
-                else:
-                    return e.__dict__()
-        except ConnectionRefusedError:
-            http_fallback = True
-        except ProtocolError:
-            http_fallback = True
-        except asyncio.TimeoutError as e:
-            raise
-        except Exception as e:
-            error_logger.exception("Error with grpc")
-            http_fallback = True
-        finally:
-            if http_fallback:
-                response = await self.http_dispatch(method, endpoint, query_params=query_params, payload=payload,
-                                                    files=files, headers=headers,
-                                                    propagate_error=propagate_error, skip_breaker=skip_breaker,
-                                                    include_status_code=include_status_code,
-                                                    response_timeout=response_timeout)
-
-        if response is None:
-            self.raise_503()
-
-        return response
-
-    async def grpc_dispatch(self, method, endpoint, *, query_params=None, payload=None,
-                            files=None, headers=None,
-                            propagate_error=False, skip_breaker=False,
-                            include_status_code=False, response_timeout=None):
-        files = files or {}
-        query_params = query_params or {}
-        payload = payload or {}
-        headers = headers or {}
-
-        if method.upper() not in HTTP_METHODS:
-            raise ValueError("{0} is not a valid method.".format(method))
-
-        response, status_code = await self._dispatch_grpc(method=method, endpoint=endpoint,
-                                                          query_params=query_params,
-                                                          headers=headers, payload=payload, files=files,
-                                                          propagate_error=propagate_error,
-                                                          skip_breaker=skip_breaker,
-                                                          response_timeout=response_timeout)
-
-        if include_status_code:
-            return response, status_code
-        return response
 
     async def http_dispatch(self, method, endpoint, *, query_params=None, payload=None,
                             files=None, headers=None,

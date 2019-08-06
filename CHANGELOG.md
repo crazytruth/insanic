@@ -5,6 +5,19 @@ Changelog for insanic
 0.7.15 (unreleased)
 -------------------
 
+- MAJOR: removed all traces of grpc from insanic. To be provided in another package in the future.
+
+    - remove GRPCAuthenication
+    - remove grpc settings
+    - remove grpc server bindings 
+    - remove grpc log handlers and formatters
+    - remove grpc client from service object
+    - remove `grpc_dispatch` and `dispatch` methods from Service object
+    - remove grpc error code
+    - remove factory method from `Request` class that converts protobuf messages to requests object
+    - remove grpc `disatpch_request` from InsanicView
+    - remove all relevant tests
+
 - BREAKING: original metrics response now needs `json` query string for json response
 - UPGRADE: upgrades sanic dependency to 19.6.2
 - FIX: fixes request initialization which includes app as parameter

@@ -1,10 +1,8 @@
 import aiotask_context
-import ujson as json
 import time
 import uuid
 
 from cgi import parse_header
-from multidict import CIMultiDict
 from pprint import pformat
 from urllib.parse import parse_qs
 
@@ -43,7 +41,7 @@ class Request(SanicRequest):
         '_ip', '_parsed_url', 'uri_template', 'stream', '_remote_addr',
         'authenticators', 'parsed_data',
         '_stream', '_authenticator', '_user', '_auth',
-        '_request_time', '_segment', '_service', '_id', 'grpc_request_message'
+        '_request_time', '_segment', '_service', '_id',
     )
 
     def __init__(self, url_bytes, headers, version, method, transport, app,
@@ -64,24 +62,6 @@ class Request(SanicRequest):
         self._id = empty
         self.parsed_data = empty
         self.authenticators = authenticators or ()
-        self.grpc_request_message = empty
-
-    @classmethod
-    def from_protobuf_message(cls, request_message, stream, app):
-
-        request_headers = {k: v for k, v in request_message.headers.items()}
-
-        req = cls(url_bytes=request_message.endpoint,
-                  headers=CIMultiDict(request_headers),
-                  version=2, method=request_message.method, transport=stream._stream._transport, app=app)
-
-        req._id = request_message.request_id
-        req.parsed_json = {k: json.loads(v) for k, v in request_message.body.items()}
-        req.parsed_files = RequestParameters({k: [File(body=f.body, name=f.name, type="")
-                                                  for f in v.f] for k, v in request_message.files.items()})
-        req.grpc_request_message = request_message
-
-        return req
 
     @property
     def socket(self):

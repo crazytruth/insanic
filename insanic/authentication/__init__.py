@@ -4,8 +4,6 @@ Provides various authentication policies.
 import aiohttp
 import jwt
 
-from google.protobuf.json_format import MessageToDict
-
 from insanic import exceptions
 from insanic.authentication import handlers
 from insanic.conf import settings
@@ -13,8 +11,6 @@ from insanic.errors import GlobalErrorCodes
 from insanic.log import error_logger
 from insanic.models import User, RequestService, AnonymousRequestService
 from insanic.registration import gateway
-from insanic.request import empty
-from insanic.utils import camel_to_snake
 
 UNUSABLE_PASSWORD_PREFIX = '!'
 
@@ -308,9 +304,6 @@ class HardJSONWebTokenAuthentication(JSONWebTokenAuthentication):
         return await super().authenticate_credentials(request, user_data)
 
 
-
-
-
         # TODO: this get user model stuff
         # User = get_user_model()
         # username = jwt_get_username_from_payload_handler(payload)
@@ -343,64 +336,3 @@ class HardJSONWebTokenAuthentication(JSONWebTokenAuthentication):
         #     msg = 'User account is disabled.'
         #     raise exceptions.AuthenticationFailed(msg, GlobalErrorCodes.unknown_error)
 
-
-class GRPCAuthentication(BaseAuthentication):
-
-    def get_user(self, request):
-        """
-        Extracts the context_user from the grpc message.
-        :param request:
-        :raises: AuthenticationFailed if context user is malformed
-        :rtype: dict
-        :return:  user object as defined in the service definition
-        """
-
-        if request.version != "2" and request.grpc_request_message is empty:
-            return None
-
-        try:
-            request_user = request.grpc_request_message.user
-        except AttributeError:
-            msg = 'Malformed authentication request.'
-            raise exceptions.AuthenticationFailed(msg,
-                                                  error_code=GlobalErrorCodes.invalid_authorization_header)
-        return request_user
-
-    def try_decode(self, user):
-
-        try:
-            request_user = {camel_to_snake(k): v for k, v in MessageToDict(user, True).items()}
-        except AttributeError:
-            msg = 'Error decoding request signature.'
-            raise exceptions.AuthenticationFailed(msg,
-                                                  error_code=GlobalErrorCodes.signature_not_decodable)
-        return request_user
-
-    async def authenticate(self, request):
-        """
-        Authenticate the request and return a two-tuple of (user, token).
-        """
-        user_message = self.get_user(request)
-
-        if user_message is None:
-            return None
-
-        payload = self.try_decode(user_message)
-        user, service = await self.authenticate_credentials(request, payload)
-
-        return user, service, None
-
-    async def authenticate_credentials(self, request, payload):
-
-        user = User(**payload)
-
-        service = RequestService(is_authenticated=True, **{
-            camel_to_snake(k): v for k, v in MessageToDict(request.grpc_request_message.service).items()
-        })
-
-        if not service.is_valid:
-            msg = f"Invalid request to {settings.SERVICE_NAME}."
-            raise exceptions.AuthenticationFailed(msg,
-                                                  error_code=GlobalErrorCodes.invalid_service_token)
-
-        return user, service
