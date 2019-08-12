@@ -20,7 +20,7 @@ Changelog for insanic
 
 - FEAT: allows running Insanic without vault access by adding `INSANIC_DEBUG` to environment
 
-    - if ONLY if `INSANIC_DEBUG` is set, and vault is not accessiable will load a file from the parent of the project root
+    - if and ONLY if `INSANIC_DEBUG` is set, and vault is not accessiable will load a file from the parent of the project root
     - if value is not in file, then an empty string is returned
     - also skips kong registration 
     
