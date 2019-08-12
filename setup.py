@@ -69,14 +69,14 @@ setup(
         # 'yarl==1.1.1',
         'aioredis>=1.1.0',
         'PyJWT',
-        "python-consul",
+        # "python-consul",
         "hvac",
         "aiotask_context",
 
         "python-dateutil",
         "packaging",
-        "grpclib==0.2.1",
-        "googleapis-common-protos",
+        # "grpclib==0.2.1",
+        # "googleapis-common-protos",
         "prometheus-client==0.5.0",
         "psutil==5.4.8"
 
