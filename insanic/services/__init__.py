@@ -23,9 +23,6 @@ from insanic.utils.datetime import get_utc_datetime
 from insanic.utils.obfuscating import get_safe_dict
 from insanic.services.utils import context_user, context_correlation_id
 
-DEFAULT_SERVICE_REQUEST_TIMEOUT = 1
-
-
 
 class ServiceRegistry(dict):
     __instance = None
