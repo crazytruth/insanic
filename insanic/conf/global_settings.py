@@ -9,7 +9,7 @@ ADMINS = (
 
 DEBUG = False
 
-SERVICE_NAME = None
+# SERVICE_NAME = None
 
 SERVICE_CONNECTIONS = []
 SERVICE_GLOBAL_SCHEMA = "http"
@@ -147,5 +147,3 @@ REQUEST_ID_HEADER_FIELD = "X-Insanic-Request-ID"
 INTERNAL_REQUEST_USER_HEADER = 'x-insanic-request-user'
 
 SERVICE_UNAVAILABLE_MESSAGE = "{} is currently unavailable."
-
-

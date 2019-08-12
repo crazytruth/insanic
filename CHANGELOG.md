@@ -18,6 +18,12 @@ Changelog for insanic
     - remove grpc `disatpch_request` from InsanicView
     - remove all relevant tests
 
+- FEAT: allows running Insanic without vault access by adding `INSANIC_DEBUG` to environment
+
+    - if ONLY if `INSANIC_DEBUG` is set, and vault is not accessiable will load a file from the parent of the project root
+    - if value is not in file, then an empty string is returned
+    - also skips kong registration 
+    
 - BREAKING: original metrics response now needs `json` query string for json response
 - UPGRADE: upgrades sanic dependency to 19.6.2
 - FIX: fixes request initialization which includes app as parameter

@@ -6,6 +6,7 @@ import sys
 from sanic.config import DEFAULT_CONFIG
 
 from insanic.conf import global_settings
+from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import empty
 from insanic.log import logger
 
@@ -55,6 +56,8 @@ class BaseConfig:
                   ,******
 
         """
+
+    _service_name = empty
 
     def __init__(self, load_env=True, keep_alive=True, settings_module=None):
 
@@ -162,9 +165,10 @@ class BaseConfig:
                 except ValueError:
                     try:
                         setattr(self, config_key, float(v))
-
                     except ValueError:
                         setattr(self, config_key, v)
+                except AttributeError:
+                    print(k)
 
     def load_from_service(self, settings_module=None):
         def load_settings():
@@ -186,7 +190,7 @@ class BaseConfig:
             self.SETTINGS_MODULE = "{0}.config".format(self.SERVICE_NAME)
             load_settings()
         else:
-            raise EnvironmentError("Couldn't evaluate where to find settings module")
+            raise ImproperlyConfigured("Couldn't evaluate where to find settings module")
 
     @property
     def SERVICE_NAME(self):
