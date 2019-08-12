@@ -170,6 +170,9 @@ class DunnoValue:
                 return True
         else:
             return isinstance(other, self.expected_type)
+        
+    def __repr__(self):
+        return f"DunnoValue with {self.expected_type}"
 
 
 class TestAPIEndpoint:

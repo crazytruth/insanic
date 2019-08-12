@@ -5,7 +5,7 @@ Changelog for insanic
 0.7.15 (unreleased)
 -------------------
 
-- Nothing changed yet.
+- CHORE: implement `DunnoValue.__repr__()` for better assertion log printing
 
 
 0.7.14 (2019-07-17)
