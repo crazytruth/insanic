@@ -24,6 +24,10 @@ Changelog for insanic
     - if value is not in file, then an empty string is returned
     - also skips kong registration 
     
+- BREAKING: all tracing features have been removed from this release
+
+    - Tracing will be provided through a separate plugin
+    
 - BREAKING: original metrics response now needs `json` query string for json response
 - UPGRADE: upgrades sanic dependency to 19.6.2
 - FIX: fixes request initialization which includes app as parameter
