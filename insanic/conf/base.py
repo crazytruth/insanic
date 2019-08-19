@@ -168,7 +168,7 @@ class BaseConfig:
                     except ValueError:
                         setattr(self, config_key, v)
                 except AttributeError:
-                    print(k)
+                    pass
 
     def load_from_service(self, settings_module=None):
         def load_settings():
