@@ -117,20 +117,6 @@ class Insanic(Sanic):
 
     def attach_plugins(self):
         SanicUserAgent.init_app(self)
-        #
-        # if self.config.get('INFUSE_ENABLED'):
-        #     try:
-        #         from infuse import Infuse
-        #         Infuse.init_app(self)
-        #         logger.info("[INFUSE] hooked and good to go!")
-        #     except (ImportError, ModuleNotFoundError) as e:
-        #         if self.config.get("INFUSE_FAIL_TYPE") == "hard":
-        #             error_logger.critical("[INFUSE] Infuse is required for this environment.")
-        #             raise
-        #         else:
-        #             error_logger.info(f"[INFUSE] proceeding without infuse. {e.msg}")
-        # else:
-        #     error_logger.info(f"[INFUSE] proceeding without infuse. Because `INFUSE_ENABLED` set to `False`")
 
     def run(self, host=None, port=None, debug=False, ssl=None,
             sock=None, workers=1, protocol=None,
