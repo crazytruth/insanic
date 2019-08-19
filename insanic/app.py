@@ -7,6 +7,7 @@ from sanic_useragent import SanicUserAgent
 
 from insanic import __version__
 from insanic.conf import settings
+from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import empty
 from insanic.handlers import ErrorHandler
 from insanic.metrics import InsanicMetrics
@@ -96,22 +97,40 @@ class Insanic(Sanic):
             "ip": get_my_ip()
         })
 
+        self.initialized_plugins = {}
+
+    def verify_plugin_requirements(self):
+        """
+        Checks if the required plugins set in `REQUIRED_PLUGINS` have been
+        installed and initialized.
+
+        :return:
+        """
+
+        for plugin in self.config.REQUIRED_PLUGINS:
+            if plugin not in self.initialized_plugins.keys():
+                raise ImproperlyConfigured(f"{plugin} is defined in `REQUIRED_PLUGINS` in this "
+                                           f"environment but has not been initialized.")
+
+    def plugin_initialized(self, plugin_name, instance):
+        self.initialized_plugins.update({plugin_name: instance})
+
     def attach_plugins(self):
         SanicUserAgent.init_app(self)
-
-        if self.config.get('INFUSE_ENABLED'):
-            try:
-                from infuse import Infuse
-                Infuse.init_app(self)
-                logger.info("[INFUSE] hooked and good to go!")
-            except (ImportError, ModuleNotFoundError) as e:
-                if self.config.get("INFUSE_FAIL_TYPE") == "hard":
-                    error_logger.critical("[INFUSE] Infuse is required for this environment.")
-                    raise
-                else:
-                    error_logger.info(f"[INFUSE] proceeding without infuse. {e.msg}")
-        else:
-            error_logger.info(f"[INFUSE] proceeding without infuse. Because `INFUSE_ENABLED` set to `False`")
+        #
+        # if self.config.get('INFUSE_ENABLED'):
+        #     try:
+        #         from infuse import Infuse
+        #         Infuse.init_app(self)
+        #         logger.info("[INFUSE] hooked and good to go!")
+        #     except (ImportError, ModuleNotFoundError) as e:
+        #         if self.config.get("INFUSE_FAIL_TYPE") == "hard":
+        #             error_logger.critical("[INFUSE] Infuse is required for this environment.")
+        #             raise
+        #         else:
+        #             error_logger.info(f"[INFUSE] proceeding without infuse. {e.msg}")
+        # else:
+        #     error_logger.info(f"[INFUSE] proceeding without infuse. Because `INFUSE_ENABLED` set to `False`")
 
     def run(self, host=None, port=None, debug=False, ssl=None,
             sock=None, workers=1, protocol=None,

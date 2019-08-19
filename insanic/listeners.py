@@ -7,6 +7,11 @@ from insanic.registration import gateway
 from insanic.services import ServiceRegistry
 
 
+def before_server_start_verify_plugins(app, loop, **kwargs):
+    app.verify_plugin_requirements()
+
+
+
 def before_server_start_set_task_factory(app, loop, **kwargs):
     loop.set_task_factory(aiotask_context.chainmap_task_factory)
 

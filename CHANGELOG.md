@@ -30,6 +30,8 @@ Changelog for insanic
     - Removes tracing related settings
     - Tracing will be provided through a separate plugin
     
+- MAJOR: removed infuse plugin checks from insanic
+- MAJOR: added `REQUIRED_PLUGINS` to enforce plugin attachments
 - BREAKING: original metrics response now needs `json` query string for json response
 - UPGRADE: upgrades sanic dependency to 19.6.2
 - FIX: fixes request initialization which includes app as parameter
