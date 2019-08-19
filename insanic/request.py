@@ -41,7 +41,7 @@ class Request(SanicRequest):
         '_ip', '_parsed_url', 'uri_template', 'stream', '_remote_addr',
         'authenticators', 'parsed_data',
         '_stream', '_authenticator', '_user', '_auth',
-        '_request_time', '_segment', '_service', '_id',
+        '_request_time', '_service', '_id',
     )
 
     def __init__(self, url_bytes, headers, version, method, transport, app,
@@ -74,14 +74,6 @@ class Request(SanicRequest):
         if self._id is empty:
             self._id = self.headers.get(settings.REQUEST_ID_HEADER_FIELD, f"I-{uuid.uuid4()}-{self._request_time}")
         return self._id
-
-    @property
-    def segment(self):
-        return self._segment
-
-    @segment.setter
-    def segment(self, value):
-        self._segment = value
 
     @property
     def query_params(self):
