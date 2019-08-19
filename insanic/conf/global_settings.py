@@ -22,9 +22,6 @@ ALLOWED_HOSTS = []
 
 LOG_IP_FAIL_TYPE = "hard"
 
-INFUSE_ENABLED = 0
-INFUSE_FAIL_TYPE = "soft"  # | "hard"
-
 INSANIC_CACHES = {
     "insanic": {
         "ENGINE": "aioredis",
@@ -128,3 +125,5 @@ REQUEST_ID_HEADER_FIELD = "X-Insanic-Request-ID"
 INTERNAL_REQUEST_USER_HEADER = 'x-insanic-request-user'
 
 SERVICE_UNAVAILABLE_MESSAGE = "{} is currently unavailable."
+
+REQUIRED_PLUGINS = ()

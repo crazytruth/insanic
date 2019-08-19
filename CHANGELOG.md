@@ -39,6 +39,7 @@ Changelog for insanic
 - UPGRADE: larger connection pool for interservice request
 - UPGRADE: set interservice's client session's json serializer to ujson
 - CHORE: implement `DunnoValue.__repr__()` for better assertion log printing
+- CHORE: remove infuse settings to infuse
 
 
 0.7.14 (2019-07-17)
