@@ -27,6 +27,7 @@ Changelog for insanic
 - BREAKING: all tracing features have been removed from this release
 
     - Segment property from requests removed
+    - Removes tracing related settings
     - Tracing will be provided through a separate plugin
     
 - BREAKING: original metrics response now needs `json` query string for json response
