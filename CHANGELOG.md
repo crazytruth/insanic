@@ -38,6 +38,7 @@ Changelog for insanic
 - UPGRADE: more lenient timeouts on interservice requests
 - UPGRADE: larger connection pool for interservice request
 - UPGRADE: set interservice's client session's json serializer to ujson
+- CHORE: implement `DunnoValue.__repr__()` for better assertion log printing
 
 
 0.7.14 (2019-07-17)
