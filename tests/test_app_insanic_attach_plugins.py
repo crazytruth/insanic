@@ -69,3 +69,9 @@ class TestInsanicPlugins:
 
     def test_plugin_listener_attached(self, insanic_application, loop, monkeypatch):
         assert before_server_start_verify_plugins in insanic_application.listeners['before_server_start']
+
+    async def test_requirement_on_run(self, insanic_application, loop, monkeypatch):
+        monkeypatch.setattr(insanic_application.config, 'REQUIRED_PLUGINS', ["insomethingelse"])
+
+        with pytest.raises(ImproperlyConfigured):
+            insanic_application.run()
