@@ -2,8 +2,8 @@ Changelog for insanic
 =====================
 
 
-0.7.15 (unreleased)
--------------------
+0.8.0 (2019-08-20)
+------------------
 
 - MAJOR: removed all traces of grpc from insanic. To be provided in another package in the future.
 
