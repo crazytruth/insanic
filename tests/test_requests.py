@@ -29,7 +29,7 @@ class TestInsanicRequest:
     def test_remote_addr(self, headers, expected):
         headers = CIMultiDict(headers)
 
-        request = Request(b"/", headers, None, 'GET', "")
+        request = Request(b"/", headers, None, 'GET', "", app=object())
 
         assert request.remote_addr == expected
 
@@ -51,6 +51,6 @@ class TestInsanicRequest:
     def test_remote_addr_with_proxies(self, set_proxies_count, headers, expected):
         headers = CIMultiDict(headers)
 
-        request = Request(b"/", headers, None, 'GET', "")
+        request = Request(b"/", headers, None, 'GET', "", app=object())
 
         assert request.remote_addr == expected

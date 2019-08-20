@@ -5,7 +5,43 @@ Changelog for insanic
 0.7.15 (unreleased)
 -------------------
 
+- MAJOR: removed all traces of grpc from insanic. To be provided in another package in the future.
+
+    - remove GRPCAuthenication
+    - remove grpc settings
+    - remove grpc server bindings 
+    - remove grpc log handlers and formatters
+    - remove grpc client from service object
+    - remove `grpc_dispatch` and `dispatch` methods from Service object
+    - remove grpc error code
+    - remove factory method from `Request` class that converts protobuf messages to requests object
+    - remove grpc `disatpch_request` from InsanicView
+    - remove all relevant tests
+
+- FEAT: allows running Insanic without vault access by adding `INSANIC_DEBUG` to environment
+
+    - if and ONLY if `INSANIC_DEBUG` is set, and vault is not accessiable will load a file from the parent of the project root
+    - if value is not in file, then an empty string is returned
+    - also skips kong registration 
+    
+- BREAKING: all tracing features have been removed from this release
+
+    - Segment property from requests removed
+    - Removes tracing related settings
+    - Tracing will be provided through a separate plugin
+    
+- MAJOR: removed infuse plugin checks from insanic
+- MAJOR: added `REQUIRED_PLUGINS` to enforce plugin attachments
+- BREAKING: original metrics response now needs `json` query string for json response
+- UPGRADE: upgrades sanic dependency to 19.6.2
+- FIX: fixes request initialization which includes app as parameter
+- CHORE: updates tests for 416 content range behavior
+- UPGRADE: metrics endpoint now returns prometheus formatted response
+- UPGRADE: more lenient timeouts on interservice requests
+- UPGRADE: larger connection pool for interservice request
+- UPGRADE: set interservice's client session's json serializer to ujson
 - CHORE: implement `DunnoValue.__repr__()` for better assertion log printing
+- CHORE: remove infuse settings to infuse
 
 
 0.7.14 (2019-07-17)

@@ -243,10 +243,7 @@ def test_sanic_error_handling(sanic_exception):
     request, response = app.test_client.get('/')
 
     assert response.status == raised_exception.status_code
-    if raised_exception.status_code == 416:
-        assert response.json is None
-    else:
-        assert response.json['description'] == "a"
+    assert response.json['description'] == "a"
 
     if hasattr(raised_exception, "headers"):
         for k, v in raised_exception.headers.items():

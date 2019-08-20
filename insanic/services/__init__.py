@@ -2,10 +2,8 @@ import asyncio
 import aiohttp
 import io
 import ujson as json
-# import time
 
 from asyncio import get_event_loop
-from grpclib.exceptions import ProtocolError
 from inspect import isawaitable
 from sanic.constants import HTTP_METHODS
 from sanic.request import File
@@ -20,14 +18,10 @@ from insanic.log import error_logger, access_logger
 from insanic.models import to_header_value
 from insanic.services.response import InsanicResponse
 from insanic.scopes import is_docker
-from insanic.tracing.clients import aws_xray_trace_config
-from insanic.tracing.utils import tracing_name
 from insanic.utils import try_json_decode
 from insanic.utils.datetime import get_utc_datetime
 from insanic.utils.obfuscating import get_safe_dict
-
 from insanic.services.utils import context_user, context_correlation_id
-from insanic.services.grpc import GRPCClient
 
 
 class ServiceRegistry(dict):
@@ -62,12 +56,16 @@ class ServiceRegistry(dict):
         cls.__instance = None
 
 
-class Service(GRPCClient):
-    DEFAULT_SERVICE_RESPONSE_TIMEOUT = 5
-    DEFAULT_CONNECT_TIMEOUT = 1
+class Service(object):
+    DEFAULT_SERVICE_RESPONSE_TIMEOUT = 10
+    DEFAULT_CONNECT_TIMEOUT = 5
+    DEFAULT_CONNECTOR_LIMIT = 200
+    DEFAULT_CONNECTOR_LIMIT_PER_HOST = 30
+    DEFAULT_CONNECTOR_TTL_DNS_CACHE = 60
 
     _session = None
     _semaphore = None
+    extra_session_configs = {}
 
     def __init__(self, service_type):
         self._service_name = service_type
@@ -136,17 +134,20 @@ class Service(GRPCClient):
             # not the most elegant solution because now each connection will open and close
             # force_close seems to absolutely close the connection so don't use because we need to get
             # meta data from the connection even if it is closed
-            cls._session = aiohttp.ClientSession(
+            _client_session_configs = dict(
                 loop=get_event_loop(),
                 connector=aiohttp.TCPConnector(
-                    limit=100,
+                    limit=cls.DEFAULT_CONNECTOR_LIMIT,
                     keepalive_timeout=int(settings.SERVICE_CONNECTION_KEEP_ALIVE_TIMEOUT),
-                    limit_per_host=10,
-                    ttl_dns_cache=60),
+                    limit_per_host=cls.DEFAULT_CONNECTOR_LIMIT_PER_HOST,
+                    ttl_dns_cache=cls.DEFAULT_CONNECTOR_TTL_DNS_CACHE),
                 response_class=InsanicResponse,
                 timeout=default_timeout,
-                trace_configs=[aws_xray_trace_config()]
+                json_serialize=json.dumps
             )
+            _client_session_configs.update(**cls.extra_session_configs)
+
+            cls._session = aiohttp.ClientSession(**_client_session_configs)
 
         return cls._session
 
@@ -155,92 +156,6 @@ class Service(GRPCClient):
         if len(query_params):
             url = url.with_query(**query_params)
         return url
-
-    async def dispatch(self, method, endpoint, *, query_params=None, payload=None,
-                       files=None, headers=None,
-                       propagate_error=False, skip_breaker=False,
-                       include_status_code=False, response_timeout=None):
-        """
-        Common interface for attempting interservice communications.
-        Tries grpc if target service is able to accept grpc, otherwise fallback to http.
-
-        :param method:
-        :param endpoint:
-        :param query_params:
-        :param payload:
-        :param files:
-        :param headers:
-        :param propagate_error:
-        :param skip_breaker:
-        :param include_status_code:
-        :param response_timeout:
-        :return:
-        """
-
-
-        http_fallback = False
-        response = None
-        try:
-            if await self.health_status():
-                response = await self.grpc_dispatch(method, endpoint, query_params=query_params, payload=payload,
-                                                    files=files, headers=headers,
-                                                    propagate_error=propagate_error, skip_breaker=skip_breaker,
-                                                    include_status_code=include_status_code,
-                                                    response_timeout=response_timeout)
-            else:
-                http_fallback = True
-        except exceptions.APIException as e:
-            if propagate_error:
-                raise
-            else:
-                if include_status_code:
-                    return e.__dict__(), e.status_code
-                else:
-                    return e.__dict__()
-        except ConnectionRefusedError:
-            http_fallback = True
-        except ProtocolError:
-            http_fallback = True
-        except asyncio.TimeoutError as e:
-            raise
-        except Exception as e:
-            error_logger.exception("Error with grpc")
-            http_fallback = True
-        finally:
-            if http_fallback:
-                response = await self.http_dispatch(method, endpoint, query_params=query_params, payload=payload,
-                                                    files=files, headers=headers,
-                                                    propagate_error=propagate_error, skip_breaker=skip_breaker,
-                                                    include_status_code=include_status_code,
-                                                    response_timeout=response_timeout)
-
-        if response is None:
-            self.raise_503()
-
-        return response
-
-    async def grpc_dispatch(self, method, endpoint, *, query_params=None, payload=None,
-                            files=None, headers=None,
-                            propagate_error=False, skip_breaker=False,
-                            include_status_code=False, response_timeout=None):
-        files = files or {}
-        query_params = query_params or {}
-        payload = payload or {}
-        headers = headers or {}
-
-        if method.upper() not in HTTP_METHODS:
-            raise ValueError("{0} is not a valid method.".format(method))
-
-        response, status_code = await self._dispatch_grpc(method=method, endpoint=endpoint,
-                                                          query_params=query_params,
-                                                          headers=headers, payload=payload, files=files,
-                                                          propagate_error=propagate_error,
-                                                          skip_breaker=skip_breaker,
-                                                          response_timeout=response_timeout)
-
-        if include_status_code:
-            return response, status_code
-        return response
 
     async def http_dispatch(self, method, endpoint, *, query_params=None, payload=None,
                             files=None, headers=None,
@@ -378,8 +293,6 @@ class Service(GRPCClient):
                                             sock_connect=None, sock_read=None)
             request_params.update({"timeout": timeout})
 
-        request_params.update({"trace_request_ctx": {"name": tracing_name(self.service_name)}})
-
         async with self.semaphore():
             async with self.session().request(**request_params) as resp:
                 await resp.read()
@@ -405,10 +318,8 @@ class Service(GRPCClient):
         url = self._construct_url(endpoint, query_params=query_params)
         headers = self._prepare_headers(headers, files)
         data = self._prepare_body(headers, payload, files)
-
-        # outbound_request = self.create_request_object(method, url, query_params, headers, data)
         exc = None
-        # _response_obj = None
+
         try:
             _response_obj = await self._dispatch_fetch(method, url, headers, data,
                                                        skip_breaker=skip_breaker,

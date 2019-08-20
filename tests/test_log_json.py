@@ -119,3 +119,40 @@ class TestLogFormats:
         logs = [json.loads(m) for m in err.strip().split('\n')]
 
         assert logs[-1]['message'] == expected_message
+
+    @pytest.mark.parametrize(
+        "endpoint,request_path,response_meta",
+        (
+                ("/log", "/log", {"a": "b"}),
+                ('/log/<user_id:[0-9a-fA-F]{32}>', f'/log/{uuid.uuid4().hex}', {"a": "b"}),
+                ("/exception", "/exception", RuntimeError("help")),
+                ("/exception/<id>", "/exception/aa", RuntimeError("help")),
+                ("/apiexception/<id>", "/apiexception/aa", BadRequest(description="bad request help")),
+        )
+    )
+    def test_squads_in_logging(self, monkeypatch, caplog, endpoint, request_path, response_meta):
+        """
+        test added for 0.8.0.  Added `squad` in json formatters
+        """
+        monkeypatch.setattr(settings, 'SQUAD', 'monkey', raising=False)
+        monkeypatch.setattr(scopes, 'is_docker', True)
+        app = Insanic('test')
+
+        class NoAuthPermView(InsanicView):
+            authentication_classes = []
+            permission_classes = []
+
+        class MockView(NoAuthPermView):
+            async def get(self, request, *args, **kwargs):
+                if isinstance(response_meta, Exception):
+                    raise response_meta
+                else:
+                    return json_response(response_meta, status=status.HTTP_203_NON_AUTHORITATIVE_INFORMATION)
+
+        app.add_route(MockView.as_view(), endpoint)
+
+        resp = app.test_client.get(request_path)
+        for r in caplog.records:
+            if r.name == 'sanic.access':
+                assert hasattr(r, 'squad')
+                assert r.squad == "monkey"

@@ -5,6 +5,7 @@ from aiohttp.client_exceptions import ClientConnectorError
 from functools import wraps
 from multiprocessing import current_process
 from packaging import version
+from urllib.error import URLError
 
 from insanic.conf import settings
 from insanic.log import logger
@@ -124,9 +125,11 @@ class BaseGateway:
         if self.enabled:
             try:
                 self._register()
-            except ClientConnectorError:
+            except (ClientConnectorError, URLError):
                 if settings.MMT_ENV in settings.KONG_FAIL_SOFT_ENVIRONMENTS:
                     self.logger_route('info', "Connection to gateway has failed. Soft failing registration.")
+                elif settings.DEBUG:
+                    self.logger_route('info', "Passing kong registration because debug mode!")
                 else:
                     raise
 
