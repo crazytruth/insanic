@@ -2,8 +2,11 @@ import asyncio
 import psutil
 import time
 
+from prometheus_client import CONTENT_TYPE_LATEST, core
+from prometheus_client.exposition import generate_latest
+
 from sanic import Blueprint
-from sanic.response import json
+from sanic.response import json, raw
 
 from insanic import __version__
 from insanic.conf import settings
@@ -22,6 +25,13 @@ blueprint_monitor = Blueprint('monitor', strict_slashes=True)
 # the status of the connections to the infrastructure services used by the service instance
 # the status of the host, e.g. disk space
 # application specific logic
+
+PING_ENDPOINT = '/ping/'
+HEALTH_ENDPOINT = '/health/'
+METRICS_ENDPOINT = '/metrics/'
+
+MONITOR_ENDPOINTS = (PING_ENDPOINT, HEALTH_ENDPOINT, METRICS_ENDPOINT)
+
 
 async def response_time(func, *args, **kwargs):
     start = time.time()
@@ -74,10 +84,10 @@ class PingPongView(InsanicView):
         })
 
 
-blueprint_monitor.add_route(PingPongView.as_view(), '/ping/', methods=['GET'], strict_slashes=True)
+blueprint_monitor.add_route(PingPongView.as_view(), PING_ENDPOINT, methods=['GET'], strict_slashes=True)
 
 
-@blueprint_monitor.route('/health/')
+@blueprint_monitor.route(HEALTH_ENDPOINT)
 def health_check(request):
     return json({
         "service": settings.SERVICE_NAME,
@@ -88,8 +98,9 @@ def health_check(request):
     }, status=HTTP_200_OK)
 
 
-@blueprint_monitor.route('/metrics/', methods=("GET",))
+@blueprint_monitor.route(METRICS_ENDPOINT, methods=("GET",))
 def metrics(request):
+
     p = psutil.Process()
 
     total_task_count = 0
@@ -99,12 +110,25 @@ def metrics(request):
         if not task.done():
             active_task_count += 1
 
-    return json({
-        "total_task_count": total_task_count,
-        "active_task_count": active_task_count,
-        "request_count": request.app.metrics['request_count']._value.get(),
-        "proc_rss_mem_bytes": p.memory_info().rss,
-        "proc_rss_mem_perc": p.memory_percent(),
-        "proc_cpu_perc": p.cpu_percent(),
-        "timestamp": time.time()
-    })
+    request.app.metrics.TOTAL_TASK_COUNT.set(total_task_count)
+    request.app.metrics.ACTIVE_TASK_COUNT.set(active_task_count)
+    request.app.metrics.PROC_RSS_MEM_BYTES.set(p.memory_info().rss)
+    request.app.metrics.PROC_RSS_MEM_PERC.set(p.memory_percent())
+    request.app.metrics.PROC_CPU_PERC.set(p.cpu_percent())
+
+    if request.query_string == "json":
+        return json({
+            "total_task_count": total_task_count,
+            "active_task_count": active_task_count,
+            "request_count": _get_value_from_metric(request.app.metrics.REQUEST_COUNT),
+            "proc_rss_mem_bytes": _get_value_from_metric(request.app.metrics.PROC_RSS_MEM_BYTES),
+            "proc_rss_mem_perc": _get_value_from_metric(request.app.metrics.PROC_RSS_MEM_PERC),
+            "proc_cpu_perc": _get_value_from_metric(request.app.metrics.PROC_CPU_PERC),
+            "timestamp": time.time()
+        })
+    else:
+        return raw(generate_latest(core.REGISTRY), content_type=CONTENT_TYPE_LATEST)
+
+
+def _get_value_from_metric(metric):
+    return metric._value.get()

@@ -1,11 +1,12 @@
 import os
+import socket
 import ujson as json
 import urllib.error
 import urllib.parse
 import urllib.request
 
 from hvac import Client as VaultClient
-from hvac.exceptions import Forbidden
+from hvac.exceptions import Forbidden, VaultError
 from yarl import URL
 from sanic.config import Config
 
@@ -17,6 +18,10 @@ from . import global_settings
 from .base import BaseConfig
 
 ENVIRONMENT_VARIABLE = "VAULT_ROLE_ID"
+
+
+def is_debug():
+    return bool(int(os.environ.get('INSANIC_DEBUG', False)))
 
 
 class LazySettings(LazyObject):
@@ -32,16 +37,26 @@ class LazySettings(LazyObject):
         is used the first time we need any settings at all, if the user has not
         previously configured the settings manually.
         """
-        role_id = os.environ.get(ENVIRONMENT_VARIABLE)
-        if not role_id:
-            desc = ("setting %s" % name) if name else "settings"
-            raise ImproperlyConfigured(
-                "Requested %s, but settings are not configured. "
-                "You must either define the environment variable %s "
-                "or call settings.configure() before accessing settings."
-                % (desc, ENVIRONMENT_VARIABLE))
+        try:
+            role_id = os.environ.get(ENVIRONMENT_VARIABLE)
+            if not role_id:
+                desc = ("setting %s" % name) if name else "settings"
+                raise ImproperlyConfigured(
+                    "Requested %s, but settings are not configured. "
+                    "You must either define the environment variable %s "
+                    "or call settings.configure() before accessing settings."
+                    % (desc, ENVIRONMENT_VARIABLE))
 
-        self._wrapped = VaultConfig(role_id)
+            self._wrapped = VaultConfig(role_id=role_id)
+        except ImproperlyConfigured:
+            debug_mode = is_debug()
+            if debug_mode:
+                service_name_candidate = self._infer_app_name()
+                logger.info("Since debug mode. Loading settings from file.")
+                self._wrapped = BimilConfig(service_name=service_name_candidate)
+            else:
+                raise
+
 
     def __repr__(self):
         # Hardcode the class name as otherwise it yields 'Settings'.
@@ -105,31 +120,87 @@ class LazySettings(LazyObject):
         except AttributeError:
             return None
 
+    def _infer_app_name(self):
+        t = []
+        for root, dirs, files in os.walk('.'):
+            t.append((root, dirs, files))
+
+            exclude_dirs = [d for d in dirs if d.startswith('.') or d.startswith('_')]
+            for d in exclude_dirs:
+                dirs.remove(d)
+
+            if "config.py" in files:
+                return root.split(os.sep)[-1]
+
+        raise EnvironmentError("Unable to predict service_name. "
+                               "Maybe you are running in a wrong working directory?")
+
+
+class BimilConfig(BaseConfig):
+
+    def __init__(self, *, service_name=None, **kwargs):
+        self._warned_attributes = []
+
+        self._service_name = service_name
+        super().__init__(load_env=False)
+
+        self.load_from_file()
+        self.load_environment_vars()
+
+    def load_from_file(self):
+        bimil_location = os.path.join(os.getcwd(), f'../.bimil/{self._service_name}_config')
+
+        try:
+            self.from_pyfile(bimil_location)
+        except FileNotFoundError:
+            logger.warning(f"Config file not found: {bimil_location}")
+
+    def __getattr__(self, item):
+        try:
+            return super().__getattribute__(item)
+        except AttributeError as e:
+            if item not in self._warned_attributes and item.isupper():
+                logger.warning(
+                    f"[BIMIL] A setting is NOT in the loaded config file. Returning empty string for the time being: {item}")
+                self._warned_attributes.append(item)
+            return ''
+
 
 class VaultConfig(BaseConfig):
     vault_logo = """
-██╗   ██╗ █████╗ ██╗   ██╗██╗  ████████╗
-██║   ██║██╔══██╗██║   ██║██║  ╚══██╔══╝
-██║   ██║███████║██║   ██║██║     ██║   
-╚██╗ ██╔╝██╔══██║██║   ██║██║     ██║   
- ╚████╔╝ ██║  ██║╚██████╔╝███████╗██║   
-  ╚═══╝  ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝          
+    ██╗   ██╗ █████╗ ██╗   ██╗██╗  ████████╗
+    ██║   ██║██╔══██╗██║   ██║██║  ╚══██╔══╝
+    ██║   ██║███████║██║   ██║██║     ██║   
+    ╚██╗ ██╔╝██╔══██║██║   ██║██║     ██║   
+     ╚████╔╝ ██║  ██║╚██████╔╝███████╗██║   
+      ╚═══╝  ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝          
     """
 
     vault_common_path = "msa/{env}/common"
     vault_service_path = "msa/{env}/{service_name}"
     vault_service_secret_path = "msa_secret/{env}/{service_name}"
     vault_service_config_path = "msa_config/{env}/{service_name}"
+    vault_client = VaultClient()
 
-    def __init__(self, role_id=None):
-
+    def __init__(self, *, role_id=None, prechecks=True):
         self._role_id = role_id
-        self.vault_client = VaultClient(url=self.VAULT_URL)
+        self.vault_client._url = self.VAULT_URL
+        self._authenticate(prechecks=prechecks)
 
         super().__init__(load_env=False)
         self.load_from_vault()
 
         self.load_environment_vars()
+
+    def _authenticate(self, prechecks=True):
+        try:
+            if prechecks:
+                self.can_vault(raise_exception=True)
+            login_response = self.vault_client.auth_approle(self.VAULT_ROLE_ID)
+        except VaultError as e:
+            raise ImproperlyConfigured(*[f"[VAULT] {a}" for a in e.args])
+        else:
+            self._service_name = login_response['auth']['metadata']['role_name'].split('-')[-1]
 
     @property
     def MMT_ENV(self):
@@ -139,45 +210,50 @@ class VaultConfig(BaseConfig):
         return env
 
     def can_vault(self, raise_exception=False):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        try:
+            socket.gethostbyaddr(self.VAULT_HOST)
+            sock.settimeout(1)
+            if sock.connect_ex((self.VAULT_HOST, int(self.VAULT_PORT))) != 0:
+                msg = f"[VAULT] Could not connect to port on [{self.VAULT_HOST}:{self.VAULT_PORT}]."
+                if raise_exception:
+                    raise ImproperlyConfigured(msg)
+                else:
+                    logger.warning(msg)
+                    return False
+        except socket.gaierror:
+            msg = f"[VAULT] Could not resolve host: {self.VAULT_HOST}"
+            if raise_exception:
+                raise ImproperlyConfigured(msg)
+            else:
+                logger.warning(msg)
+                return False
+        except socket.error as e:
+            msg = f"[VAULT] Encountered connection error: {self.VAULT_HOST} {e}"
+            if raise_exception:
+                raise ImproperlyConfigured(msg)
+            else:
+                logger.warning(msg)
+                return False
+        except Exception:
+            msg = f"[VAULT] Could not to {self.VAULT_HOST}:{self.VAULT_PORT}"
+            if raise_exception:
+                raise ImproperlyConfigured(msg)
+            else:
+                logger.exception(msg)
+                return False
+        finally:
+            sock.close()
+
         can_vault = self.VAULT_ROLE_ID is not None and self.MMT_ENV is not None
         if can_vault:
             return can_vault
         else:
             if raise_exception:
-                raise EnvironmentError(
+                raise ImproperlyConfigured(
                     f"VAULT_ROLE_ID and MMT_ENV are required for importing configurations from vault.")
             return can_vault
-
-    # def _load_secrets(self):
-    #
-    #     try:
-    #         with open('/run/secrets/{0}'.format(self.SERVICE_NAME)) as f:
-    #             docker_secrets = f.read()
-    #
-    #         docker_secrets = json.loads(docker_secrets)
-    #
-    #         for k, v in docker_secrets.items():
-    #             try:
-    #                 v = int(v)
-    #             except ValueError:
-    #                 pass
-    #
-    #             self.update({k: v})
-    #     except FileNotFoundError as e:
-    #         logger.debug("Docker secrets not found %s" % e.strerror)
-    #         filename = os.path.join(os.getcwd(), 'instance.py')
-    #         module = types.ModuleType('config')
-    #         module.__file__ = filename
-    #
-    #         try:
-    #             with open(filename) as f:
-    #                 exec(compile(f.read(), filename, 'exec'),
-    #                      module.__dict__)
-    #         except IOError as e:
-    #             logger.debug('Unable to load configuration file (%s)' % e.strerror)
-    #         for key in dir(module):
-    #             if key.isupper():
-    #                 self[key] = getattr(module, key)
 
     def load_from_vault(self, raise_exception=False):
         """
@@ -200,76 +276,50 @@ class VaultConfig(BaseConfig):
         """
 
         try:
-            self.can_vault(raise_exception=True)
-        except EnvironmentError as e:
-            logger.critical(f"Configs not set from VAULT!! {e.args[0]}")
+            common_settings = self.vault_client.read(self.vault_common_path.format(env=self.MMT_ENV))
+
+            try:
+                service_config_settings = self.vault_client.read(
+                    self.vault_service_config_path.format(
+                        env=self.MMT_ENV,
+                        service_name=self.SERVICE_NAME)
+                )
+                service_secret_settings = self.vault_client.read(
+                    self.vault_service_secret_path.format(
+                        env=self.MMT_ENV,
+                        service_name=self.SERVICE_NAME)
+                )
+            except Forbidden:
+                service_settings = self.vault_client.read(
+                    self.vault_service_path.format(
+                        env=self.MMT_ENV,
+                        service_name=self.SERVICE_NAME)
+                )
+                service_settings = service_settings['data']
+            else:
+                service_settings = service_secret_settings['data']
+                for k, v in service_config_settings['data'].items():
+                    service_settings.update({k.upper(): v})
+
+        except Forbidden:
+            msg = f"Unable to load settings from vault. Please check settings exists for " \
+                f"the environment and service. ENV: {self.MMT_ENV} SERVICE: {self.SERVICE_NAME}"
+            if not is_docker:
+                msg = self.vault_logo + msg
+            logger.critical(msg)
+            # raise EnvironmentError(msg)
             if raise_exception:
                 raise
         else:
-            try:
-                common_settings = self.vault_client.read(self.vault_common_path.format(env=self.MMT_ENV))
+            common_settings = common_settings['data']
+            # service_secret_settings = service_secret_settings['data']
+            # service_config_settings = service_config_settings['data']
 
-                try:
-                    service_config_settings = self.vault_client.read(
-                        self.vault_service_config_path.format(
-                            env=self.MMT_ENV,
-                            service_name=self.SERVICE_NAME)
-                    )
-                    service_secret_settings = self.vault_client.read(
-                        self.vault_service_secret_path.format(
-                            env=self.MMT_ENV,
-                            service_name=self.SERVICE_NAME)
-                    )
-                except Forbidden:
-                    service_settings = self.vault_client.read(
-                        self.vault_service_path.format(
-                            env=self.MMT_ENV,
-                            service_name=self.SERVICE_NAME)
-                    )
-                    service_settings = service_settings['data']
-                else:
-                    service_settings = service_secret_settings['data']
-                    for k, v in service_config_settings['data'].items():
-                        service_settings.update({k.upper(): v})
+            for k, v in common_settings.items():
+                setattr(self, k.upper(), v)
 
-            except Forbidden:
-                msg = f"Unable to load settings from vault. Please check settings exists for " \
-                      f"the environment and service. ENV: {self.MMT_ENV} SERVICE: {self.SERVICE_NAME}"
-                if not is_docker:
-                    msg = self.vault_logo + msg
-                logger.critical(msg)
-                # raise EnvironmentError(msg)
-                if raise_exception:
-                    raise
-            else:
-                common_settings = common_settings['data']
-                # service_secret_settings = service_secret_settings['data']
-                # service_config_settings = service_config_settings['data']
-
-                for k, v in common_settings.items():
-                    setattr(self, k.upper(), v)
-
-                for k, v in service_settings.items():
-                    setattr(self, k.upper(), v)
-
-                # for k, v in service_secret_settings.items():
-                #     setattr(self, k.upper(), v)
-
-
-
-    @property
-    def SERVICE_NAME(self):
-        if self._service_name is empty:
-            if self.can_vault():
-                login_response = self.vault_client.auth_approle(self.VAULT_ROLE_ID)
-                self._service_name = login_response['auth']['metadata']['role_name'].split('-')[-1]
-            else:
-                self._service_name = super().SERVICE_NAME
-        return self._service_name
-
-    @SERVICE_NAME.setter
-    def SERVICE_NAME(self, val):
-        self._service_name = val
+            for k, v in service_settings.items():
+                setattr(self, k.upper(), v)
 
     # vault related properties
     @property
@@ -283,7 +333,6 @@ class VaultConfig(BaseConfig):
     @property
     def VAULT_PORT(self):
         return os.environ.get("VAULT_PORT", 8200)
-        # return 8200
 
     @property
     def VAULT_URL(self):

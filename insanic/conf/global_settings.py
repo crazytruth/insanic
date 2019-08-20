@@ -9,7 +9,7 @@ ADMINS = (
 
 DEBUG = False
 
-SERVICE_NAME = None
+# SERVICE_NAME = None
 
 SERVICE_CONNECTIONS = []
 SERVICE_GLOBAL_SCHEMA = "http"
@@ -21,9 +21,6 @@ REQUIRED_SERVICE_CONNECTIONS = ["userip", "user"]
 ALLOWED_HOSTS = []
 
 LOG_IP_FAIL_TYPE = "hard"
-
-INFUSE_ENABLED = 0
-INFUSE_FAIL_TYPE = "soft"  # | "hard"
 
 INSANIC_CACHES = {
     "insanic": {
@@ -97,34 +94,7 @@ JWT_SERVICE_AUTH = {
 
 INTERNAL_IPS = ()
 
-TRACING_HOST = 'xray'
-TRACING_PORT = 2000
-TRACING_ENABLED = True
-TRACING_REQUIRED = True
-TRACING_SOFT_FAIL = True
-TRACING_CONTEXT_MISSING_STRATEGY = "LOG_ERROR"  # or "RUNTIME_ERROR"
-TRACING_PATCH_MODULES = ("aiobotocore", "pynamodb")
 
-DEFAULT_SAMPLING_FIXED_TARGET = 60 * 10
-DEFAULT_SAMPLING_RATE = 0.01
-
-SAMPLING_RULES = {
-    "version": 1,
-    "rules": [
-        # {
-        #     "description": "Player moves.",
-        #     "service_name": "*",
-        #     "http_method": "*",
-        #     "url_path": "/api/move/*",
-        #     "fixed_target": 0,
-        #     "rate": 0.05
-        # }
-    ],
-    "default": {
-        "fixed_target": DEFAULT_SAMPLING_FIXED_TARGET,
-        "rate": DEFAULT_SAMPLING_RATE
-    }
-}
 
 # THROTTLES_NUM_PROXIES = None # deprecated
 THROTTLES_DEFAULT_THROTTLE_RATES = {
@@ -156,9 +126,4 @@ INTERNAL_REQUEST_USER_HEADER = 'x-insanic-request-user'
 
 SERVICE_UNAVAILABLE_MESSAGE = "{} is currently unavailable."
 
-GRPC_SERVE = True
-GRPC_HOST = '0.0.0.0'
-GRPC_PORT_DELTA = 1000
-# needs to be something like "{service_name}.{server_class}"
-GRPC_SERVER = []
-
+REQUIRED_PLUGINS = ()

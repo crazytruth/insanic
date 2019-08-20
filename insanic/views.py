@@ -1,7 +1,6 @@
 import asyncio
 from inspect import isawaitable
 
-
 from sanic.views import HTTPMethodView
 
 from insanic import authentication, exceptions, permissions
@@ -114,20 +113,6 @@ class InsanicView(HTTPMethodView):
         await self.check_permissions(self.request)
         await self.check_throttles(self.request)
 
-    async def prepare_grpc(self, request, *args, **kwargs):
-        """
-        assume rpc is private only so no authentication,permission or throttle checking
-
-        :param request:
-        :param args:
-        :param kwargs:
-        :return:
-        """
-        self.headers = {}
-        self.request.authenticators = [authentication.GRPCAuthentication()]
-
-        await self.convert_keywords()
-
     async def dispatch_request(self, request, *args, **kwargs):
         """
         `.dispatch()` is pretty much the same as Django's regular dispatch,
@@ -137,10 +122,7 @@ class InsanicView(HTTPMethodView):
         self.kwargs = kwargs
         self.request = request
 
-        if request.version == 2:
-            await self.prepare_grpc(request, *args, **kwargs)
-        else:
-            await self.prepare_http(request, *args, **kwargs)
+        await self.prepare_http(request, *args, **kwargs)
 
         # Get the appropriate handler method
         response = super().dispatch_request(request, *args, **kwargs)

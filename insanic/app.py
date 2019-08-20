@@ -1,18 +1,20 @@
 import os
 import string
 
-from prometheus_client import Counter
 from sanic import Sanic
 from sanic.views import CompositionView
 from sanic_useragent import SanicUserAgent
 
+from insanic import __version__
 from insanic.conf import settings
+from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import empty
 from insanic.handlers import ErrorHandler
+from insanic.metrics import InsanicMetrics
 from insanic.monitor import blueprint_monitor
 from insanic.log import get_logging_config, error_logger, logger
 from insanic.protocol import InsanicHttpProtocol
-from insanic.tracing import InsanicTracer
+from insanic.scopes import get_my_ip
 
 LISTENER_TYPES = ("before_server_start", "after_server_start", "before_server_stop", "after_server_stop")
 MIDDLEWARE_TYPES = ('request', 'response')
@@ -21,13 +23,9 @@ MIDDLEWARE_TYPES = ('request', 'response')
 class Insanic(Sanic):
     database = None
     _public_routes = empty
-    metrics = {}
+    metrics = empty
 
     def __init__(self, name, router=None, error_handler=None, app_config=()):
-
-        if "request_count" not in self.metrics:
-            self.metrics['request_count'] = Counter('request_count',
-                                                    'The number of requests this application has handled')
 
         if error_handler is None:
             error_handler = ErrorHandler()
@@ -85,27 +83,40 @@ class Insanic(Sanic):
                 else:
                     raise
 
-        settings.SERVICE_VERSION = _service_version()
+        service_version = _service_version()
+        settings.SERVICE_VERSION = service_version
         logger.info(f"{settings.SERVICE_NAME} v{settings.SERVICE_VERSION} service loaded.")
         self.attach_plugins()
 
+        self.metrics = InsanicMetrics
+        self.metrics.META.info({
+            "service": service_name,
+            "service_version": service_version,
+            "status": "OK",
+            "insanic_version": __version__,
+            "ip": get_my_ip()
+        })
+
+        self.initialized_plugins = {}
+
+    def verify_plugin_requirements(self):
+        """
+        Checks if the required plugins set in `REQUIRED_PLUGINS` have been
+        installed and initialized.
+
+        :return:
+        """
+
+        for plugin in self.config.REQUIRED_PLUGINS:
+            if plugin not in self.initialized_plugins.keys():
+                raise ImproperlyConfigured(f"{plugin} is defined in `REQUIRED_PLUGINS` in this "
+                                           f"environment but has not been initialized.")
+
+    def plugin_initialized(self, plugin_name, instance):
+        self.initialized_plugins.update({plugin_name: instance})
+
     def attach_plugins(self):
         SanicUserAgent.init_app(self)
-        InsanicTracer.init_app(self)
-
-        if self.config.get('INFUSE_ENABLED'):
-            try:
-                from infuse import Infuse
-                Infuse.init_app(self)
-                logger.info("[INFUSE] hooked and good to go!")
-            except (ImportError, ModuleNotFoundError) as e:
-                if self.config.get("INFUSE_FAIL_TYPE") == "hard":
-                    error_logger.critical("[INFUSE] Infuse is required for this environment.")
-                    raise
-                else:
-                    error_logger.info(f"[INFUSE] proceeding without infuse. {e.msg}")
-        else:
-            error_logger.info(f"[INFUSE] proceeding without infuse. Because `INFUSE_ENABLED` set to `False`")
 
     def run(self, host=None, port=None, debug=False, ssl=None,
             sock=None, workers=1, protocol=None,

@@ -10,7 +10,6 @@ from insanic import Insanic
 from insanic.authentication import handlers
 from insanic.choices import UserLevels
 from insanic.conf import settings
-from insanic.grpc.server import GRPCServer
 from insanic.models import User
 
 from pytest_redis import factories
@@ -32,22 +31,14 @@ def session_id():
 def function_session_id():
     return uuid.uuid4().hex
 
-
 @pytest.fixture
 def insanic_application():
     yield Insanic("test")
-
-
-@pytest.fixture(autouse=True)
-def grpc_port_delta(monkeypatch):
-    monkeypatch.setattr(settings, 'GRPC_PORT_DELTA', 1)
-
 
 @pytest.fixture(autouse=True)
 def loop(loop):
     loop.set_task_factory(aiotask_context.copying_task_factory)
     return loop
-
 
 @pytest.fixture(autouse=True)
 def set_redis_connection_info(redisdb, monkeypatch):
@@ -136,3 +127,11 @@ def test_service_token_factory_pre_0_4():
             [settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_service_encode_handler(payload)])
 
     return factory
+
+
+@pytest.fixture(autouse=True)
+def clear_prometheus_registry():
+    yield
+
+    from insanic.metrics import InsanicMetrics
+    InsanicMetrics.reset()
