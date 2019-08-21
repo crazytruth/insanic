@@ -184,7 +184,7 @@ class VaultConfig(BaseConfig):
 
     def __init__(self, *, role_id=None, prechecks=True):
         self._role_id = role_id
-        self.vault_client._url = self.VAULT_URL
+        self.vault_client.url = self.VAULT_URL
         self._authenticate(prechecks=prechecks)
 
         super().__init__(load_env=False)
