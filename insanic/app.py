@@ -143,6 +143,7 @@ class Insanic(Sanic):
         if protocol is None:
             protocol = InsanicHttpProtocol
 
+        logger.info(f"ATTEMPTING TO RUN INSANIC ON {host}:{port}")
         super().run(host, port, debug, ssl, sock, workers, protocol, backlog,
                     stop_event, register_sys_signals, access_log, **kwargs)
 

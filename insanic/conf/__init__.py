@@ -137,6 +137,18 @@ class LazySettings(LazyObject):
 
 
 class BimilConfig(BaseConfig):
+    logo = """
+    ▄▄▄▄    ██▓ ███▄ ▄███▓ ██▓ ██▓    
+    ▓█████▄ ▓██▒▓██▒▀█▀ ██▒▓██▒▓██▒    
+    ▒██▒ ▄██▒██▒▓██    ▓██░▒██▒▒██░    
+    ▒██░█▀  ░██░▒██    ▒██ ░██░▒██░    
+    ░▓█  ▀█▓░██░▒██▒   ░██▒░██░░██████▒
+    ░▒▓███▀▒░▓  ░ ▒░   ░  ░░▓  ░ ▒░▓  ░
+    ▒░▒   ░  ▒ ░░  ░      ░ ▒ ░░ ░ ▒  ░
+     ░    ░  ▒ ░░      ░    ▒ ░  ░ ░   
+     ░       ░         ░    ░      ░  ░
+          ░                            
+    """
 
     def __init__(self, *, service_name=None, **kwargs):
         self._warned_attributes = []
@@ -146,6 +158,9 @@ class BimilConfig(BaseConfig):
 
         self.load_from_file()
         self.load_environment_vars()
+
+        if self.DEBUG:
+            logger.warning(self.logo)
 
     def load_from_file(self):
         bimil_location = os.path.join(os.getcwd(), f'../.bimil/{self._service_name}_config')
@@ -165,15 +180,20 @@ class BimilConfig(BaseConfig):
                 self._warned_attributes.append(item)
             return ''
 
+    @property
+    def MMT_ENV(self):
+        env = os.environ.get('MMT_ENV', None)
+        if env is None:
+            logger.warning("MMT_ENV is not set in environment variables.  Please set `export MMT_ENV=<environment>`.")
+        return env
+
 
 class VaultConfig(BaseConfig):
-    vault_logo = """
-    ██╗   ██╗ █████╗ ██╗   ██╗██╗  ████████╗
-    ██║   ██║██╔══██╗██║   ██║██║  ╚══██╔══╝
-    ██║   ██║███████║██║   ██║██║     ██║   
-    ╚██╗ ██╔╝██╔══██║██║   ██║██║     ██║   
-     ╚████╔╝ ██║  ██║╚██████╔╝███████╗██║   
-      ╚═══╝  ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝          
+    logo = """
+      _   _____  __  ____ ______
+     | | / / _ |/ / / / //_  __/
+     | |/ / __ / /_/ / /__/ /   
+     |___/_/ |_\____/____/_/    
     """
 
     vault_common_path = "msa/{env}/common"
@@ -191,6 +211,9 @@ class VaultConfig(BaseConfig):
         self.load_from_vault()
 
         self.load_environment_vars()
+
+        if self.DEBUG:
+            logger.warning(self.logo)
 
     def _authenticate(self, prechecks=True):
         try:
