@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.8.1 (unreleased)
+0.8.1 (2019-08-27)
 ------------------
 
 - FIX: fix vault config for hvac 0.9.5
