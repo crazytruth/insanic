@@ -327,8 +327,6 @@ class VaultConfig(BaseConfig):
         except Forbidden:
             msg = f"Unable to load settings from vault. Please check settings exists for " \
                 f"the environment and service. ENV: {self.MMT_ENV} SERVICE: {self.SERVICE_NAME}"
-            if not is_docker:
-                msg = self.vault_logo + msg
             logger.critical(msg)
             # raise EnvironmentError(msg)
             if raise_exception:
