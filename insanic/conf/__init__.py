@@ -137,6 +137,18 @@ class LazySettings(LazyObject):
 
 
 class BimilConfig(BaseConfig):
+    logo = """
+    ▄▄▄▄    ██▓ ███▄ ▄███▓ ██▓ ██▓    
+    ▓█████▄ ▓██▒▓██▒▀█▀ ██▒▓██▒▓██▒    
+    ▒██▒ ▄██▒██▒▓██    ▓██░▒██▒▒██░    
+    ▒██░█▀  ░██░▒██    ▒██ ░██░▒██░    
+    ░▓█  ▀█▓░██░▒██▒   ░██▒░██░░██████▒
+    ░▒▓███▀▒░▓  ░ ▒░   ░  ░░▓  ░ ▒░▓  ░
+    ▒░▒   ░  ▒ ░░  ░      ░ ▒ ░░ ░ ▒  ░
+     ░    ░  ▒ ░░      ░    ▒ ░  ░ ░   
+     ░       ░         ░    ░      ░  ░
+          ░                            
+    """
 
     def __init__(self, *, service_name=None, **kwargs):
         self._warned_attributes = []
@@ -146,6 +158,9 @@ class BimilConfig(BaseConfig):
 
         self.load_from_file()
         self.load_environment_vars()
+
+        if self.DEBUG:
+            logger.warning(self.logo)
 
     def load_from_file(self):
         bimil_location = os.path.join(os.getcwd(), f'../.bimil/{self._service_name}_config')
@@ -165,15 +180,20 @@ class BimilConfig(BaseConfig):
                 self._warned_attributes.append(item)
             return ''
 
+    @property
+    def MMT_ENV(self):
+        env = os.environ.get('MMT_ENV', None)
+        if env is None:
+            logger.warning("MMT_ENV is not set in environment variables.  Please set `export MMT_ENV=<environment>`.")
+        return env
+
 
 class VaultConfig(BaseConfig):
-    vault_logo = """
-    ██╗   ██╗ █████╗ ██╗   ██╗██╗  ████████╗
-    ██║   ██║██╔══██╗██║   ██║██║  ╚══██╔══╝
-    ██║   ██║███████║██║   ██║██║     ██║   
-    ╚██╗ ██╔╝██╔══██║██║   ██║██║     ██║   
-     ╚████╔╝ ██║  ██║╚██████╔╝███████╗██║   
-      ╚═══╝  ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝          
+    logo = """
+      _   _____  __  ____ ______
+     | | / / _ |/ / / / //_  __/
+     | |/ / __ / /_/ / /__/ /   
+     |___/_/ |_\____/____/_/    
     """
 
     vault_common_path = "msa/{env}/common"
@@ -184,13 +204,16 @@ class VaultConfig(BaseConfig):
 
     def __init__(self, *, role_id=None, prechecks=True):
         self._role_id = role_id
-        self.vault_client._url = self.VAULT_URL
+        self.vault_client.url = self.VAULT_URL
         self._authenticate(prechecks=prechecks)
 
         super().__init__(load_env=False)
         self.load_from_vault()
 
         self.load_environment_vars()
+
+        if self.DEBUG:
+            logger.warning(self.logo)
 
     def _authenticate(self, prechecks=True):
         try:
@@ -304,8 +327,6 @@ class VaultConfig(BaseConfig):
         except Forbidden:
             msg = f"Unable to load settings from vault. Please check settings exists for " \
                 f"the environment and service. ENV: {self.MMT_ENV} SERVICE: {self.SERVICE_NAME}"
-            if not is_docker:
-                msg = self.vault_logo + msg
             logger.critical(msg)
             # raise EnvironmentError(msg)
             if raise_exception:

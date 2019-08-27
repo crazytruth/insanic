@@ -5,7 +5,9 @@ Changelog for insanic
 0.8.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: fix vault config for hvac 0.9.5
+- UPDATE: requirements for hvac is now 0.9.5 or higher
+- CHORE: logos!
 
 
 0.8.0 (2019-08-20)

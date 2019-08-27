@@ -70,7 +70,7 @@ setup(
         'aioredis>=1.1.0',
         'PyJWT',
         # "python-consul",
-        "hvac",
+        "hvac==0.9.5",
         "aiotask_context",
 
         "python-dateutil",
