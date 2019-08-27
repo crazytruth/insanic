@@ -24,6 +24,7 @@ class Insanic(Sanic):
     database = None
     _public_routes = empty
     metrics = empty
+    initialized_plugins = {}
 
     def __init__(self, name, router=None, error_handler=None, app_config=()):
 
