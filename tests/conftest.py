@@ -4,8 +4,6 @@ import uuid
 
 import requests
 
-from aws_xray_sdk.core import xray_recorder
-
 from insanic import Insanic
 from insanic.authentication import handlers
 from insanic.choices import UserLevels
@@ -14,7 +12,6 @@ from insanic.models import User
 
 from pytest_redis import factories
 
-xray_recorder.configure(sampling=False, context_missing="LOG_ERROR")
 settings.configure(SERVICE_NAME="insanic", GATEWAY_REGISTRATION_ENABLED=False, MMT_ENV="test",
                    TRACING_ENABLED=False)
 
