@@ -1,5 +1,7 @@
 import os
 import string
+import asyncio
+import aiotask_context
 
 from sanic import Sanic
 from sanic.views import CompositionView
@@ -99,6 +101,9 @@ class Insanic(Sanic):
         })
 
         self.initialized_plugins = {}
+
+        loop = asyncio.get_event_loop()
+        loop.set_task_factory(aiotask_context.chainmap_task_factory)
 
     def verify_plugin_requirements(self):
         """
