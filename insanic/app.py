@@ -102,9 +102,6 @@ class Insanic(Sanic):
 
         self.initialized_plugins = {}
 
-        loop = asyncio.get_event_loop()
-        loop.set_task_factory(aiotask_context.chainmap_task_factory)
-
     def verify_plugin_requirements(self):
         """
         Checks if the required plugins set in `REQUIRED_PLUGINS` have been
