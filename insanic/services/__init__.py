@@ -60,11 +60,10 @@ class Service(object):
     DEFAULT_SERVICE_RESPONSE_TIMEOUT = 10
     DEFAULT_CONNECT_TIMEOUT = 5
     DEFAULT_CONNECTOR_LIMIT = 200
-    DEFAULT_CONNECTOR_LIMIT_PER_HOST = 30
+    DEFAULT_CONNECTOR_LIMIT_PER_HOST = 0
     DEFAULT_CONNECTOR_TTL_DNS_CACHE = 60
 
     _session = None
-    _semaphore = None
     extra_session_configs = {}
 
     def __init__(self, service_type):
@@ -72,12 +71,6 @@ class Service(object):
         # self._session = None
         self._token = None
         super().__init__()
-
-    @classmethod
-    def semaphore(cls):
-        if cls._semaphore is None:
-            cls._semaphore = asyncio.Semaphore(20)
-        return cls._semaphore
 
     @property
     def service_name(self):
@@ -293,10 +286,9 @@ class Service(object):
                                             sock_connect=None, sock_read=None)
             request_params.update({"timeout": timeout})
 
-        async with self.semaphore():
-            async with self.session().request(**request_params) as resp:
-                await resp.read()
-                return resp
+        async with self.session().request(**request_params) as resp:
+            await resp.read()
+            return resp
 
     async def _dispatch(self, method, endpoint, *, query_params, payload, files, headers,
                         propagate_error=False, skip_breaker=False, response_timeout=None):

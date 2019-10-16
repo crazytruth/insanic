@@ -6,6 +6,8 @@ Changelog for insanic
 ------------------
 
 - FIX: removes aws_xray_sdk from insanic testing helpers
+- UPDATE: remove service semaphore
+- UPDATE: changes pool size per host from 30 to 0
 
 
 0.8.1 (2019-08-27)
