@@ -93,12 +93,3 @@ setup(
     include_package_data=True,
     zip_safe=False
 )
-
-from interstellar.server import InterstellarServer
-from interstellar.client import InterstellarClient
-
-InterstellarClient.init_app()
-InterstellarWarpConduit.init_app()
-
-InterstellarServer.init_app()
-InterstellarWarpBeacon.init_app()
