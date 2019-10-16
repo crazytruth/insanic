@@ -1,28 +1,20 @@
-import asyncio
 import pytest
 import requests
 
 import uuid
 import uvloop
 
-from aws_xray_sdk.core import xray_recorder
-from collections import OrderedDict
 from functools import partial
-from io import BytesIO
 from pytest_asyncio.plugin import unused_tcp_port
-from zipfile import ZipFile
 
 from insanic.authentication import handlers, HardJSONWebTokenAuthentication, JSONWebTokenAuthentication
 from insanic.choices import UserLevels
 from insanic.connections import _connections
 from insanic.conf import settings
-from insanic.loading import get_service
 from insanic.models import User
 from insanic.services import Service
 from insanic.testing.helpers import MockService
 from insanic.registration import gateway
-
-xray_recorder.configure(sampling=False, context_missing="LOG_ERROR")
 
 
 @pytest.fixture(autouse=True)
@@ -38,10 +30,6 @@ def patch_hard_jwt_authentication(monkeypatch):
 @pytest.fixture(scope="function", autouse=True)
 def disable_kong(monkeypatch):
     monkeypatch.setattr(settings._wrapped, "GATEWAY_REGISTRATION_ENABLED", False)
-
-@pytest.fixture(scope="function", autouse=True)
-def silence_tracer(event_loop):
-    xray_recorder.configure(sampling=False, context_missing="LOG_ERROR")
 
 @pytest.fixture(scope="session", autouse=True)
 def test_session_id():
