@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.8.2 (unreleased)
+0.8.2 (2019-10-16)
 ------------------
 
 - FIX: removes aws_xray_sdk from insanic testing helpers
