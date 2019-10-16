@@ -36,7 +36,6 @@ test_requires = [
     "requests",
     "aioresponses",
     "grpc-test-monkey"
-
 ]
 
 setup(
@@ -88,9 +87,18 @@ setup(
     extras_require={
         "testing": test_requires,
         "dev": ["zest.releaser[recommended]", "flake8"],
-        "grpc": ["protobuf", "grpcio-tools", "googleapis-common-protos"]
+        # "grpc": ["protobuf", "grpcio-tools", "googleapis-common-protos"]
     },
     cmdclass={'test': pytest_command()},
     include_package_data=True,
     zip_safe=False
 )
+
+from interstellar.server import InterstellarServer
+from interstellar.client import InterstellarClient
+
+InterstellarClient.init_app()
+InterstellarWarpConduit.init_app()
+
+InterstellarServer.init_app()
+InterstellarWarpBeacon.init_app()
