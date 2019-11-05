@@ -11,6 +11,7 @@ Changelog for insanic
 - FIX: config can vault resolution from gethostbyaddr to gethostbyname
 - UPDATE: updates default backlog connnections to 65535
 - UPDATE: increase graceful shutdown timeout to 29
+- FEAT: include internal service request headers 
 
 
 0.8.2 (2019-10-16)
