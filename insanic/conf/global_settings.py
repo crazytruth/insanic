@@ -125,6 +125,7 @@ KONG_PLUGIN = {"JSONWebTokenAuthentication": "jwt",
 # VAULT_APPROLE_BIND_SECRET = "pull" # value can be pull or push
 REQUEST_ID_HEADER_FIELD = "X-Insanic-Request-ID"
 INTERNAL_REQUEST_USER_HEADER = 'x-insanic-request-user'
+INTERNAL_REQUEST_SERVICE_HEADER = "x-insanic-request-service"
 
 SERVICE_UNAVAILABLE_MESSAGE = "{} is currently unavailable."
 
