@@ -2,11 +2,11 @@ import aiotask_context
 import inspect
 import logging
 import time
-import socket
 import ujson as json
 
 from insanic import __version__
 from insanic.conf import settings
+from insanic.scopes import get_hostname
 
 
 class JSONFormatter(logging.Formatter):
@@ -26,7 +26,7 @@ class JSONFormatter(logging.Formatter):
         else:
             self._fmt_dict = fmt
 
-        self.hostname = socket.gethostname()
+        self.hostname = get_hostname()
         self._extra_fields = None
 
     @property
