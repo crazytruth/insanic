@@ -10,6 +10,7 @@ from insanic.errors import GlobalErrorCodes
 from insanic.exceptions import BadRequest
 
 
+
 AWS_ECS_METADATA_ENDPOINT = "169.254.170.2/v2/metadata"
 
 
@@ -75,8 +76,7 @@ def public_facing(fn=None, *, params=None):
         return wrap
 
 
-
-
+@lru_cache(maxsize=1)
 def _is_docker():
     try:
         r = urllib.request.urlopen("http://" + AWS_ECS_METADATA_ENDPOINT, timeout=0.5)

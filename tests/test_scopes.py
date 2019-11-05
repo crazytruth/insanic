@@ -147,4 +147,13 @@ class TestPublicFacingScope:
     def test_get_my_ip(self):
 
         import timeit
-        assert timeit.timeit('get_my_ip()', number=10000, setup='from insanic.scopes import get_my_ip') < 1
+        t = timeit.timeit('get_my_ip()', number=10000, setup='from insanic.scopes import get_my_ip')
+        print(t)
+        assert t < 1, t
+
+    def test_is_docker(self):
+
+        import timeit
+        t = timeit.timeit('is_docker', number=10000, setup='from insanic.scopes import _is_docker, is_docker')
+        print(t)
+        assert t < 1, t
