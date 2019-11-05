@@ -9,6 +9,8 @@ ADMINS = (
 
 DEBUG = False
 
+GRACEFUL_SHUTDOWN_TIMEOUT = 29.0  # sanic default is 15.0s
+
 # SERVICE_NAME = None
 
 SERVICE_CONNECTIONS = []
