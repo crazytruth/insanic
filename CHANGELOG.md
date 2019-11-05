@@ -9,6 +9,7 @@ Changelog for insanic
 - FIX: when encoding service jwt, instead of resolving ip, use get_my_ip #240 
 - FIX: gethostname on logs to get from cache
 - FIX: config can vault resolution from gethostbyaddr to gethostbyname
+- UPDATE: updates default backlog connnections to 65535
 
 
 0.8.2 (2019-10-16)

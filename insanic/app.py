@@ -123,7 +123,7 @@ class Insanic(Sanic):
 
     def run(self, host=None, port=None, debug=False, ssl=None,
             sock=None, workers=1, protocol=None,
-            backlog=100, stop_event=None, register_sys_signals=True,
+            backlog=65535, stop_event=None, register_sys_signals=True,
             access_log=True, **kwargs):
         """Run the HTTP Server and listen until keyboard interrupt or term
         signal. On termination, drain connections before closing.
