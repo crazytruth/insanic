@@ -3,7 +3,7 @@ import os
 import urllib.request
 import socket
 
-from functools import wraps
+from functools import wraps, lru_cache
 
 from insanic.log import logger, error_logger
 from insanic.errors import GlobalErrorCodes
@@ -12,55 +12,6 @@ from insanic.exceptions import BadRequest
 
 AWS_ECS_METADATA_ENDPOINT = "169.254.170.2/v2/metadata"
 
-
-# class public_facing(object):
-#     # scope = True
-#
-#     def __new__(cls, *args, **kwargs):
-#         try:
-#             params = args[0]
-#             if inspect.isfunction(params):
-#                 return cls
-#             else:
-#                 raise IndexError
-#         except IndexError:
-#
-#             return super().__new__(cls)
-#
-#     def __init__(self, *args, **kwargs):
-#
-#
-#
-#         self.params = params
-#
-#     def __call__(self, f, *args, **kwargs):
-#
-#         @wraps(f)
-#         def public_f(*args, **kwargs):
-#             return f(*args, **kwargs)
-#
-#         setattr(public_f, "scope", "public")
-#         return public_f
-
-
-# def public_facing(*, params=None):
-#     if isinstance(params, function):
-#         @wraps()
-#         def public_f(*args, **kwargs):
-#             return f(*args, **kwargs)
-#
-#         setattr(public_f, "scope", "public")
-#         return public_f
-#     else:
-#         def wrap(f):
-#
-#             @wraps(f)
-#             def public_f(*args, **kwargs):
-#                 return f(*args, **kwargs)
-#
-#             setattr(public_f, "scope", "public")
-#             return public_f
-#         return wrap
 
 def public_facing(fn=None, *, params=None):
     """
@@ -146,18 +97,19 @@ def _is_docker():
 is_docker = _is_docker()
 
 
+@lru_cache(maxsize=1)
 def get_machine_id():
     if is_docker:
         machine_id = os.environ.get('HOSTNAME')
     else:
-        import socket
-        ip = socket.gethostbyname(socket.gethostname())
+        ip = get_my_ip()
         machine_id = '{:02X}{:02X}{:02X}{:02X}'.format(*map(int, ip.split('.')))
     return machine_id
 
 
+@lru_cache(maxsize=1)
 def get_my_ip():
-    ip = socket.gethostbyname(socket.gethostname())
+    ip = socket.gethostbyname(get_hostname())
 
     if ip and ip != '127.0.0.1':
         return ip
@@ -170,3 +122,8 @@ def get_my_ip():
             s.close()
 
         return ip
+
+
+@lru_cache(maxsize=1)
+def get_hostname():
+    return socket.gethostname()

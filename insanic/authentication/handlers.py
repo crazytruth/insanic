@@ -5,6 +5,7 @@ from datetime import datetime
 from calendar import timegm
 
 from insanic.conf import settings
+from insanic.scopes import get_my_ip
 
 
 def jwt_decode_handler(token, *, verify=False, key=None, issuer=None):
@@ -82,7 +83,7 @@ def jwt_service_payload_handler(service):
     payload = {
         "source": settings.SERVICE_NAME,
         "aud": service.service_name,
-        "source_ip": socket.gethostbyname(socket.gethostname()),
+        "source_ip": get_my_ip(),
         "destination_version": "0.0.1",
         # "user": user
     }

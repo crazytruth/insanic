@@ -5,7 +5,8 @@ Changelog for insanic
 0.8.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: attach lru_cache to get_my_ip because it will never change #240
+- FIX: when encoding service jwt, instead of resolving ip, use get_my_ip #240 
 
 
 0.8.2 (2019-10-16)
