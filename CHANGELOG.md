@@ -7,6 +7,8 @@ Changelog for insanic
 
 - FIX: attach lru_cache to get_my_ip because it will never change #240
 - FIX: when encoding service jwt, instead of resolving ip, use get_my_ip #240 
+- FIX: gethostname on logs to get from cache
+- FIX: config can vault resolution from gethostbyaddr to gethostbyname
 
 
 0.8.2 (2019-10-16)

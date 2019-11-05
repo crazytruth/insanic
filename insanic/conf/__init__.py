@@ -236,7 +236,7 @@ class VaultConfig(BaseConfig):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         try:
-            socket.gethostbyaddr(self.VAULT_HOST)
+            socket.gethostbyname(self.VAULT_HOST)
             sock.settimeout(1)
             if sock.connect_ex((self.VAULT_HOST, int(self.VAULT_PORT))) != 0:
                 msg = f"[VAULT] Could not connect to port on [{self.VAULT_HOST}:{self.VAULT_PORT}]."
