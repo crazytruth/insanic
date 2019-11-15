@@ -12,6 +12,7 @@ Changelog for insanic
 - UPDATE: updates default backlog connnections to 65535
 - UPDATE: increase graceful shutdown timeout to 29
 - FEAT: include internal service request headers 
+- CHORE: refactor out unused code
 
 
 0.8.2 (2019-10-16)
