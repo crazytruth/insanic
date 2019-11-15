@@ -13,7 +13,7 @@ Changelog for insanic
 - UPDATE: increase graceful shutdown timeout to 29
 - FEAT: include internal service request headers 
 - CHORE: refactor out unused code
-
+- CHORE: change request service string representation
 
 0.8.2 (2019-10-16)
 ------------------
