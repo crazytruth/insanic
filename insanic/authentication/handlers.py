@@ -1,5 +1,4 @@
 import jwt
-import socket
 
 from datetime import datetime
 from calendar import timegm

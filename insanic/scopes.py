@@ -5,7 +5,6 @@ import socket
 
 from functools import wraps, lru_cache
 
-from insanic.log import logger, error_logger
 from insanic.errors import GlobalErrorCodes
 from insanic.exceptions import BadRequest
 
@@ -80,7 +79,7 @@ def public_facing(fn=None, *, params=None):
 def _is_docker():
     try:
         r = urllib.request.urlopen("http://" + AWS_ECS_METADATA_ENDPOINT, timeout=0.5)
-        logger.info(r.read().decode())
+
         return r.status == 200
     except:
         try:
