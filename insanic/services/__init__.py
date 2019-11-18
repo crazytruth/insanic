@@ -63,8 +63,10 @@ class ServiceRegistry(dict):
 
 
 class Service(GRPCClient):
-    DEFAULT_SERVICE_RESPONSE_TIMEOUT = 5
-    DEFAULT_CONNECT_TIMEOUT = 1
+    DEFAULT_SERVICE_RESPONSE_TIMEOUT = 15
+    DEFAULT_CONNECT_TIMEOUT = None
+    CONNECTION_SEMAPHORE = 1000
+    CONNECTION_LIMIT = 1000
 
     _session = None
     _semaphore = None
@@ -78,7 +80,7 @@ class Service(GRPCClient):
     @classmethod
     def semaphore(cls):
         if cls._semaphore is None:
-            cls._semaphore = asyncio.Semaphore(20)
+            cls._semaphore = asyncio.Semaphore(cls.CONNECTION_SEMAPHORE)
         return cls._semaphore
 
     @property
@@ -129,8 +131,7 @@ class Service(GRPCClient):
     @classmethod
     def session(cls):
         if cls._session is None or cls._session.closed or cls._session.loop._closed:
-            default_timeout = aiohttp.ClientTimeout(total=cls.DEFAULT_SERVICE_RESPONSE_TIMEOUT,
-                                                    connect=cls.DEFAULT_CONNECT_TIMEOUT)
+            default_timeout = aiohttp.ClientTimeout(total=cls.DEFAULT_SERVICE_RESPONSE_TIMEOUT)
 
             # 20181128 changed TCPConnector from keepalive_timeout=15 to 0 to stop connections getting reused
             # not the most elegant solution because now each connection will open and close
@@ -139,10 +140,12 @@ class Service(GRPCClient):
             cls._session = aiohttp.ClientSession(
                 loop=get_event_loop(),
                 connector=aiohttp.TCPConnector(
-                    limit=100,
-                    keepalive_timeout=int(settings.SERVICE_CONNECTION_KEEP_ALIVE_TIMEOUT),
-                    limit_per_host=10,
-                    ttl_dns_cache=60),
+                    limit=cls.CONNECTION_LIMIT,
+                    # use_dns_cache=False
+                    # keepalive_timeout=int(settings.SERVICE_CONNECTION_KEEP_ALIVE_TIMEOUT),
+                    # limit_per_host=10,
+                    # ttl_dns_cache=60
+                ),
                 response_class=InsanicResponse,
                 timeout=default_timeout,
                 trace_configs=[aws_xray_trace_config()]
@@ -374,7 +377,7 @@ class Service(GRPCClient):
 
         timeout = kwargs.pop('response_timeout', None)
         if timeout:
-            timeout = aiohttp.ClientTimeout(total=timeout, connect=self.DEFAULT_CONNECT_TIMEOUT,
+            timeout = aiohttp.ClientTimeout(total=timeout,
                                             sock_connect=None, sock_read=None)
             request_params.update({"timeout": timeout})
 

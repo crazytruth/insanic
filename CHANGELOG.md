@@ -1,6 +1,15 @@
 Changelog for insanic
 =====================
 
+0.7.15 (unreleased)
+-------------------
+
+- FIX: Upgrades service connection timeout to 15s total
+- FIX: removes 1s connection timeout
+- UPDATE: removes 100 connection limit
+- UDPATE: removes 10 connection per host limit
+- UPDATE: adds 1000 semaphore on when sending request
+
 
 0.7.14 (2019-07-17)
 -------------------
