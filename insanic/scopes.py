@@ -5,6 +5,7 @@ import socket
 
 from functools import wraps, lru_cache
 
+from insanic.log import error_logger
 from insanic.errors import GlobalErrorCodes
 from insanic.exceptions import BadRequest
 
