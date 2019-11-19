@@ -78,6 +78,9 @@ class TestServiceClass:
         self.service = Service(self.service_name)
         ServiceRegistry.reset()
 
+    async def run_dispatch(self, *args, **kwargs):
+        return await self.service.http_dispatch(*args, **kwargs)
+
     async def test_init(self):
         # assert self.service._registry is ServiceRegistry()
         # assert self.service._session is None
@@ -124,9 +127,7 @@ class TestServiceClass:
         assert url.path == test_endpoint
         assert url.query == test_query_params
 
-    @dispatch_tests
-    def test_dispatch(self, monkeypatch, dispatch_type):
-        _disp = getattr(self.service, dispatch_type)
+    def test_dispatch(self, monkeypatch):
 
         mock_response = {"a": "b"}
         mock_status_code = random.randint(200, 300)
@@ -137,70 +138,80 @@ class TestServiceClass:
 
             loop = uvloop.new_event_loop()
             with pytest.raises(ValueError):
-                loop.run_until_complete(_disp("GETS", "/"))
+                loop.run_until_complete(self.service.http_dispatch("GETS", "/"))
 
             loop = uvloop.new_event_loop()
-            response = loop.run_until_complete(_disp('GET', '/'))
+            asyncio.set_event_loop(loop)
+            fut = self.run_dispatch('GET', '/')
+            response = loop.run_until_complete(fut)
             assert response == mock_response
 
             loop = uvloop.new_event_loop()
+            asyncio.set_event_loop(loop)
             response, status_code = loop.run_until_complete(
-                _disp('GET', '/', include_status_code=True))
+                self.run_dispatch('GET', '/', include_status_code=True))
             assert response == mock_response
             assert status_code == mock_status_code
 
-    @dispatch_tests
-    def test_dispatch_response_timeout(self, monkeypatch, dispatch_type):
-        _disp = getattr(self.service, dispatch_type)
+    def test_http_dispatch_is_awaitable(self):
+        from inspect import isawaitable
+
+        fut = self.service.http_dispatch("GET", "/")
+
+        assert isawaitable(fut)
+
+    def test_dispatch_response_timeout(self, monkeypatch):
 
         async def _mock_dispatch(*args, **kwargs):
             assert "response_timeout" in kwargs
-            return {"response_timeout": kwargs.get('response_timeout')}, 200
+            return {"response_timeout": kwargs.get('response_timeout')}
 
-        monkeypatch.setattr(self.service, '_dispatch', _mock_dispatch)
+        monkeypatch.setattr(self.service, '_dispatch_future', _mock_dispatch)
 
         loop = uvloop.new_event_loop()
-
-        response = loop.run_until_complete(_disp('GET', '/'))
+        asyncio.set_event_loop(loop)
+        response = loop.run_until_complete(self.run_dispatch('GET', '/'))
         assert response['response_timeout'] is None
 
         loop = uvloop.new_event_loop()
-
+        asyncio.set_event_loop(loop)
         response = loop.run_until_complete(
-            _disp('POST', '/', payload={"a": "b"}, response_timeout=10))
+            self.run_dispatch('POST', '/', payload={"a": "b"}, response_timeout=10))
         assert response['response_timeout'] is 10
 
-    @dispatch_tests
-    def test_dispatch_dispatch_fetch_response_timeout(self, monkeypatch, dispatch_type):
-        _disp = getattr(self.service, dispatch_type)
+    def test_dispatch_dispatch_fetch_response_timeout(self, monkeypatch):
+
 
         async def _mock_dispatch_fetch(*args, **kwargs):
-            assert "response_timeout" in kwargs
+            # assert "timeout" in kwargs
 
             class MockResponse:
                 status = 200
 
                 async def json(self, *args, **method_kwargs):
-                    return {"response_timeout": kwargs['response_timeout']}
+                    return {"response_timeout": kwargs.get('timeout', None)}
 
                 async def text(self, *args, **method_kwargs):
-                    return ujson.dumps({"response_timeout": kwargs['response_timeout']})
+                    return ujson.dumps({"response_timeout": kwargs.get('timeout', None)})
 
             return MockResponse()
 
-        monkeypatch.setattr(self.service, '_dispatch_fetch', _mock_dispatch_fetch)
+        monkeypatch.setattr(self.service, '_dispatch_future_fetch', _mock_dispatch_fetch)
 
         loop = uvloop.new_event_loop()
+        asyncio.set_event_loop(loop)
 
         response = loop.run_until_complete(
-            _disp('PUT', '/', payload={"a": "b"}))
+            self.run_dispatch('PUT', '/', payload={"a": "b"})
+        )
         assert response['response_timeout'] == None
 
         loop = uvloop.new_event_loop()
+        asyncio.set_event_loop(loop)
 
         response = loop.run_until_complete(
-            _disp('POST', '/', payload={"a": "b"}, response_timeout=10))
-        assert response['response_timeout'] == 10
+            self.run_dispatch('POST', '/', payload={"a": "b"}, response_timeout=10))
+        assert response['response_timeout']['total'] == 10
 
     async def test_dispatch_catch_timeout(self, monkeypatch):
         # _disp = getattr(self.service, dispatch_type)
@@ -230,13 +241,11 @@ class TestServiceClass:
             ({}, {"image": open('insanic.png', 'rb')}, {"Content-type": "application/json"}, 'application/json',
              'application/json'),
     ))
-    @dispatch_tests
     def test_dispatch_aiohttp_request_object_headers(self, monkeypatch, payload, files, headers,
-                                                     expect_content_type, final_content_type, dispatch_type):
-        _disp = getattr(self.service, dispatch_type)
+                                                     expect_content_type, final_content_type):
 
-        async def _mock_dispatch_fetch(method, url, req_headers, data, *args, **kwargs):
-            lower_headers = {k.lower(): v for k, v in req_headers.items()}
+        async def _mock_dispatch_fetch(method, url, *, headers, data, **kwargs):
+            lower_headers = {k.lower(): v for k, v in headers.items()}
 
             class MockResponse:
                 status = 200
@@ -253,18 +262,19 @@ class TestServiceClass:
             assert lower_headers.get('content-type', '').startswith(expect_content_type)
             return MockResponse()
 
-        monkeypatch.setattr(self.service, '_dispatch_fetch', _mock_dispatch_fetch)
+        monkeypatch.setattr(self.service, '_dispatch_future_fetch', _mock_dispatch_fetch)
+
 
         loop = uvloop.new_event_loop()
-
+        asyncio.set_event_loop(loop)
         response = loop.run_until_complete(
-            _disp('GET', '/', payload=payload, files=files, headers=headers))
+            self.run_dispatch('GET', '/', payload=payload, files=files, headers=headers))
         assert final_content_type in response['content-type']
 
         loop = uvloop.new_event_loop()
-
+        asyncio.set_event_loop(loop)
         response = loop.run_until_complete(
-            _disp('POST', '/', payload={"a": "b"}, files=files, headers=headers))
+            self.run_dispatch('POST', '/', payload={"a": "b"}, files=files, headers=headers))
         assert final_content_type in response['content-type']
 
     @pytest.fixture
@@ -304,17 +314,15 @@ class TestServiceClass:
         assert response
 
     @pytest.mark.parametrize("response_code", [k for k in status.REVERSE_STATUS if k >= 400])
-    @dispatch_tests
-    def test_dispatch_raise_for_status(self, response_code, dispatch_type):
+    def test_dispatch_raise_for_status(self, response_code):
         """
         raise for different types of response codes
 
         :param monkeypatch:
         :return:
         """
-        _disp = getattr(self.service, dispatch_type)
-
         loop = uvloop.new_event_loop()
+        asyncio.set_event_loop(loop)
 
         with aioresponses() as m:
             m.get('http://test:8000/', status=response_code, payload={"hello": "hi"},
@@ -323,8 +331,9 @@ class TestServiceClass:
             with pytest.raises(APIException):
                 try:
                     response = loop.run_until_complete(
-                        _disp('GET', '/', payload={}, files={}, headers={},
-                              propagate_error=True))
+                        self.run_dispatch('GET', '/', payload={}, files={}, headers={},
+                                          propagate_error=True)
+                    )
                 except APIException as e:
                     assert e.status_code == response_code
                     raise e
@@ -337,10 +346,12 @@ class TestServiceClass:
         from insanic.utils.obfuscating import get_safe_dict
         error_logger.setLevel(log_level)
         loop = uvloop.new_event_loop()
-
+        asyncio.set_event_loop(loop)
         endpoint = "http://test:8000/"
         response = {"error": f"{status_code} error"}
         method = random.choice(['GET', 'POST', 'PATCH', 'DELETE', 'PUT'])
+
+        payload = {"password": "asd", "username": "hello"}
 
         with aioresponses() as m:
             m.add(endpoint, method=method, status=status_code, payload=response,
@@ -348,11 +359,10 @@ class TestServiceClass:
 
             with pytest.raises(APIException):
                 try:
-                    payload = {"password": "asd", "username": "hello"}
 
                     response = loop.run_until_complete(
-                        self.service.http_dispatch(method, '/', payload=payload, files={}, headers={},
-                                                   propagate_error=True)
+                        self.run_dispatch(method, '/', payload=payload, files={}, headers={},
+                                          propagate_error=True)
                     )
                 except APIException as e:
                     if log_level > expected_log_level:

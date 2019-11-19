@@ -5,6 +5,9 @@ Changelog for insanic
 0.8.3 (unreleased)
 ------------------
 
+- MAJOR: http dispatch now returns a future object.
+    - changed from dispatch returning a coroutine
+- MAJOR: unlimits all default connection limits but now uses semaphores to limit connections(default 1000) 
 - FIX: attach lru_cache to get_my_ip because it will never change #240
 - FIX: when encoding service jwt, instead of resolving ip, use get_my_ip #240 
 - FIX: gethostname on logs to get from cache
@@ -14,6 +17,9 @@ Changelog for insanic
 - FEAT: include internal service request headers 
 - CHORE: refactor out unused code
 - CHORE: change request service string representation
+- CHORE: refactors service connection metrics to settings
+- CHORE: refactors service timeouts to settings
+
 
 0.8.2 (2019-10-16)
 ------------------
