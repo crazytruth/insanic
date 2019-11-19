@@ -153,12 +153,6 @@ class TestServiceClass:
             assert response == mock_response
             assert status_code == mock_status_code
 
-    def test_http_dispatch_is_awaitable(self):
-        from inspect import isawaitable
-
-        fut = self.service.http_dispatch("GET", "/")
-
-        assert isawaitable(fut)
 
     def test_dispatch_response_timeout(self, monkeypatch):
 
@@ -217,7 +211,7 @@ class TestServiceClass:
         # _disp = getattr(self.service, dispatch_type)
 
         async def _mock_dispatch_fetch(*args, **kwargs):
-            await asyncio.sleep(Service.DEFAULT_SERVICE_RESPONSE_TIMEOUT + 1)
+            await asyncio.sleep(settings.SERVICE_TIMEOUT_TOTAL + 1)
             return {"status": "OK"}
 
         Service._session = None
