@@ -2,7 +2,7 @@ Changelog for insanic
 =====================
 
 
-0.8.3 (unreleased)
+0.8.3 (2019-11-21)
 ------------------
 
 - MAJOR: http dispatch now returns a future object.
