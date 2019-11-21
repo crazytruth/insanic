@@ -7,6 +7,9 @@ Changelog for insanic
 
 - MAJOR: http dispatch now returns a future object.
     - changed from dispatch returning a coroutine
+    - dispatch fetch is now shielded to prevent cancel errors
+    - dummy cookie jar is set to avoid any cookie handling
+    - retry logic on GET methods
 - MAJOR: unlimits all default connection limits but now uses semaphores to limit connections(default 1000) 
 - FIX: attach lru_cache to get_my_ip because it will never change #240
 - FIX: when encoding service jwt, instead of resolving ip, use get_my_ip #240 
@@ -14,6 +17,7 @@ Changelog for insanic
 - FIX: config can vault resolution from gethostbyaddr to gethostbyname
 - UPDATE: updates default backlog connnections to 65535
 - UPDATE: increase graceful shutdown timeout to 29
+- UPDATE: optimizes get_utc_timestamp util function
 - FEAT: include internal service request headers 
 - CHORE: refactor out unused code
 - CHORE: change request service string representation
