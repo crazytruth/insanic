@@ -1,11 +1,32 @@
 import os
 
 import logging
+import queue
 import sys
+
+from functools import lru_cache
+
+
+@lru_cache(maxsize=1)
+def get_log_level():
+    from insanic.scopes import is_docker
+    return os.environ.get('INSANIC_LOG_LEVEL', 'INFO' if is_docker else "DEBUG")
+
+
+@lru_cache(maxsize=1)
+def get_access_log_level():
+    return os.environ.get('INSANIC_ACCESS_LOG_LEVEL', 'INFO')
+
+
+@lru_cache(maxsize=10)
+def get_log_queue(name=None):
+    return queue.Queue(maxsize=-1)
 
 
 def get_logging_config():
-    log_level = os.environ.get('INSANIC_LOG_LEVEL', 'INFO')
+    log_level = get_log_level()
+    from insanic.scopes import is_docker
+
 
     LOGGING_CONFIG_DEFAULTS = dict(
         version=1,
@@ -22,7 +43,8 @@ def get_logging_config():
                 "qualname": "sanic.error"
             },
             "sanic.access": {
-                "level": 'INFO',
+                "level": get_access_log_level(),
+                # "handlers": ["queue_listener"],
                 "handlers": ["access_console"],
                 "propagate": True,
                 "qualname": "sanic.access"
@@ -43,7 +65,15 @@ def get_logging_config():
                 "class": "logging.StreamHandler",
                 "formatter": "json",
                 "stream": sys.stdout
-            }
+            },
+            # "queue_listener": {
+            #     "class": "insanic.log.handlers.QueueListenerHandler",
+            #     "formatter": "json",
+            #     "handlers": [
+            #         "cfg://handlers.access_console",
+            #     ],
+            #     "queue": get_log_queue()
+            # }
         },
         formatters={
             "generic": {
@@ -57,7 +87,6 @@ def get_logging_config():
                 "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
                 "class": "logging.Formatter"
             },
-
             "json": {
                 "()": "insanic.log.formatters.JSONFormatter",
                 "format": {"level": "%(levelname)s", "hostname": "%(hostname)s", "where": "%(module)s.%(funcName)s",
@@ -84,14 +113,11 @@ def get_logging_config():
         }
     )
 
-    from insanic.scopes import is_docker
-    if not is_docker:
-        LOGGING_CONFIG_DEFAULTS['loggers']['root']['level'] = logging.DEBUG
-        LOGGING_CONFIG_DEFAULTS['loggers']['sanic.error']['level'] = logging.DEBUG
-        LOGGING_CONFIG_DEFAULTS['loggers']['sanic.access']['level'] = logging.DEBUG
+    if not is_docker or os.getenv('LOG_TYPE', "json") == "access":
         LOGGING_CONFIG_DEFAULTS['handlers']['console']['formatter'] = 'generic'
         LOGGING_CONFIG_DEFAULTS['handlers']['error_console']['formatter'] = 'generic'
         LOGGING_CONFIG_DEFAULTS['handlers']['access_console']['formatter'] = 'access'
+        # LOGGING_CONFIG_DEFAULTS['handlers']['queue_listener']['formatter'] = 'access'
 
     return LOGGING_CONFIG_DEFAULTS
 

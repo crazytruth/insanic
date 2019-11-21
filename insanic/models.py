@@ -77,7 +77,13 @@ class RequestService:
         else:
             service_type = self.request_service
 
-        return ",".join([service_type, self.destination_service, self.source_ip, self.destination_service])
+        return f"{service_type} - {self.destination_service}:{self.destination_version}({self.source_ip})"
+
+    def __iter__(self):
+        yield ("source", self.request_service)
+        yield ("aud", self.destination_service)
+        yield ("source_ip", self.source_ip)
+        yield ("destination_version", self.destination_version)
 
 
 # need only 1 instance so.. just instantiate and use

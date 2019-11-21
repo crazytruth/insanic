@@ -5,7 +5,33 @@ Changelog for insanic
 0.8.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- MAJOR: http dispatch now returns a future object.
+    - changed from dispatch returning a coroutine
+    - dispatch fetch is now shielded to prevent cancel errors
+    - dummy cookie jar is set to avoid any cookie handling
+    - retry logic on GET methods (defaults to 3)
+    - `retry_count` added to http_dispatch. Use with CAUTION on non GET!
+- MAJOR: unlimits all default connection limits but now uses semaphores to limit connections(default 1000) 
+- FIX: attach lru_cache to get_my_ip because it will never change #240
+- FIX: when encoding service jwt, instead of resolving ip, use get_my_ip #240 
+- FIX: gethostname on logs to get from cache
+- FIX: config can vault resolution from gethostbyaddr to gethostbyname
+- FIX: fixes issue where kwargs was not being sent into http_dispatch 
+- UPDATE: updates default backlog connnections to 65535
+- UPDATE: increase graceful shutdown timeout to 29
+- UPDATE: optimizes get_utc_timestamp util function
+- UPDATE: implements `add_trace_config` to Services  
+- UPDATE: adds `SERVICE_CONNECTION_MAX_RETRY_COUNT` (default to 4, so max 5 times)
+- FEAT: include internal service request headers 
+- CHORE: refactor out unused code
+- CHORE: change request service string representation
+- CHORE: refactors service connection metrics to settings
+- CHORE: refactors service timeouts to settings
+- CHORE: (possible BREAKING) removes parser module
+- CHORE: closes service session once on server shutdown 
+- CHORE: refactors logging config to be more modular
+- CHORE: http_dispatch exceptions just raise in their except instead of in finally
+- FIX: fixes issues when hostname is not resolvable
 
 
 0.8.2 (2019-10-16)

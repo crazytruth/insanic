@@ -2,7 +2,7 @@ import pytest
 
 from sanic.response import json
 from insanic.functional import empty
-from insanic.scopes import public_facing
+from insanic.scopes import public_facing, get_my_ip
 from insanic.views import InsanicView
 
 
@@ -143,3 +143,17 @@ class TestPublicFacingScope:
 
         request, response = insanic_application.test_client.get(endpoint)
         assert response.status == expected_status_code
+
+    def test_get_my_ip(self):
+
+        import timeit
+        t = timeit.timeit('get_my_ip()', number=10000, setup='from insanic.scopes import get_my_ip')
+        print(t)
+        assert t < 1, t
+
+    def test_is_docker(self):
+
+        import timeit
+        t = timeit.timeit('is_docker', number=10000, setup='from insanic.scopes import _is_docker, is_docker')
+        print(t)
+        assert t < 1, t

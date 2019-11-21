@@ -68,26 +68,19 @@ setup(
         # 'yarl==1.1.1',
         'aioredis>=1.1.0',
         'PyJWT',
-        # "python-consul",
         "hvac==0.9.5",
         "aiotask_context",
-
         "python-dateutil",
         "packaging",
-        # "grpclib==0.2.1",
-        # "googleapis-common-protos",
         "prometheus-client==0.5.0",
         "psutil==5.4.8"
-
     ],
 
     tests_require=test_requires,
     test_suite='tests',
-
     extras_require={
         "testing": test_requires,
         "dev": ["zest.releaser[recommended]", "flake8"],
-        # "grpc": ["protobuf", "grpcio-tools", "googleapis-common-protos"]
     },
     cmdclass={'test': pytest_command()},
     include_package_data=True,

@@ -1,4 +1,6 @@
 import asyncio
+import time
+
 import aiohttp
 import io
 import ujson as json
@@ -14,7 +16,7 @@ from insanic.authentication.handlers import jwt_service_encode_handler, jwt_serv
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.functional import cached_property_with_ttl
-from insanic.log import error_logger, access_logger
+from insanic.log import error_logger
 from insanic.models import to_header_value
 from insanic.services.response import InsanicResponse
 from insanic.scopes import is_docker
@@ -57,13 +59,9 @@ class ServiceRegistry(dict):
 
 
 class Service(object):
-    DEFAULT_SERVICE_RESPONSE_TIMEOUT = 10
-    DEFAULT_CONNECT_TIMEOUT = 5
-    DEFAULT_CONNECTOR_LIMIT = 200
-    DEFAULT_CONNECTOR_LIMIT_PER_HOST = 0
-    DEFAULT_CONNECTOR_TTL_DNS_CACHE = 60
 
     _session = None
+    _semaphore = None
     extra_session_configs = {}
 
     def __init__(self, service_type):
@@ -118,10 +116,18 @@ class Service(object):
         return URL(f"{self.schema}://{self.host}:{self.port}{url_partial_path}")
 
     @classmethod
+    def add_trace_config(cls, trace_config):
+        if 'trace_configs' not in cls.extra_session_configs:
+            cls.extra_session_configs['trace_configs'] = []
+        cls.extra_session_configs['trace_configs'].append(trace_config)
+
+    @classmethod
     def session(cls):
         if cls._session is None or cls._session.closed or cls._session.loop._closed:
-            default_timeout = aiohttp.ClientTimeout(total=cls.DEFAULT_SERVICE_RESPONSE_TIMEOUT,
-                                                    connect=cls.DEFAULT_CONNECT_TIMEOUT)
+            default_timeout = aiohttp.ClientTimeout(total=settings.SERVICE_TIMEOUT_TOTAL,
+                                                    connect=settings.SERVICE_TIMEOUT_CONNECT,
+                                                    sock_read=settings.SERVICE_TIMEOUT_SOCK_READ,
+                                                    sock_connect=settings.SERVICE_TIMEOUT_SOCK_CONNECT)
 
             # 20181128 changed TCPConnector from keepalive_timeout=15 to 0 to stop connections getting reused
             # not the most elegant solution because now each connection will open and close
@@ -130,13 +136,14 @@ class Service(object):
             _client_session_configs = dict(
                 loop=get_event_loop(),
                 connector=aiohttp.TCPConnector(
-                    limit=cls.DEFAULT_CONNECTOR_LIMIT,
+                    limit=settings.SERVICE_CONNECTOR_LIMIT,
                     keepalive_timeout=int(settings.SERVICE_CONNECTION_KEEP_ALIVE_TIMEOUT),
-                    limit_per_host=cls.DEFAULT_CONNECTOR_LIMIT_PER_HOST,
-                    ttl_dns_cache=cls.DEFAULT_CONNECTOR_TTL_DNS_CACHE),
+                    limit_per_host=settings.SERVICE_CONNECTOR_LIMIT_PER_HOST,
+                    ttl_dns_cache=settings.SERVICE_CONNECTOR_TTL_DNS_CACHE),
                 response_class=InsanicResponse,
                 timeout=default_timeout,
-                json_serialize=json.dumps
+                json_serialize=json.dumps,
+                cookie_jar=aiohttp.DummyCookieJar()
             )
             _client_session_configs.update(**cls.extra_session_configs)
 
@@ -144,76 +151,18 @@ class Service(object):
 
         return cls._session
 
-    def _construct_url(self, endpoint, query_params={}):
+    @classmethod
+    def semaphore(cls):
+        if cls._semaphore is None:
+            cls._semaphore = asyncio.Semaphore(settings.SERVICE_CONNECTOR_SEMAPHORE_COUNT)
+        return cls._semaphore
+
+    def _construct_url(self, endpoint, query_params=None):
         url = self.url.with_path(endpoint)
+        query_params = query_params or {}
         if len(query_params):
             url = url.with_query(**query_params)
         return url
-
-    async def http_dispatch(self, method, endpoint, *, query_params=None, payload=None,
-                            files=None, headers=None,
-                            propagate_error=False, skip_breaker=False,
-                            include_status_code=False, response_timeout=None):
-        """
-        Interface for sending requests to other services.
-
-        :param method: method to send request (GET, POST, PATCH, PUT, etc)
-        :type method: string
-        :param endpoint: the path to send request to (eg /api/v1/..)
-        :type endpoint: string
-        :param query_params: query params to attach to url
-        :type query_params: dict
-        :param payload: the data to send on any non GET requests
-        :type payload: dict
-        :param files: if any files to send with request, must be included here
-        :type files: dict
-        :param headers: headers to send along with request
-        :type headers: dict
-        :param propagate_error: if you want to raise on 400 or greater status codes
-        :type propagate_error: bool
-        :param skip_breaker: if you want to skip circuit breaker
-        :type skip_breaker: bool
-        :param include_status_code: if you want this method to return the response with the status code
-        :type include_status_code: bool
-        :param response_timeout: if you want to increase the timeout for this requests
-        :type response_timeout: int
-        :return:
-        :rtype: dict or tuple(dict, int)
-        """
-
-        files = files or {}
-        query_params = query_params or {}
-        payload = payload or {}
-        headers = headers or {}
-
-        if method.upper() not in HTTP_METHODS:
-            raise ValueError("{0} is not a valid method.".format(method))
-
-        response, status_code = await self._dispatch(method, endpoint,
-                                                     query_params=query_params, payload=payload, files=files,
-                                                     headers=headers,
-                                                     propagate_error=propagate_error,
-                                                     skip_breaker=skip_breaker,
-                                                     response_timeout=response_timeout)
-
-        if include_status_code:
-            return response, status_code
-        return response
-
-    def prepare_request(self, method, endpoint, *, query_params=None, payload=None,
-                        files=None, headers=None):
-        files = files or {}
-        query_params = query_params or {}
-        payload = payload or {}
-        headers = headers or {}
-        if method.upper() not in HTTP_METHODS:
-            raise ValueError("{0} is not a valid method.".format(method))
-
-        url = self._construct_url(endpoint, query_params=query_params)
-        headers = self._prepare_headers(headers, files)
-        data = self._prepare_body(headers, payload, files)
-
-        return {"method": method, "url": url, "headers": headers, "data": data, "service_name": self.service_name}
 
     def _prepare_headers(self, headers, files=None):
 
@@ -271,27 +220,82 @@ class Service(object):
 
         return data
 
-    async def _dispatch_fetch(self, method, url, headers, data, **kwargs):
+    def http_dispatch(self,
+                      method,
+                      endpoint,
+                      *,
+                      query_params=None,
+                      payload=None,
+                      files=None,
+                      headers=None,
+                      propagate_error=False,
+                      include_status_code=False,
+                      response_timeout=None,
+                      retry_count=None,
+                      **kwargs
+                      ):
+        """
+        Interface for sending requests to other services.
 
-        request_params = {
-            "method": method,
-            "url": str(url),
-            "headers": headers,
-            "data": data
-        }
+        :param method: method to send request (GET, POST, PATCH, PUT, etc)
+        :type method: string
+        :param endpoint: the path to send request to (eg /api/v1/..)
+        :type endpoint: string
+        :param query_params: query params to attach to url
+        :type query_params: dict
+        :param payload: the data to send on any non GET requests
+        :type payload: dict
+        :param files: if any files to send with request, must be included here
+        :type files: dict
+        :param headers: headers to send along with request
+        :type headers: dict
+        :param propagate_error: if you want to raise on 400 or greater status codes
+        :type propagate_error: bool
+        :param include_status_code: if you want this method to return the response with the status code
+        :type include_status_code: bool
+        :param response_timeout: if you want to increase the timeout for this requests
+        :type response_timeout: int
+        :return:
+        :rtype: dict or tuple(dict, int)
+        """
 
-        timeout = kwargs.pop('response_timeout', None)
-        if timeout:
-            timeout = aiohttp.ClientTimeout(total=timeout, connect=self.DEFAULT_CONNECT_TIMEOUT,
-                                            sock_connect=None, sock_read=None)
-            request_params.update({"timeout": timeout})
+        files = files or {}
+        query_params = query_params or {}
+        payload = payload or {}
+        headers = headers or {}
 
-        async with self.session().request(**request_params) as resp:
-            await resp.read()
-            return resp
+        if method.upper() not in HTTP_METHODS:
+            raise ValueError("{0} is not a valid method.".format(method))
 
-    async def _dispatch(self, method, endpoint, *, query_params, payload, files, headers,
-                        propagate_error=False, skip_breaker=False, response_timeout=None):
+        url = self._construct_url(endpoint, query_params=query_params)
+        headers = self._prepare_headers(headers, files)
+        data = self._prepare_body(headers, payload, files)
+
+        return asyncio.ensure_future(
+            self._dispatch_future(method,
+                                  url,
+                                  body=data,
+                                  headers=headers,
+                                  propagate_error=propagate_error,
+                                  response_timeout=response_timeout,
+                                  include_status_code=include_status_code,
+                                  retry_count=retry_count,
+                                  **kwargs
+                                  )
+        )
+
+    async def _dispatch_future(self,
+                               method,
+                               url,
+                               *,
+                               body,
+                               headers,
+                               propagate_error=False,
+                               response_timeout=None,
+                               include_status_code=False,
+                               retry_count=None,
+                               **kwargs
+                               ):
         """
 
         :param method:
@@ -301,27 +305,38 @@ class Service(object):
         :param files: dict
         :param headers: dict
         :param propagate_error: bool
-        :param skip_breaker: bool
         :param response_timeout: int
         :return:
         """
         # request_start_time = time.monotonic()
 
-        url = self._construct_url(endpoint, query_params=query_params)
-        headers = self._prepare_headers(headers, files)
-        data = self._prepare_body(headers, payload, files)
-        exc = None
+        request_params = {
+            "method": method,
+            "url": str(url),
+            "headers": headers,
+            "data": body,
+            "retry_count": retry_count
+        }
+        if response_timeout:
+            timeout = aiohttp.ClientTimeout(total=response_timeout,
+                                            sock_connect=settings.SERVICE_TIMEOUT_SOCK_CONNECT,
+                                            sock_read=settings.SERVICE_TIMEOUT_SOCK_READ)
+            request_params.update({"timeout": timeout})
 
         try:
-            _response_obj = await self._dispatch_fetch(method, url, headers, data,
-                                                       skip_breaker=skip_breaker,
-                                                       response_timeout=response_timeout)
+            kwargs.update(request_params)
+            async with self.semaphore():
+                resp = await asyncio.shield(self._dispatch_future_fetch(**kwargs))
 
             if propagate_error:
-                _response_obj.raise_for_status()
+                resp.raise_for_status()
 
-            response_status = _response_obj.status
-            response = try_json_decode(await _response_obj.text())
+            response_status = resp.status
+            response = try_json_decode(await resp.text())
+            if include_status_code:
+                return response, response_status
+            else:
+                return response
 
         except aiohttp.client_exceptions.ClientResponseError as e:
             message = e.message
@@ -335,7 +350,7 @@ class Service(object):
                 status_code = getattr(e, 'status', status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             base_error_message = f"ClientResponseError: {method} {url} {status_code} " \
-                f"{json.dumps(json.loads(message))} {json.dumps(get_safe_dict(json.loads(data._value.decode())))}"
+                f"{json.dumps(json.loads(message))} {json.dumps(get_safe_dict(json.loads(body._value.decode())))}"
             if status_code >= 500:
                 error_logger.error(base_error_message)
             else:
@@ -347,8 +362,7 @@ class Service(object):
                                           error_code=response.get('error_code', error_code),
                                           status_code=status_code)
             exc.message = response.get('message', GlobalErrorCodes.unknown_error.name)
-            # raise exc
-
+            raise exc
         except aiohttp.client_exceptions.ClientConnectorError as e:
 
             """subset of connection errors that are initiated by an OSError exception"""
@@ -358,17 +372,18 @@ class Service(object):
                                                             error_code=GlobalErrorCodes.service_unavailable,
                                                             status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
             else:
-                error_logger.exception(f"ClientConnectorError: {e.strerror}")
                 exc = exceptions.APIException(description=e.strerror,
                                               error_code=GlobalErrorCodes.unknown_error,
                                               status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            error_logger.exception(f"ClientConnectorError: {e.strerror}")
+            raise exc
         except aiohttp.client_exceptions.ServerFingerprintMismatch:
             """server fingerprint mismatch"""
             msg = "Server Fingerprint Mismatch"
             exc = exceptions.APIException(description=msg,
                                           error_code=GlobalErrorCodes.server_signature_error,
                                           status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+            raise exc
         except aiohttp.client_exceptions.ServerConnectionError as e:
             """ server connection related errors """
             if isinstance(e, aiohttp.client_exceptions.ServerDisconnectedError):
@@ -378,9 +393,6 @@ class Service(object):
                                                             status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
             elif isinstance(e, aiohttp.client_exceptions.ServerTimeoutError):
                 """server operation timeout, (read timeout, etc)"""
-                # exc = exceptions.APIException(description=e.args[0],
-                #                               error_code=GlobalErrorCodes.service_timeout,
-                #                               status_code=status.HTTP_504_GATEWAY_TIMEOUT)
                 exc = exceptions.ResponseTimeoutError(description=f'{self.service_name} has timed out.')
             else:
                 msg = settings.SERVICE_UNAVAILABLE_MESSAGE.format(self._service_name)
@@ -388,30 +400,52 @@ class Service(object):
                                                             error_code=GlobalErrorCodes.service_unavailable,
                                                             status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-            error_logger.exception(f"ServerConnectionError: {e.args[0]}")
-
+            error_logger.exception(f"ServerConnectionError: {e}")
+            raise exc
         except aiohttp.client_exceptions.ClientConnectionError as e:
             error_logger.exception(f"ClientConnectionError: {e.args[0]}")
             # https://aiohttp.readthedocs.io/en/v3.0.1/client_reference.html#hierarchy-of-exceptions
             exc = exceptions.APIException(description=e.args[0],
                                           error_code=GlobalErrorCodes.unknown_error,
                                           status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+            raise exc
         except asyncio.TimeoutError:
             exc = exceptions.ResponseTimeoutError(description=f'{self.service_name} has timed out.')
+            raise exc
+        except aiohttp.client_exceptions.ClientPayloadError:
+            raise
+        except aiohttp.client_exceptions.InvalidURL:
+            raise
+        # finally:
+        #     duration = time.monotonic() - request_start_time
+        #     if duration > 5:
+        #         error_logger.error(f"Request time: {duration}")
 
-        except aiohttp.client_exceptions.ClientPayloadError as e:
-            exc = e
-        except aiohttp.client_exceptions.InvalidURL as e:
-            exc = e
-        else:
-            return response, response_status
-        finally:
-            if exc:
-                # self._log_failed(exc, request_start_time)
-                raise exc
+    async def _dispatch_future_fetch(self, method, url, headers, data, retry_count=None, **request_params):
 
-    #
+        attempts = 1
+        if method == "GET":
+            attempts += settings.SERVICE_CONNECTION_DEFAULT_RETRY_COUNT \
+                if retry_count is None else min(retry_count, int(settings.SERVICE_CONNECTION_MAX_RETRY_COUNT))
+
+        for i in range(attempts):
+
+            try:
+                async with self.session().request(method=method, url=url, headers=headers,
+                                                  data=data, **request_params) as resp:
+                    await resp.read()
+                    return resp
+            except (aiohttp.client_exceptions.ClientConnectionError,
+                    aiohttp.client_exceptions.ServerDisconnectedError,
+                    ConnectionResetError) as e:
+                error_logger.debug(f"{str(e)} on attempt {i}")
+
+                if i + 1 >= attempts:
+                    raise
+
+
+
+
     # def _log_failed(self, exc, request_start_time):
     #     """
     #     possible outcomes that this method should log
@@ -440,11 +474,6 @@ class Service(object):
     #                 'uri_template': self.request.uri_template
     #
     #             }
-    #
-    #
-    #
-    #
-    #
-    #
+
     #         access_logger.exception('', extra=extra, exc_info=exc)
     #

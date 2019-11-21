@@ -1,3 +1,5 @@
+import time
+
 from datetime import datetime, timezone
 from dateutil import parser
 
@@ -16,7 +18,9 @@ def get_utc_timestamp():
     :return:
     :rtype: float
     """
-    return datetime.now(tz=timezone.utc).timestamp()
+    # time.time is approx 2 time faster
+    # return datetime.now(tz=timezone.utc).timestamp()
+    return time.time()
 
 
 def get_utc_datetime():
