@@ -21,6 +21,7 @@ Changelog for insanic
 - UPDATE: increase graceful shutdown timeout to 29
 - UPDATE: optimizes get_utc_timestamp util function
 - UPDATE: implements `add_trace_config` to Services  
+- UPDATE: adds `SERVICE_CONNECTION_MAX_RETRY_COUNT` (default to 4, so max 5 times)
 - FEAT: include internal service request headers 
 - CHORE: refactor out unused code
 - CHORE: change request service string representation

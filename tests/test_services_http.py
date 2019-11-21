@@ -517,15 +517,16 @@ class TestServiceClass:
          )
     )
     @pytest.mark.parametrize(
-        "method, retry_count, expected_retries",
+        "method, retry_count, expected_attempts",
         (
                 ("GET", None, 3),
                 ("POST", None, 1),
-                ("GET", 2, 2),
-                ("PATCH", 4, 4),
+                ("GET", 2, 3),
+                ("PATCH", 4, 1),
+                ("GET", 10, 5),
         )
     )
-    async def test_retry_fetch(self, monkeypatch, exception, method, retry_count, expected_retries):
+    async def test_retry_fetch(self, monkeypatch, exception, method, retry_count, expected_attempts):
 
         retry = []
 
@@ -540,7 +541,7 @@ class TestServiceClass:
         with pytest.raises(exception.__class__):
             resp = await self.service._dispatch_future_fetch(method, "somewhere", {}, {}, retry_count=retry_count)
 
-        assert len(retry) == expected_retries
+        assert len(retry) == expected_attempts
 
 
 class TestAioHttpCompatibility:
