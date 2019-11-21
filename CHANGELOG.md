@@ -94,6 +94,16 @@ Changelog for insanic
 - CHORE: remove infuse settings to infuse
 
 
+0.7.15 (2019-11-18)
+-------------------
+
+- FIX: Upgrades service connection timeout to 15s total
+- FIX: removes 1s connection timeout
+- UPDATE: removes 100 connection limit
+- UDPATE: removes 10 connection per host limit
+- UPDATE: adds 1000 semaphore on when sending request
+
+
 0.7.14 (2019-07-17)
 -------------------
 
