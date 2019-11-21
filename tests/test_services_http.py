@@ -509,6 +509,39 @@ class TestServiceClass:
         for k in headers:
             assert k.islower()
 
+    @pytest.mark.parametrize(
+        "exception",
+        (aiohttp.client_exceptions.ClientConnectionError(),
+         aiohttp.client_exceptions.ServerDisconnectedError(),
+         ConnectionResetError()
+         )
+    )
+    @pytest.mark.parametrize(
+        "method, retry_count, expected_retries",
+        (
+                ("GET", None, 3),
+                ("POST", None, 1),
+                ("GET", 2, 2),
+                ("PATCH", 4, 4),
+        )
+    )
+    async def test_retry_fetch(self, monkeypatch, exception, method, retry_count, expected_retries):
+
+        retry = []
+
+        def raise_error(*args, **kwargs):
+            retry.append(True)
+            raise exception
+
+        session = self.service.session()
+
+        monkeypatch.setattr(self.service._session, 'request', raise_error)
+
+        with pytest.raises(exception.__class__):
+            resp = await self.service._dispatch_future_fetch(method, "somewhere", {}, {}, retry_count=retry_count)
+
+        assert len(retry) == expected_retries
+
 
 class TestAioHttpCompatibility:
 

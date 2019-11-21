@@ -1,4 +1,6 @@
 import asyncio
+import time
+
 import aiohttp
 import io
 import ujson as json
@@ -114,6 +116,12 @@ class Service(object):
         return URL(f"{self.schema}://{self.host}:{self.port}{url_partial_path}")
 
     @classmethod
+    def add_trace_config(cls, trace_config):
+        if 'trace_configs' not in cls.extra_session_configs:
+            cls.extra_session_configs['trace_configs'] = []
+        cls.extra_session_configs['trace_configs'].append(trace_config)
+
+    @classmethod
     def session(cls):
         if cls._session is None or cls._session.closed or cls._session.loop._closed:
             default_timeout = aiohttp.ClientTimeout(total=settings.SERVICE_TIMEOUT_TOTAL,
@@ -125,6 +133,7 @@ class Service(object):
             # not the most elegant solution because now each connection will open and close
             # force_close seems to absolutely close the connection so don't use because we need to get
             # meta data from the connection even if it is closed
+            jar = aiohttp.DummyCookieJar()
             _client_session_configs = dict(
                 loop=get_event_loop(),
                 connector=aiohttp.TCPConnector(
@@ -134,7 +143,8 @@ class Service(object):
                     ttl_dns_cache=settings.SERVICE_CONNECTOR_TTL_DNS_CACHE),
                 response_class=InsanicResponse,
                 timeout=default_timeout,
-                json_serialize=json.dumps
+                json_serialize=json.dumps,
+                cookie_jar=jar
             )
             _client_session_configs.update(**cls.extra_session_configs)
 
@@ -222,7 +232,9 @@ class Service(object):
                       propagate_error=False,
                       skip_breaker=False,
                       include_status_code=False,
-                      response_timeout=None
+                      response_timeout=None,
+                      retry_count=None,
+                      **kwargs
                       ):
         """
         Interface for sending requests to other services.
@@ -269,9 +281,10 @@ class Service(object):
                                   body=data,
                                   headers=headers,
                                   propagate_error=propagate_error,
-                                  skip_breaker=skip_breaker,
                                   response_timeout=response_timeout,
-                                  include_status_code=include_status_code
+                                  include_status_code=include_status_code,
+                                  retry_count=retry_count,
+                                  **kwargs
                                   )
         )
 
@@ -282,9 +295,10 @@ class Service(object):
                                body,
                                headers,
                                propagate_error=False,
-                               skip_breaker=False,
                                response_timeout=None,
                                include_status_code=False,
+                               retry_count=None,
+                               **kwargs
                                ):
         """
 
@@ -299,13 +313,14 @@ class Service(object):
         :param response_timeout: int
         :return:
         """
-        # request_start_time = time.monotonic()
+        request_start_time = time.monotonic()
 
         request_params = {
             "method": method,
             "url": str(url),
             "headers": headers,
-            "data": body
+            "data": body,
+            "retry_count": retry_count
         }
         if response_timeout:
             timeout = aiohttp.ClientTimeout(total=response_timeout,
@@ -313,11 +328,10 @@ class Service(object):
                                             sock_read=settings.SERVICE_TIMEOUT_SOCK_READ)
             request_params.update({"timeout": timeout})
 
-        exc = None
-
         try:
+            kwargs.update(request_params)
             async with self.semaphore():
-                resp = await self._dispatch_future_fetch(**request_params)
+                resp = await asyncio.shield(self._dispatch_future_fetch(**kwargs))
 
             if propagate_error:
                 resp.raise_for_status()
@@ -353,6 +367,7 @@ class Service(object):
                                           error_code=response.get('error_code', error_code),
                                           status_code=status_code)
             exc.message = response.get('message', GlobalErrorCodes.unknown_error.name)
+            raise exc
         except aiohttp.client_exceptions.ClientConnectorError as e:
 
             """subset of connection errors that are initiated by an OSError exception"""
@@ -362,17 +377,18 @@ class Service(object):
                                                             error_code=GlobalErrorCodes.service_unavailable,
                                                             status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
             else:
-                error_logger.exception(f"ClientConnectorError: {e.strerror}")
                 exc = exceptions.APIException(description=e.strerror,
                                               error_code=GlobalErrorCodes.unknown_error,
                                               status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            error_logger.exception(f"ClientConnectorError: {e.strerror}")
+            raise exc
         except aiohttp.client_exceptions.ServerFingerprintMismatch:
             """server fingerprint mismatch"""
             msg = "Server Fingerprint Mismatch"
             exc = exceptions.APIException(description=msg,
                                           error_code=GlobalErrorCodes.server_signature_error,
                                           status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+            raise exc
         except aiohttp.client_exceptions.ServerConnectionError as e:
             """ server connection related errors """
             if isinstance(e, aiohttp.client_exceptions.ServerDisconnectedError):
@@ -389,33 +405,52 @@ class Service(object):
                                                             error_code=GlobalErrorCodes.service_unavailable,
                                                             status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-            error_logger.exception(f"ServerConnectionError: {e.args[0]}")
-
+            error_logger.exception(f"ServerConnectionError: {e}")
+            raise exc
         except aiohttp.client_exceptions.ClientConnectionError as e:
             error_logger.exception(f"ClientConnectionError: {e.args[0]}")
             # https://aiohttp.readthedocs.io/en/v3.0.1/client_reference.html#hierarchy-of-exceptions
             exc = exceptions.APIException(description=e.args[0],
                                           error_code=GlobalErrorCodes.unknown_error,
                                           status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+            raise exc
         except asyncio.TimeoutError:
             exc = exceptions.ResponseTimeoutError(description=f'{self.service_name} has timed out.')
-
+            raise exc
         except aiohttp.client_exceptions.ClientPayloadError as e:
-            exc = e
+            raise
         except aiohttp.client_exceptions.InvalidURL as e:
-            exc = e
+            raise
         finally:
-            if exc:
-                # self._log_failed(exc, request_start_time)
-                raise exc
+            duration = time.monotonic() - request_start_time
+            if duration > 5:
+                error_logger.error(f"Request time: {duration}")
 
-    async def _dispatch_future_fetch(self, method, url, headers, data, **request_params):
+    async def _dispatch_future_fetch(self, method, url, headers, data, retry_count=None, **request_params):
 
-        async with self.session().request(method=method, url=url, headers=headers,
-                                          data=data, **request_params) as resp:
-            await resp.read()
-            return resp
+        if retry_count is None:
+            if method == "GET":
+                retry_count = 3
+            else:
+                retry_count = 1
+
+        for i in range(retry_count):
+
+            try:
+                async with self.session().request(method=method, url=url, headers=headers,
+                                                  data=data, **request_params) as resp:
+                    await resp.read()
+                    return resp
+            except (aiohttp.client_exceptions.ClientConnectionError,
+                    aiohttp.client_exceptions.ServerDisconnectedError,
+                    ConnectionResetError) as e:
+                error_logger.info(f"{str(e)} on attempt {i}")
+
+                if i >= retry_count - 1:
+                    raise
+
+
+
 
     # def _log_failed(self, exc, request_start_time):
     #     """
