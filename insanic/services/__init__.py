@@ -133,7 +133,6 @@ class Service(object):
             # not the most elegant solution because now each connection will open and close
             # force_close seems to absolutely close the connection so don't use because we need to get
             # meta data from the connection even if it is closed
-            jar = aiohttp.DummyCookieJar()
             _client_session_configs = dict(
                 loop=get_event_loop(),
                 connector=aiohttp.TCPConnector(
@@ -144,7 +143,7 @@ class Service(object):
                 response_class=InsanicResponse,
                 timeout=default_timeout,
                 json_serialize=json.dumps,
-                cookie_jar=jar
+                cookie_jar=aiohttp.DummyCookieJar()
             )
             _client_session_configs.update(**cls.extra_session_configs)
 
@@ -230,7 +229,6 @@ class Service(object):
                       files=None,
                       headers=None,
                       propagate_error=False,
-                      skip_breaker=False,
                       include_status_code=False,
                       response_timeout=None,
                       retry_count=None,
@@ -253,8 +251,6 @@ class Service(object):
         :type headers: dict
         :param propagate_error: if you want to raise on 400 or greater status codes
         :type propagate_error: bool
-        :param skip_breaker: if you want to skip circuit breaker
-        :type skip_breaker: bool
         :param include_status_code: if you want this method to return the response with the status code
         :type include_status_code: bool
         :param response_timeout: if you want to increase the timeout for this requests
@@ -309,11 +305,10 @@ class Service(object):
         :param files: dict
         :param headers: dict
         :param propagate_error: bool
-        :param skip_breaker: bool
         :param response_timeout: int
         :return:
         """
-        request_start_time = time.monotonic()
+        # request_start_time = time.monotonic()
 
         request_params = {
             "method": method,
@@ -417,24 +412,23 @@ class Service(object):
         except asyncio.TimeoutError:
             exc = exceptions.ResponseTimeoutError(description=f'{self.service_name} has timed out.')
             raise exc
-        except aiohttp.client_exceptions.ClientPayloadError as e:
+        except aiohttp.client_exceptions.ClientPayloadError:
             raise
-        except aiohttp.client_exceptions.InvalidURL as e:
+        except aiohttp.client_exceptions.InvalidURL:
             raise
-        finally:
-            duration = time.monotonic() - request_start_time
-            if duration > 5:
-                error_logger.error(f"Request time: {duration}")
+        # finally:
+        #     duration = time.monotonic() - request_start_time
+        #     if duration > 5:
+        #         error_logger.error(f"Request time: {duration}")
 
     async def _dispatch_future_fetch(self, method, url, headers, data, retry_count=None, **request_params):
 
-        if retry_count is None:
-            if method == "GET":
-                retry_count = 3
-            else:
-                retry_count = 1
+        attempts = 1
+        if method == "GET":
+            attempts += settings.SERVICE_CONNECTION_DEFAULT_RETRY_COUNT \
+                if retry_count is None else min(retry_count, int(settings.SERVICE_CONNECTION_MAX_RETRY_COUNT))
 
-        for i in range(retry_count):
+        for i in range(attempts):
 
             try:
                 async with self.session().request(method=method, url=url, headers=headers,
@@ -444,9 +438,9 @@ class Service(object):
             except (aiohttp.client_exceptions.ClientConnectionError,
                     aiohttp.client_exceptions.ServerDisconnectedError,
                     ConnectionResetError) as e:
-                error_logger.info(f"{str(e)} on attempt {i}")
+                error_logger.debug(f"{str(e)} on attempt {i}")
 
-                if i >= retry_count - 1:
+                if i + 1 >= attempts:
                     raise
 
 
