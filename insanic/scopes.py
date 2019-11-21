@@ -109,11 +109,13 @@ def get_machine_id():
 
 @lru_cache(maxsize=1)
 def get_my_ip():
-    ip = socket.gethostbyname(get_hostname())
-
-    if ip and ip != '127.0.0.1':
-        return ip
-    else:
+    try:
+        ip = socket.gethostbyname(get_hostname())
+        if ip and ip != '127.0.0.1':
+            return ip
+        else:
+            raise socket.gaierror
+    except socket.gaierror:
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.connect(('192.255.255.255', 1))
