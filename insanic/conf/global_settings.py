@@ -9,6 +9,27 @@ ADMINS = (
 
 DEBUG = False
 
+# sanic default configs
+# DEFAULT_CONFIG = {
+#     "REQUEST_MAX_SIZE": 100000000,  # 100 megabytes
+#     "REQUEST_BUFFER_QUEUE_SIZE": 100,
+#     "REQUEST_TIMEOUT": 60,  # 60 seconds
+#     "RESPONSE_TIMEOUT": 60,  # 60 seconds
+#     "KEEP_ALIVE": True,
+#     "KEEP_ALIVE_TIMEOUT": 5,  # 5 seconds
+#     "WEBSOCKET_MAX_SIZE": 2 ** 20,  # 1 megabytes
+#     "WEBSOCKET_MAX_QUEUE": 32,
+#     "WEBSOCKET_READ_LIMIT": 2 ** 16,
+#     "WEBSOCKET_WRITE_LIMIT": 2 ** 16,
+#     "GRACEFUL_SHUTDOWN_TIMEOUT": 15.0,  # 15 sec
+#     "ACCESS_LOG": True,
+#     "PROXIES_COUNT": -1,
+#     "FORWARDED_FOR_HEADER": "X-Forwarded-For",
+#     "REAL_IP_HEADER": "X-Real-IP",
+# }
+KEEP_ALIVE_TIMEOUT = 60
+
+
 GRACEFUL_SHUTDOWN_TIMEOUT = 29.0  # sanic default is 15.0s
 
 # SERVICE_NAME = None
