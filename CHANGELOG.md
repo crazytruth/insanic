@@ -20,6 +20,7 @@ Changelog for insanic
 - CHORE: refactors service connection metrics to settings
 - CHORE: refactors service timeouts to settings
 - CHORE: (possible BREAKING) removes parser module
+- CHORE: closes service session once on server shutdown 
 - FIX: fixes issues when hostname is not resolvable
 
 0.8.2 (2019-10-16)

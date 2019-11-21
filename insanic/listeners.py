@@ -4,7 +4,7 @@ import asyncio
 
 from insanic.connections import _connections
 from insanic.registration import gateway
-from insanic.services import ServiceRegistry
+from insanic.services import ServiceRegistry, Service
 
 
 def before_server_start_verify_plugins(app, loop, **kwargs):
@@ -19,13 +19,12 @@ async def after_server_stop_clean_up(app, loop, **kwargs):
     close_tasks = _connections.close_all()
     await close_tasks
 
-    service_sessions = []
-    for service_name, service in ServiceRegistry().items():
-        if service is not None:
-            if service._session is not None:
-                service_sessions.append(service._session.close())
-    await asyncio.gather(*service_sessions)
+    if Service._session is not None:
+        await Service._session.close()
+        await asyncio.sleep(0)
+
     await gateway.session.close()
+    await asyncio.sleep(0)
 
 
 async def after_server_start_connect_database(app, loop=None, **kwargs):
