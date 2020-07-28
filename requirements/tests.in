@@ -1,0 +1,5 @@
+pytest
+pytest-sanic
+aioresponses
+requests
+asynctest

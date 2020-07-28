@@ -1,0 +1,6 @@
+-r tests.in
+pip-tools
+pre-commit
+tox
+flake8
+zest.releaser[recommended]
