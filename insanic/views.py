@@ -132,6 +132,6 @@ class InsanicView(HTTPMethodView):
         return response
 
 
-class InsanicAdminView(InsanicView):
-    permission_classes = [permissions.IsAuthenticated, permissions.IsServiceOnly]
-    authentication_classes = [authentication.HardJSONWebTokenAuthentication, ]
+# class InsanicAdminView(InsanicView):
+#     permission_classes = [permissions.IsAuthenticated, permissions.IsServiceOnly]
+#     authentication_classes = [authentication.HardJSONWebTokenAuthentication, ]
