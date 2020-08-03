@@ -5,7 +5,11 @@ Changelog for insanic
 0.8.4 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- MAJOR: removes all kong registration
+    - HardJSONAuthentication has been removed
+    - InsanicAdminView has been removed 
+- CHORE: extracts extra requirements into their own requirments files
+- CHORE: reorganizes artwork into its own directory
 
 
 0.8.3 (2019-11-21)
