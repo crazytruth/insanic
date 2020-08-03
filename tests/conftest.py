@@ -16,7 +16,7 @@ settings.configure(SERVICE_NAME="insanic", GATEWAY_REGISTRATION_ENABLED=False, M
                    TRACING_ENABLED=False)
 
 for cache_name, cache_config in settings.INSANIC_CACHES.items():
-    globals()[f"redisdb_{cache_name}"] = factories.redisdb('redis_proc', db=cache_config.get('DATABASE'))
+    globals()[f"redisdb_{cache_name}"] = factories.redisdb('redis_proc', dbnum=cache_config.get('DATABASE'))
 
 
 @pytest.fixture(scope="session")
@@ -49,25 +49,27 @@ def set_redis_connection_info(redisdb, monkeypatch):
 
 @pytest.fixture(scope="session")
 def test_user_token_factory():
-    created_test_user_ids = set()
+    # created_test_user_ids = set()
 
     def factory(id=None, *, level, return_with_user=False):
         if not id:
             id = uuid.uuid4().hex
 
         user = User(id=id, level=level)
-        created_test_user_ids.add(user.id)
+        # created_test_user_ids.add(user.id)
         # Create test consumer
-        requests.post(f"http://kong.msa.swarm:18001/consumers/", json={'username': user.id})
+        # requests.post(f"http://kong.msa.swarm:18001/consumers/", json={'username': user.id})
 
         # Generate JWT information
-        response = requests.post(f'http://kong.msa.swarm:18001/consumers/{user.id}/jwt/')
-        response.raise_for_status()
+        # response = requests.post(f'http://kong.msa.swarm:18001/consumers/{user.id}/jwt/')
+        # response.raise_for_status()
 
-        token_data = response.json()
+        # token_data = response.json()
+        mock_issuer = uuid.uuid4().hex
+        mock_secret = uuid.uuid4().hex
 
-        payload = handlers.jwt_payload_handler(user, token_data['key'])
-        token = handlers.jwt_encode_handler(payload, token_data['secret'], token_data['algorithm'])
+        payload = handlers.jwt_payload_handler(user, mock_issuer)
+        token = handlers.jwt_encode_handler(payload, mock_secret, 'HS256')
 
         if return_with_user:
             return user, " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], token])
@@ -75,20 +77,6 @@ def test_user_token_factory():
         return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], token])
 
     yield factory
-
-    for user_id in created_test_user_ids:
-        # Delete JWTs
-        response = requests.get(f'http://kong.msa.swarm:18001/consumers/{user_id}/jwt/')
-        response.raise_for_status()
-
-        jwt_ids = (response.json())['data']
-        for jwt in jwt_ids:
-            response = requests.delete(f"http://kong.msa.swarm:18001/consumers/{user_id}/jwt/{jwt['id']}/")
-            response.raise_for_status()
-
-        # Delete test consumer
-        response = requests.delete(f"http://kong.msa.swarm:18001/consumers/{user_id}/")
-        response.raise_for_status()
 
 
 @pytest.fixture(scope="session")

@@ -7,67 +7,13 @@ from sanic.response import json
 
 from insanic import status, Insanic
 from insanic.authentication import BaseAuthentication, JSONWebTokenAuthentication, \
-    HardJSONWebTokenAuthentication, handlers, ServiceJWTAuthentication
+    handlers, ServiceJWTAuthentication
 from insanic.choices import UserLevels
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.models import User, to_header_value, AnonymousUser
 from insanic.scopes import public_facing
 from insanic.views import InsanicView
-
-
-
-@pytest.fixture
-def kong_gateway(monkeypatch):
-    monkeypatch.setattr(settings, "GATEWAY_REGISTRATION_ENABLED", True)
-    monkeypatch.setattr(settings, "KONG_HOST", 'kong.msa.swarm')
-    monkeypatch.setattr(settings, "KONG_ADMIN_PORT", 18001)
-    from insanic.registration import KongGateway
-
-    return KongGateway()
-
-
-@pytest.fixture
-def user_token_factory(kong_gateway):
-    gateway = kong_gateway
-    created_test_user_ids = set()
-
-    def factory(id=uuid.uuid4(), *, level, **kwargs):
-        user = User(id=id.hex, level=level)
-        created_test_user_ids.add(user.id)
-
-        # Create test consumer
-        requests.post(gateway.kong_base_url.with_path(f'/consumers/'),
-                      json={'username': user.id})
-
-        # Generate JWT information
-        response = requests.post(
-            gateway.kong_base_url.with_path(f'/consumers/{user.id}/jwt/')
-        )
-        response.raise_for_status()
-
-        token_data = response.json()
-
-        payload = handlers.jwt_payload_handler(user, token_data['key'])
-        token = handlers.jwt_encode_handler(payload, token_data['secret'], token_data['algorithm'])
-
-        return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], token])
-
-    yield factory
-
-    for user_id in created_test_user_ids:
-        # Delete JWTs
-        response = requests.get(gateway.kong_base_url.with_path(f'/consumers/{user_id}/jwt/'))
-        response.raise_for_status()
-
-        jwt_ids = (response.json())['data']
-        for jwt in jwt_ids:
-            response = requests.delete(gateway.kong_base_url.with_path(f"/consumers/{user_id}/jwt/{jwt['id']}/"))
-            response.raise_for_status()
-
-        # Delete test consumer
-        response = requests.delete(gateway.kong_base_url.with_path(f"/consumers/{user_id}/"))
-        response.raise_for_status()
 
 
 @pytest.fixture
@@ -134,21 +80,8 @@ def test_base_authentication_on_view(insanic_application):
     assert response.status == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
-@pytest.mark.parametrize('authentication_class', [JSONWebTokenAuthentication,
-                                                  HardJSONWebTokenAuthentication])
+@pytest.mark.parametrize('authentication_class', [JSONWebTokenAuthentication,])
 class TestAuthentication():
-
-    @staticmethod
-    def _deregister_routes(app, loop):
-        from insanic.registration import gateway
-        gateway.deregister_routes()
-
-
-    @pytest.fixture(autouse=True)
-    def monkeypatch_gateway_session(self, monkeypatch):
-        from insanic.registration import gateway
-        from yarl import URL
-        monkeypatch.setattr(gateway, "_kong_base_url", URL("http://kong.msa.swarm:18001"))
 
     def monkeypatch_get_user(self, monkeypatch, authentication_class, user):
         async def mock_get_user(self, user_id):
@@ -168,7 +101,6 @@ class TestAuthentication():
                 return json({})
 
         app.add_route(TokenView.as_view(), '/')
-        app.listeners["before_server_stop"].insert(0, self._deregister_routes)
         return app
 
     def test_jwt_token_authentication_user_not_active(self, monkeypatch, authentication_class, test_user_token_factory):
@@ -190,12 +122,12 @@ class TestAuthentication():
         assert GlobalErrorCodes(response.json['error_code']['value']) == GlobalErrorCodes.inactive_user
         assert "User account is disabled." in response.json['description']
 
-    def test_jwt_token_authentication_success(self, monkeypatch, authentication_class, user_token_factory):
+    def test_jwt_token_authentication_success(self, monkeypatch, authentication_class, test_user_token_factory):
         app = self._create_app_with_authentication(authentication_class)
 
         user_id = uuid.uuid4()
         level = UserLevels.ACTIVE
-        token = user_token_factory(id=user_id, level=level)
+        token = test_user_token_factory(id=user_id.hex, level=level)
 
         self.monkeypatch_get_user(monkeypatch, authentication_class, User(id=user_id.hex, level=level))
 

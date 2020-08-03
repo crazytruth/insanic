@@ -365,21 +365,8 @@ class TestVaultConfig:
 
         can_we_vault = config.can_vault(raise_exception=False)
 
-        assert can_we_vault == False
+        assert can_we_vault is False
         assert caplog.records[-1].message.startswith('[VAULT] Could not resolve host:')
-
-    @pytest.mark.skip("No longer checks if can vault on load.")
-    @pytest.mark.parametrize("role_id,mmt_env", ((None, None),
-                                                 ("a", None),
-                                                 (None, "b")))
-    def test_load_from_vault_cannot_vault(self, role_id, mmt_env, monkeypatch):
-        self.undo_mock_load_from_vault(monkeypatch)
-        if mmt_env is not None:
-            monkeypatch.setenv('MMT_ENV', mmt_env)
-        config._role_id = role_id
-
-        with pytest.raises(ImproperlyConfigured):
-            config.load_from_vault(True)
 
     @pytest.mark.parametrize("raise_for", ("common", "test_service"))
     def test_load_from_vault_handle_forbidden(self, raise_for, monkeypatch, monkeypatch_authenticate):
@@ -514,13 +501,3 @@ class TestVaultConfig:
         monkeypatch.setenv('MMT_ENV', env)
 
         assert config.SERVICE_NAME == service_name
-
-    @pytest.mark.skip(reason="settings.SERVICE_LIST is now deprecated.")
-    def test_service_list(self, monkeypatch):
-
-        service_list = config.SERVICE_LIST
-
-        assert isinstance(service_list, dict)
-
-        for service_name, service_config in service_list.items():
-            assert sorted(['host', 'external_service_port', 'internal_service_port']) == sorted(service_config.keys())

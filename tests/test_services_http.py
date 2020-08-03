@@ -27,9 +27,10 @@ from insanic.views import InsanicView
 
 dispatch_tests = pytest.mark.parametrize('dispatch_type', ['http_dispatch', ])
 
+IMAGE_PATH = "artwork/insanic.png"
 
 def test_image_file():
-    with open('insanic.png', 'rb') as f:
+    with open(IMAGE_PATH, 'rb') as f:
         contents = f
     return contents
 
@@ -175,7 +176,6 @@ class TestServiceClass:
 
     def test_dispatch_dispatch_fetch_response_timeout(self, monkeypatch):
 
-
         async def _mock_dispatch_fetch(*args, **kwargs):
             # assert "timeout" in kwargs
 
@@ -186,7 +186,13 @@ class TestServiceClass:
                     return {"response_timeout": kwargs.get('timeout', None)}
 
                 async def text(self, *args, **method_kwargs):
-                    return ujson.dumps({"response_timeout": kwargs.get('timeout', None)})
+
+                    timeout = kwargs.get('timeout', None)
+                    if timeout:
+                        import attr
+                        timeout = attr.asdict(timeout)
+
+                    return ujson.dumps({"response_timeout": timeout})
 
             return MockResponse()
 
@@ -198,7 +204,7 @@ class TestServiceClass:
         response = loop.run_until_complete(
             self.run_dispatch('PUT', '/', payload={"a": "b"})
         )
-        assert response['response_timeout'] == None
+        assert response['response_timeout'] is None
 
         loop = uvloop.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -223,16 +229,16 @@ class TestServiceClass:
     @pytest.mark.parametrize("payload,files,headers, expect_content_type, final_content_type", (
             ({"a": "b"}, {}, {}, 'application/json', 'application/json',),
             ({"a": "b"}, {}, {"content-type": "multipart/form-data"}, "multipart/form-data", "multipart/form-data"),
-            ({}, {"image": open('insanic.png', 'rb')}, {}, '', 'multipart/form-data'),
-            ({}, {"image": [open('insanic.png', 'rb')]}, {}, '', 'multipart/form-data'),
-            ({}, {"image": [open('insanic.png', 'rb'), open('insanic.png', 'rb')]}, {}, '', 'multipart/form-data'),
-            ({}, {"image": open('insanic.png', 'rb')}, {"content-type": "multipart/form-data"}, 'multipart/form-data',
+            ({}, {"image": open(IMAGE_PATH, 'rb')}, {}, '', 'multipart/form-data'),
+            ({}, {"image": [open(IMAGE_PATH, 'rb')]}, {}, '', 'multipart/form-data'),
+            ({}, {"image": [open(IMAGE_PATH, 'rb'), open(IMAGE_PATH, 'rb')]}, {}, '', 'multipart/form-data'),
+            ({}, {"image": open(IMAGE_PATH, 'rb')}, {"content-type": "multipart/form-data"}, 'multipart/form-data',
              'multipart/form-data'),
-            ({}, {"image": open('insanic.png', 'rb')}, {"Content-Type": "multipart/form-data"}, 'multipart/form-data',
+            ({}, {"image": open(IMAGE_PATH, 'rb')}, {"Content-Type": "multipart/form-data"}, 'multipart/form-data',
              'multipart/form-data'),
-            ({}, {"image": open('insanic.png', 'rb')}, {"content-type": "application/json"}, 'application/json',
+            ({}, {"image": open(IMAGE_PATH, 'rb')}, {"content-type": "application/json"}, 'application/json',
              'application/json'),
-            ({}, {"image": open('insanic.png', 'rb')}, {"Content-type": "application/json"}, 'application/json',
+            ({}, {"image": open(IMAGE_PATH, 'rb')}, {"Content-type": "application/json"}, 'application/json',
              'application/json'),
     ))
     def test_dispatch_aiohttp_request_object_headers(self, monkeypatch, payload, files, headers,
@@ -280,8 +286,8 @@ class TestServiceClass:
             permission_classes = [AllowAny]
 
             async def post(self, request, *args, **kwargs):
-                return json({'data': request.data.keys(),
-                             'files': request.files.keys()}, status=202)
+                return json({'data': list(request.data.keys()),
+                             'files': list(request.files.keys())}, status=202)
 
         # insanic_application.listeners["after_server_start"].append(self._force_target_healthy)
         insanic_application.add_route(MockView.as_view(), '/multi')
@@ -291,8 +297,8 @@ class TestServiceClass:
     @pytest.mark.parametrize("payload,files,headers", (
             ({}, {}, {}),
             ({"a": "b"}, {}, {}),
-            ({}, {"image": open('insanic.png', 'rb')}, {}),
-            ({"a": "b"}, {"image": open('insanic.png', 'rb')}, {})
+            ({}, {"image": open(IMAGE_PATH, 'rb')}, {}),
+            ({"a": "b"}, {"image": open(IMAGE_PATH, 'rb')}, {})
     ))
     async def test_dispatch_files(self, sanic_test_server, payload, files, headers, monkeypatch):
 
@@ -445,16 +451,16 @@ class TestServiceClass:
     @pytest.mark.parametrize('payload,files,expected_type,expect_count', (
             ({}, {}, aiohttp.JsonPayload, 0),
             ({"a": "b"}, {}, aiohttp.JsonPayload, 1),
-            ({}, {"image": open("insanic.png", "rb")}, aiohttp.FormData, 1),
-            ({}, {"image": [open("insanic.png", "rb"), open("insanic.png", "rb")]}, aiohttp.FormData, 2),
-            ({"a": "b"}, {"image": open("insanic.png", "rb")}, aiohttp.FormData, 2),
-            ({"a": "b"}, {"image": [open("insanic.png", "rb"), open("insanic.png", "rb")]}, aiohttp.FormData, 3),
-            ({}, {"image": File('image/png', open("insanic.png", "rb").read(1024), "insanic.png")},
+            ({}, {"image": open(IMAGE_PATH, "rb")}, aiohttp.FormData, 1),
+            ({}, {"image": [open(IMAGE_PATH, "rb"), open(IMAGE_PATH, "rb")]}, aiohttp.FormData, 2),
+            ({"a": "b"}, {"image": open(IMAGE_PATH, "rb")}, aiohttp.FormData, 2),
+            ({"a": "b"}, {"image": [open(IMAGE_PATH, "rb"), open(IMAGE_PATH, "rb")]}, aiohttp.FormData, 3),
+            ({}, {"image": File('image/png', open(IMAGE_PATH, "rb").read(1024), IMAGE_PATH)},
              aiohttp.FormData, 1),
-            ({}, {"image": [File('image/png', open("insanic.png", "rb").read(1024), "insanic.png"),
-                            open("insanic.png", "rb")]},
+            ({}, {"image": [File('image/png', open(IMAGE_PATH, "rb").read(1024), IMAGE_PATH),
+                            open(IMAGE_PATH, "rb")]},
              aiohttp.FormData, 2),
-            ({"a": "b"}, {"image": File('image/png', open("insanic.png", "rb").read(1024), "insanic.png")},
+            ({"a": "b"}, {"image": File('image/png', open(IMAGE_PATH, "rb").read(1024), IMAGE_PATH)},
              aiohttp.FormData, 2),
     ))
     async def test_prepare_body(self, payload, files, expected_type, expect_count):
@@ -474,7 +480,7 @@ class TestServiceClass:
     # DEPRECATED
     # async def test_prepare_body_error_duplicate_keys_in_payload_and_files(self):
     #     payload = {"a": "b"}
-    #     files = {"a": open("insanic.png", "rb")}
+    #     files = {"a": open(IMAGE_PATH, "rb")}
     #
     #     headers = self.service._prepare_headers({}, files)
     #
@@ -490,7 +496,7 @@ class TestServiceClass:
             {"i": b"bytes"},
             {"i": 1},
             {"i": 1.0},
-            {"i": open("insanic.png", 'rb').read(1024)}
+            {"i": open(IMAGE_PATH, 'rb').read(1024)}
     ))
     async def test_prepare_body_error_invalid_file_format(self, files):
         payload = {"a": "b"}
