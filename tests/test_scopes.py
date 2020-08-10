@@ -34,9 +34,8 @@ class TestPublicFacingScope:
 
         route = '/hello'
         insanic_application.add_route(PublicView.as_view(), route)
-        assert insanic_application._public_routes is empty
 
-        public_routes = insanic_application.public_routes()
+        public_routes = insanic_application.router.routes_public
 
         assert f"^{route}$" in public_routes.keys()
         assert sorted(["GET", "DELETE"]) == sorted(public_routes[f"^{route}$"]['public_methods'])

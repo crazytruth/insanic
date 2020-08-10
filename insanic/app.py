@@ -1,10 +1,8 @@
 import os
 import string
-import asyncio
-import aiotask_context
 
 from sanic import Sanic
-from sanic.views import CompositionView
+
 from sanic_useragent import SanicUserAgent
 
 from insanic import __version__
@@ -16,6 +14,7 @@ from insanic.metrics import InsanicMetrics
 from insanic.monitor import blueprint_monitor
 from insanic.log import get_logging_config, error_logger, logger
 from insanic.protocol import InsanicHttpProtocol
+from insanic.router import InsanicRouter
 from insanic.scopes import get_my_ip
 
 LISTENER_TYPES = ("before_server_start", "after_server_start", "before_server_stop", "after_server_stop")
@@ -30,8 +29,8 @@ class Insanic(Sanic):
 
     def __init__(self, name, router=None, error_handler=None, app_config=()):
 
-        if error_handler is None:
-            error_handler = ErrorHandler()
+        router = router or InsanicRouter()
+        error_handler = error_handler or ErrorHandler()
 
         from insanic.conf import settings
         self.version = ""
@@ -58,7 +57,6 @@ class Insanic(Sanic):
 
         self.config = settings
         settings.SERVICE_NAME = service_name
-
 
         from insanic import listeners
         for module_name in dir(listeners):
@@ -139,6 +137,7 @@ class Insanic(Sanic):
         :param backlog:
         :param stop_event:
         :param register_sys_signals:
+        :param access_log: 
         :param protocol: Subclass of asyncio protocol class
         :return: Nothing
         """
@@ -169,33 +168,3 @@ class Insanic(Sanic):
                                           workers, loop, protocol, backlog, stop_event,
                                           register_sys_signals, run_async, auto_reload)
         return server_settings
-
-    def public_routes(self):
-        if self._public_routes is empty:
-            _public_routes = {}
-
-            for url, route in self.router.routes_all.items():
-                for method in route.methods:
-                    if hasattr(route.handler, 'view_class'):
-                        _handler = getattr(route.handler.view_class, method.lower())
-                    elif isinstance(route.handler, CompositionView):
-                        _handler = route.handler.handlers[method.upper()].view_class
-                        _handler = getattr(_handler, method.lower())
-                    else:
-                        _handler = route.handler
-
-                    if hasattr(_handler, "scope") and _handler.scope == "public":
-                        # if method is decorated with public_facing, add to kong routes
-                        if route.pattern.pattern not in _public_routes:
-                            _public_routes[route.pattern.pattern] = {'public_methods': [], 'plugins': set()}
-                        _public_routes[route.pattern.pattern]['public_methods'].append(method.upper())
-
-                # If route has been added to kong, enable some plugins
-                if hasattr(route.handler, 'view_class') and route.pattern.pattern in _public_routes:
-                    for ac in route.handler.view_class.authentication_classes:
-                        plugin = settings.KONG_PLUGIN.get(ac.__name__)
-                        if plugin:
-                            _public_routes[route.pattern.pattern]['plugins'].add(plugin)
-
-            self._public_routes = _public_routes
-        return self._public_routes

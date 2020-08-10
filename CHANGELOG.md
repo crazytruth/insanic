@@ -11,7 +11,8 @@ Changelog for insanic
 - MAJOR: removes VaultConfig settings for less opinionated configs
     - Streamlines sanic and config config initialization
     - Updated tests to reflect changes
-    - Removes hvac from required dependencies 
+    - Removes hvac from required dependencies
+- MAJOR: refactors public routes from Insanic to Router 
 - CHORE: extracts extra requirements into their own requirments files
 - CHORE: reorganizes artwork into its own directory
 - CHORE: removes config that are no longer used
