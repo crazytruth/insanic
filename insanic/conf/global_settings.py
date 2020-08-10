@@ -1,10 +1,10 @@
 import datetime
 
-SECRET_KEY = ''
+SERVICE_ALIAS = ""
 SERVICE_TOKEN_KEY = ""
 
 ADMINS = (
-    ('David', 'david@mymusictaste.com')
+    ('David', 'kwangjinkim@gmail.com')
 )
 
 DEBUG = False
@@ -52,11 +52,8 @@ SERVICE_TIMEOUT_CONNECT = None
 SERVICE_TIMEOUT_SOCK_READ = None
 SERVICE_TIMEOUT_SOCK_CONNECT = None
 
-
-REQUIRED_SERVICE_CONNECTIONS = ["userip", "user"]
+REQUIRED_SERVICE_CONNECTIONS = []
 ALLOWED_HOSTS = []
-
-LOG_IP_FAIL_TYPE = "hard"
 
 INSANIC_CACHES = {
     "insanic": {
@@ -130,33 +127,12 @@ JWT_SERVICE_AUTH = {
 
 INTERNAL_IPS = ()
 
-
-
 # THROTTLES_NUM_PROXIES = None # deprecated
 THROTTLES_DEFAULT_THROTTLE_RATES = {
     'user': None,
     'anon': None
 }
 
-PROXIES_COUNT = -1
-FORWARDED_FOR_HEADER = "X-Forwarded-For"
-REAL_IP_HEADER = "X-Real-IP"
-
-
-GATEWAY_REGISTRATION_ENABLED = True
-
-KONG_HOST = "kong"
-KONG_ADMIN_PORT = 18001
-
-KONG_ROUTE_REGEX_PRIORITY = {"local": 10,
-                             "development": 5}
-KONG_ROUTE_REGEX_DEFAULT = 10
-KONG_FAIL_SOFT_ENVIRONMENTS = ("local", "test",)
-
-KONG_PLUGIN = {"JSONWebTokenAuthentication": "jwt",
-               "HardJSONWebTokenAuthentication": "jwt", }
-
-# VAULT_APPROLE_BIND_SECRET = "pull" # value can be pull or push
 REQUEST_ID_HEADER_FIELD = "X-Insanic-Request-ID"
 INTERNAL_REQUEST_USER_HEADER = 'x-insanic-request-user'
 INTERNAL_REQUEST_SERVICE_HEADER = "x-insanic-request-service"

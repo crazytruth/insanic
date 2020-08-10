@@ -7,9 +7,15 @@ Changelog for insanic
 
 - MAJOR: removes all kong registration
     - HardJSONAuthentication has been removed
-    - InsanicAdminView has been removed 
+    - InsanicAdminView has been removed
+- MAJOR: removes VaultConfig settings for less opinionated configs
+    - Streamlines sanic and config config initialization
+    - Updated tests to reflect changes
+    - Removes hvac from required dependencies 
 - CHORE: extracts extra requirements into their own requirments files
 - CHORE: reorganizes artwork into its own directory
+- CHORE: removes config that are no longer used
+
 
 
 0.8.3 (2019-11-21)

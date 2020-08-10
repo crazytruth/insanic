@@ -50,7 +50,6 @@ setup(
         'aiodns',
         'aioredis>=1.1.0',
         'PyJWT',
-        "hvac==0.9.5",
         "aiotask_context",
         "python-dateutil",
         "packaging",

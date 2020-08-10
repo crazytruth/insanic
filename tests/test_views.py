@@ -8,15 +8,6 @@ from insanic.choices import UserLevels
 from insanic.errors import GlobalErrorCodes
 from insanic.views import InsanicView
 
-
-@pytest.fixture(autouse=True)
-def kong_gateway(monkeypatch):
-    monkeypatch.setattr(settings, "GATEWAY_REGISTRATION_ENABLED", True)
-    monkeypatch.setattr(settings, "KONG_HOST", 'kong.msa.swarm')
-    monkeypatch.setattr(settings, "KONG_ADMIN_PORT", 18001)
-    monkeypatch.setattr(settings, "KONG_PLUGIN", {"JSONWebTokenAuthentication": "jwt"})
-
-
 def test_view_allowed_methods():
     class TestView(InsanicView):
         def patch(self, request):
