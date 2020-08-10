@@ -1,6 +1,10 @@
+coverage
 pytest
+pytest-cov
 pytest-sanic
 pytest-redis
+pytest-sugar
+pytest-xdist
 aioresponses
 requests
 asynctest
