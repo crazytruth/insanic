@@ -16,6 +16,7 @@ Changelog for insanic
 - MINOR: refactor service registry to use mapping collection
     - Move registry to registry module
     - Lazy loading for registry
+- MINOR: removes gunicorn worker interface (possibly for future implementation)
 - CHORE: extracts extra requirements into their own requirments files
 - CHORE: reorganizes artwork into its own directory
 - CHORE: removes config that are no longer used
