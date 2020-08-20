@@ -13,7 +13,6 @@ from sanic.config import Config
 
 from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import LazyObject, empty
-from insanic.log import logger
 from . import global_settings
 from .config import InsanicConfig
 
