@@ -13,7 +13,8 @@ Changelog for insanic
     - Updated tests to reflect changes
     - Removes hvac from required dependencies
 - MAJOR: refactor public routes from Insanic to Router
-- MAJOR: removes testing helpers 
+- MAJOR: removes testing helpers
+- MAJOR: removes translation management object 
 - MINOR: refactor service registry to use mapping collection
     - Move registry to registry module
     - Lazy loading for registry
