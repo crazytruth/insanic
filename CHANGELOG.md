@@ -12,7 +12,8 @@ Changelog for insanic
     - Streamlines sanic and config config initialization
     - Updated tests to reflect changes
     - Removes hvac from required dependencies
-- MAJOR: refactor public routes from Insanic to Router 
+- MAJOR: refactor public routes from Insanic to Router
+- MAJOR: removes testing helpers 
 - MINOR: refactor service registry to use mapping collection
     - Move registry to registry module
     - Lazy loading for registry
