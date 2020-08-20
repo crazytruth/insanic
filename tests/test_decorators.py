@@ -23,9 +23,11 @@ def test_cache_get_response(insanic_application, redisdb_insanic):
             query_params = request.query_params
             return response_json(query_params, status=status.HTTP_202_ACCEPTED)
 
-    insanic_application.add_route(CacheView.as_view(), '/')
+    insanic_application.add_route(CacheView.as_view(), "/")
 
-    request, response = insanic_application.test_client.get('/?insanic=gotta&insanic=go')
+    request, response = insanic_application.test_client.get(
+        "/?insanic=gotta&insanic=go"
+    )
 
     # check response is equal to expected response
     assert response.status == status.HTTP_202_ACCEPTED
@@ -35,11 +37,13 @@ def test_cache_get_response(insanic_application, redisdb_insanic):
     cache_key = cache_decorator.get_key(request)
     cache_value = json.loads(redisdb_insanic.get(cache_key).decode())
 
-    assert cache_value['body'] == response_body
-    assert cache_value['status'] == response.status
+    assert cache_value["body"] == response_body
+    assert cache_value["status"] == response.status
 
     # check response value is returned from cache
-    request, response = insanic_application.test_client.get('/?insanic=gotta&insanic=go')
+    request, response = insanic_application.test_client.get(
+        "/?insanic=gotta&insanic=go"
+    )
     assert response.status == status.HTTP_202_ACCEPTED
     assert response.json == response_body
 
@@ -57,11 +61,15 @@ def test_cache_get_response_400(insanic_application, redisdb):
 
         @cache_decorator
         async def get(self, request, *args, **kwargs):
-            raise ValidationError("Force Error", error_code=ErrorEnum.forced_error)
+            raise ValidationError(
+                "Force Error", error_code=ErrorEnum.forced_error
+            )
 
-    insanic_application.add_route(CacheView.as_view(), '/')
+    insanic_application.add_route(CacheView.as_view(), "/")
 
-    request, response = insanic_application.test_client.get('/?insanic=gotta&insanic=go')
+    request, response = insanic_application.test_client.get(
+        "/?insanic=gotta&insanic=go"
+    )
 
     assert response.status == status.HTTP_400_BAD_REQUEST
 
@@ -71,5 +79,5 @@ def test_cache_get_response_400(insanic_application, redisdb):
 
     assert cache_value is None
 
-    cached_keys = redisdb.keys('insanic:*')
+    cached_keys = redisdb.keys("insanic:*")
     assert cached_keys == []

@@ -5,6 +5,7 @@ from sanic.router import RouteExists
 from insanic import Insanic
 from insanic.scopes import public_facing
 
+
 class TestInsanic:
     routes = []
 
@@ -14,10 +15,12 @@ class TestInsanic:
 
     def add_route(self, insanic_application, route):
         try:
+
             @insanic_application.route(route)
             @public_facing
             def get(self, request, *args, **kwargs):
                 return json({}, status=200)
+
         except RouteExists:
             pass
         else:

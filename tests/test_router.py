@@ -20,10 +20,12 @@ class TestInsanicRouter:
 
     def add_route(self, insanic_application, route):
         try:
+
             @insanic_application.route(route)
             @public_facing
             def get(self, request, *args, **kwargs):
                 return json({}, status=200)
+
         except RouteExists:
             pass
         else:
@@ -52,7 +54,7 @@ class TestInsanicRouter:
         insanic_application._public_routes = empty
 
     def test_public_routes_class_view(self):
-        insanic_application = Insanic('test2')
+        insanic_application = Insanic("test2")
 
         class ClassView(InsanicView):
             @public_facing
@@ -66,15 +68,21 @@ class TestInsanicRouter:
             def put(self, request, *args, **kwargs):
                 return {"method": "put"}
 
-        insanic_application.add_route(handler=ClassView.as_view(), uri='/insanic/',
-                                      name="ClassView", strict_slashes=True)
+        insanic_application.add_route(
+            handler=ClassView.as_view(),
+            uri="/insanic/",
+            name="ClassView",
+            strict_slashes=True,
+        )
 
         routes = insanic_application.router.routes_public
         assert "^/insanic/$" in routes
-        assert sorted(routes["^/insanic/$"]['public_methods']) == sorted(["GET", "POST"])
+        assert sorted(routes["^/insanic/$"]["public_methods"]) == sorted(
+            ["GET", "POST"]
+        )
 
     def test_public_routes_same_endpoint_different_views(self):
-        insanic_application = Insanic('test2')
+        insanic_application = Insanic("test2")
 
         class GetOnlyView(InsanicView):
             @public_facing
@@ -89,12 +97,24 @@ class TestInsanicRouter:
             def post(self, request, *args, **kwargs):
                 return {"method": "post"}
 
-        insanic_application.add_route(handler=GetOnlyView.as_view(), uri='/insanic/',
-                                      methods=['GET'], name="GetOnlyView", strict_slashes=True)
-        insanic_application.add_route(handler=PostOnlyView.as_view(), uri='/insanic/',
-                                      methods=['POST'], name="PostOnlyView", strict_slashes=True)
+        insanic_application.add_route(
+            handler=GetOnlyView.as_view(),
+            uri="/insanic/",
+            methods=["GET"],
+            name="GetOnlyView",
+            strict_slashes=True,
+        )
+        insanic_application.add_route(
+            handler=PostOnlyView.as_view(),
+            uri="/insanic/",
+            methods=["POST"],
+            name="PostOnlyView",
+            strict_slashes=True,
+        )
 
         routes = insanic_application.router.routes_public
 
         assert "^/insanic/$" in routes
-        assert sorted(routes["^/insanic/$"]['public_methods']) == sorted(["GET", "POST"])
+        assert sorted(routes["^/insanic/$"]["public_methods"]) == sorted(
+            ["GET", "POST"]
+        )

@@ -35,7 +35,9 @@ def test_timestamp_to_datetime_default():
     assert current_datetime - delta <= ts <= current_datetime + delta
 
 
-@pytest.mark.parametrize("ts,units", [(None, "s"), (time.time(), None), (time.time(), "a")])
+@pytest.mark.parametrize(
+    "ts,units", [(None, "s"), (time.time(), None), (time.time(), "a")]
+)
 def test_timestamp_to_datetime_problems(ts, units):
     with pytest.raises(ValueError):
         insanic_datetime.timestamp_to_datetime(ts, units)
@@ -45,12 +47,14 @@ def test_timestamp_to_datetime_custom():
     test_timestamp = 946684800
     test_datetime = datetime(2000, 1, 1, 0, 0, 0, 0, timezone.utc)
 
-    dt = insanic_datetime.timestamp_to_datetime(test_timestamp, 's')
+    dt = insanic_datetime.timestamp_to_datetime(test_timestamp, "s")
 
     assert dt == test_datetime
 
-    ms_dt = insanic_datetime.timestamp_to_datetime(test_timestamp, 'ms')
-    test_ms_datetime = datetime(1970, 1, 11, 22, 58, 4, 800000, tzinfo=timezone.utc)
+    ms_dt = insanic_datetime.timestamp_to_datetime(test_timestamp, "ms")
+    test_ms_datetime = datetime(
+        1970, 1, 11, 22, 58, 4, 800000, tzinfo=timezone.utc
+    )
 
     assert ms_dt == test_ms_datetime
 
@@ -68,7 +72,9 @@ def test_timestamp_to_iso_default():
     assert current_datetime - delta <= dt <= current_datetime + delta
 
 
-@pytest.mark.parametrize("ts,units", [(None, "s"), (time.time(), None), (time.time(), "a")])
+@pytest.mark.parametrize(
+    "ts,units", [(None, "s"), (time.time(), None), (time.time(), "a")]
+)
 def test_timestamp_to_iso_problems(ts, units):
     with pytest.raises(ValueError):
         insanic_datetime.timestamp_to_iso(ts, units)
@@ -78,35 +84,47 @@ def test_timestampfunction_to_iso_custom():
     test_timestamp = 946684800
     test_datetime = datetime(2000, 1, 1, 0, 0, 0, 0, timezone.utc)
 
-    string_datetime = insanic_datetime.timestamp_to_iso(test_timestamp, 's')
+    string_datetime = insanic_datetime.timestamp_to_iso(test_timestamp, "s")
 
-    assert string_datetime == test_datetime.isoformat(timespec='milliseconds')
+    assert string_datetime == test_datetime.isoformat(timespec="milliseconds")
 
-    ms_dt = insanic_datetime.timestamp_to_iso(test_timestamp, 'ms')
-    test_ms_datetime = datetime(1970, 1, 11, 22, 58, 4, 800000, tzinfo=timezone.utc)
+    ms_dt = insanic_datetime.timestamp_to_iso(test_timestamp, "ms")
+    test_ms_datetime = datetime(
+        1970, 1, 11, 22, 58, 4, 800000, tzinfo=timezone.utc
+    )
 
-    assert ms_dt == test_ms_datetime.isoformat(timespec='milliseconds')
+    assert ms_dt == test_ms_datetime.isoformat(timespec="milliseconds")
 
 
 def test_timestamp_milliseconds_to_datetime():
     test_timestamp = 946684800 * 1000
     test_datetime = datetime(2000, 1, 1, 0, 0, 0, 0, timezone.utc)
 
-    assert test_datetime == insanic_datetime.timestamp_milliseconds_to_datetime(test_timestamp)
+    assert (
+        test_datetime
+        == insanic_datetime.timestamp_milliseconds_to_datetime(test_timestamp)
+    )
 
 
 def test_timestamp_seconds_to_datetime():
     test_timestamp = 946684800
     test_datetime = datetime(2000, 1, 1, 0, 0, 0, 0, timezone.utc)
 
-    assert test_datetime == insanic_datetime.timestamp_seconds_to_datetime(test_timestamp)
+    assert test_datetime == insanic_datetime.timestamp_seconds_to_datetime(
+        test_timestamp
+    )
 
 
-@pytest.mark.parametrize('test_string', ['2000-01-01T00:00:00.000000+00:00',
-                                         '2000-01-01T00:00:00.000000+0000',
-                                         '2000-01-01T00:00:00.000000+00',
-                                         '2000-01-01T00:00:00.000+00',
-                                         '2000-01-01T00:00:00+00'])
+@pytest.mark.parametrize(
+    "test_string",
+    [
+        "2000-01-01T00:00:00.000000+00:00",
+        "2000-01-01T00:00:00.000000+0000",
+        "2000-01-01T00:00:00.000000+00",
+        "2000-01-01T00:00:00.000+00",
+        "2000-01-01T00:00:00+00",
+    ],
+)
 def test_iso_to_datetime(test_string):
     test_datetime = datetime(2000, 1, 1, 0, 0, 0, 0, timezone.utc)
 

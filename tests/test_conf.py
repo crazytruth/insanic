@@ -7,7 +7,6 @@ from insanic.conf.config import INSANIC_PREFIX
 
 
 class TestLazySettings:
-
     @pytest.fixture
     def insanic_settings(self):
         # resets settings because settings is evaluated in conftest for other tests
@@ -62,7 +61,6 @@ class TestLazySettings:
 
 
 class TestInsanicSettings:
-
     @pytest.fixture(autouse=True)
     def base_config(self):
         self.base_config = InsanicConfig(settings_module="tests.intest.config")
@@ -72,16 +70,20 @@ class TestInsanicSettings:
         success_load = "upper_mock_settings"
         tmpfile = tmpdir.join("mock_settings.py")
 
-        tmpfile.write(f"MOCK_SETTINGS = '{success_load}'\nmock_settings = 'lower_mock_settings'")
+        tmpfile.write(
+            f"MOCK_SETTINGS = '{success_load}'\nmock_settings = 'lower_mock_settings'"
+        )
         return tmpfile
 
     @pytest.fixture
     def intest_config(self):
         filename = os.path.join(os.path.dirname(__file__), "intest/config.py")
-        module = types.ModuleType('config')
+        module = types.ModuleType("config")
         module.__file__ = filename
         with open(filename) as config_file:
-            exec(compile(config_file.read(), filename, 'exec'), module.__dict__)
+            exec(
+                compile(config_file.read(), filename, "exec"), module.__dict__
+            )
 
         return module
 
@@ -89,6 +91,7 @@ class TestInsanicSettings:
 
         # assert everything in global settings is set
         from insanic.conf import global_settings
+
         for k in dir(global_settings):
             if k.isupper():
                 assert hasattr(self.base_config, k)
@@ -99,7 +102,6 @@ class TestInsanicSettings:
         assert self.base_config.SERVICE_NAME == "test_insanic"
 
     def test_load_from_object(self):
-
         class MockObject:
             MOCK_SETTINGS = "upper_mock_settings"
             mock_settings = "lower_mock_settings"
@@ -114,7 +116,7 @@ class TestInsanicSettings:
 
     def test_load_from_pyfile(self, mock_settings_file):
         assert self.base_config.from_pyfile(mock_settings_file.strpath) is True
-        assert self.base_config.MOCK_SETTINGS == 'upper_mock_settings'
+        assert self.base_config.MOCK_SETTINGS == "upper_mock_settings"
         with pytest.raises(AttributeError):
             self.base_config.mock_settings
 
@@ -131,7 +133,7 @@ class TestInsanicSettings:
         monkeypatch.setenv(settings_env, mock_settings_file.strpath)
 
         assert self.base_config.from_envvar(settings_env) is True
-        assert self.base_config.MOCK_SETTINGS == 'upper_mock_settings'
+        assert self.base_config.MOCK_SETTINGS == "upper_mock_settings"
         with pytest.raises(AttributeError):
             self.base_config.mock_settings
 
@@ -177,8 +179,10 @@ class TestInsanicSettings:
                 elif s.islower():
                     assert not hasattr(self.base_config, s)
                 else:
-                    raise RuntimeError("Tests are configured improperly. Something in "
-                                       "intest.config is messing this up.")
+                    raise RuntimeError(
+                        "Tests are configured improperly. Something in "
+                        "intest.config is messing this up."
+                    )
 
     def test_sanic_default_config(self):
         from sanic.config import DEFAULT_CONFIG
@@ -188,7 +192,6 @@ class TestInsanicSettings:
 
 
 class TestLoadingPriority:
-
     def test_2_1_arguments_over_sanic_defaults(self):
 
         config = InsanicConfig(
@@ -201,28 +204,32 @@ class TestLoadingPriority:
         correct_value = "X-Should-Be-This-Value"
         monkeypatch.setenv("SANIC_REAL_IP_HEADER", correct_value)
 
-        config = InsanicConfig(
-            defaults={"REAL_IP_HEADER": "wrong_value"}
-        )
+        config = InsanicConfig(defaults={"REAL_IP_HEADER": "wrong_value"})
 
         assert config.REAL_IP_HEADER == correct_value
 
-    def test_4_3_insanic_global_settings_over_sanic_env_prefix(self, monkeypatch):
+    def test_4_3_insanic_global_settings_over_sanic_env_prefix(
+        self, monkeypatch
+    ):
         monkeypatch.setenv("SANIC_SERVICE_ALIAS", "wrong_value")
 
         config = InsanicConfig(
             defaults={"SERVICE_ALIAS": "another_wrong_value"}
         )
 
-        assert config.SERVICE_ALIAS == ""  # value from `insanic.conf.global_settings`
+        assert (
+            config.SERVICE_ALIAS == ""
+        )  # value from `insanic.conf.global_settings`
 
     def test_5_4_service_config_over_insanic_globals(self):
         config = InsanicConfig(
             settings_module="tests.intest.config",
-            defaults={"SERVICE_ALIAS": "wrong_value"}
+            defaults={"SERVICE_ALIAS": "wrong_value"},
         )
 
-        assert config.SERVICE_ALIAS == "intest"  # value from `test.intest.config`
+        assert (
+            config.SERVICE_ALIAS == "intest"
+        )  # value from `test.intest.config`
 
     def test_6_5_insanic_env_prefix_over_service_config(self, monkeypatch):
         correct_value = "the real service alias"
@@ -230,7 +237,7 @@ class TestLoadingPriority:
 
         config = InsanicConfig(
             settings_module="tests.intest.config",
-            defaults={"SERVICE_ALIAS": "wrong_value"}
+            defaults={"SERVICE_ALIAS": "wrong_value"},
         )
 
         assert config.SERVICE_ALIAS == correct_value
