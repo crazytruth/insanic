@@ -1,5 +1,4 @@
 import asyncio
-import time
 
 import aiohttp
 import io
@@ -24,38 +23,6 @@ from insanic.utils import try_json_decode
 from insanic.utils.datetime import get_utc_datetime
 from insanic.utils.obfuscating import get_safe_dict
 from insanic.services.utils import context_user, context_correlation_id
-
-
-class ServiceRegistry(dict):
-    __instance = None
-    _conn = None
-
-    def __new__(cls, *args, **kwargs):
-        if ServiceRegistry.__instance is None:
-            ServiceRegistry.__instance = dict.__new__(cls)
-            ServiceRegistry.__instance.update(**{s: None for s in
-                                                 set(list(settings.SERVICE_CONNECTIONS) +
-                                                     list(settings.REQUIRED_SERVICE_CONNECTIONS))})
-
-        return ServiceRegistry.__instance
-
-    def __setitem__(self, key, value):
-        raise RuntimeError("Unable to set new service. Append {0} to SERVICE_CONNECTIONS "
-                           "to allow connections to {0}.".format(key))
-
-    def __getitem__(self, key):
-        if key not in self:
-            raise RuntimeError("{0} service does not exist. Only the following: {1}"
-                               .format(key, ", ".join(self.keys())))
-        item = super().__getitem__(key)
-        if item is None:
-            item = Service(key)
-            super().__setitem__(key, item)
-        return item
-
-    @classmethod
-    def reset(cls):
-        cls.__instance = None
 
 
 class Service(object):
@@ -477,3 +444,5 @@ class Service(object):
 
     #         access_logger.exception('', extra=extra, exc_info=exc)
     #
+
+

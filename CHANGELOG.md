@@ -12,11 +12,13 @@ Changelog for insanic
     - Streamlines sanic and config config initialization
     - Updated tests to reflect changes
     - Removes hvac from required dependencies
-- MAJOR: refactors public routes from Insanic to Router 
+- MAJOR: refactor public routes from Insanic to Router 
+- MINOR: refactor service registry to use mapping collection
+    - Move registry to registry module
+    - Lazy loading for registry
 - CHORE: extracts extra requirements into their own requirments files
 - CHORE: reorganizes artwork into its own directory
 - CHORE: removes config that are no longer used
-
 
 
 0.8.3 (2019-11-21)

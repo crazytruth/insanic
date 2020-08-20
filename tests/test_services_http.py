@@ -21,7 +21,8 @@ from insanic.exceptions import ResponseTimeoutError, APIException
 from insanic.log import error_logger
 from insanic.models import User, UserLevels, AnonymousRequestService, AnonymousUser, to_header_value
 from insanic.permissions import AllowAny
-from insanic.services import ServiceRegistry, Service
+from insanic.services import Service
+from insanic.services.registry import LazyServiceRegistry
 from insanic.services.response import InsanicResponse
 from insanic.views import InsanicView
 
@@ -43,15 +44,10 @@ class TestServiceRegistry:
     @pytest.fixture(autouse=True)
     def initialize_service_registry(self, monkeypatch):
         monkeypatch.setattr(settings, "SERVICE_CONNECTIONS", ["test1"])
-        ServiceRegistry.reset()
-        self.registry = ServiceRegistry()
-
-    def test_singleton(self):
-        new_registry = ServiceRegistry()
-        assert self.registry is new_registry
+        self.registry = LazyServiceRegistry()
 
     def test_set_item(self):
-        with pytest.raises(RuntimeError):
+        with pytest.raises(TypeError):
             self.registry['some_service'] = {}
 
     def test_get_item(self):
@@ -77,14 +73,11 @@ class TestServiceClass:
     def initialize_service(self, monkeypatch):
         monkeypatch.setattr(settings, "SERVICE_LIST", {}, raising=False)
         self.service = Service(self.service_name)
-        ServiceRegistry.reset()
 
     async def run_dispatch(self, *args, **kwargs):
         return await self.service.http_dispatch(*args, **kwargs)
 
     async def test_init(self):
-        # assert self.service._registry is ServiceRegistry()
-        # assert self.service._session is None
 
         auth_token = self.service.service_token
         assert isinstance(auth_token, str)
@@ -746,7 +739,10 @@ class TestRequestTaskContext:
     @dispatch_tests
     async def test_task_context_user_dispatch_injection(self, insanic_application,
                                                         test_client,
-                                                        test_user_token_factory, dispatch_type):
+                                                        test_user_token_factory,
+                                                        monkeypatch, dispatch_type):
+        monkeypatch.setattr(settings, "SERVICE_CONNECTIONS", ['userip'])
+
         import aiotask_context
         import asyncio
         from insanic.loading import get_service
@@ -971,9 +967,11 @@ class TestRequestTaskContext:
             assert resp['user']['id'] == str(users[i].id)
 
     async def test_client_dns_balancing(self, monkeypatch):
-        ServiceRegistry.reset()
         monkeypatch.setattr(settings, "SERVICE_CONNECTIONS", ["amazon"])
         monkeypatch.setattr(settings, "SERVICE_CONNECTION_KEEP_ALIVE_TIMEOUT", 1)
+
+        from insanic.services.registry import registry
+        registry.reset()
 
         from insanic.loading import get_service
         amazon = get_service("amazon")
