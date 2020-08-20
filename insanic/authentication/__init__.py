@@ -11,16 +11,16 @@ from insanic.errors import GlobalErrorCodes
 from insanic.log import error_logger
 from insanic.models import User, RequestService, AnonymousRequestService
 
-UNUSABLE_PASSWORD_PREFIX = '!'
+UNUSABLE_PASSWORD_PREFIX = "!"
 
 
-def get_authorization_header(request, header='authorization'):
+def get_authorization_header(request, header="authorization"):
     """
     Return request's 'Authorization:' header, as a bytestring.
 
     Hide some test client ickyness where the header can be unicode.
     """
-    auth = request.headers.get(header, b'')
+    auth = request.headers.get(header, b"")
     return auth
 
 
@@ -59,13 +59,15 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
             return None
 
         if len(auth) == 1:
-            msg = 'Invalid Authorization header. No credentials provided.'
-            raise exceptions.AuthenticationFailed(msg,
-                                                  error_code=GlobalErrorCodes.invalid_authorization_header)
+            msg = "Invalid Authorization header. No credentials provided."
+            raise exceptions.AuthenticationFailed(
+                msg, error_code=GlobalErrorCodes.invalid_authorization_header
+            )
         elif len(auth) > 2:
-            msg = 'Invalid Authorization header. Credentials string should not contain spaces.'
-            raise exceptions.AuthenticationFailed(msg,
-                                                  error_code=GlobalErrorCodes.invalid_authorization_header)
+            msg = "Invalid Authorization header. Credentials string should not contain spaces."
+            raise exceptions.AuthenticationFailed(
+                msg, error_code=GlobalErrorCodes.invalid_authorization_header
+            )
 
         return {"token": auth[1], "verify": False}
 
@@ -73,22 +75,27 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
         try:
             payload = self.decode_jwt(**jwt_value)
         except jwt.DecodeError:
-            msg = 'Error decoding signature.'
-            raise exceptions.AuthenticationFailed(msg,
-                                                  error_code=GlobalErrorCodes.signature_not_decodable)
+            msg = "Error decoding signature."
+            raise exceptions.AuthenticationFailed(
+                msg, error_code=GlobalErrorCodes.signature_not_decodable
+            )
         except jwt.InvalidTokenError:
-            raise exceptions.AuthenticationFailed(error_code=GlobalErrorCodes.invalid_token)
+            raise exceptions.AuthenticationFailed(
+                error_code=GlobalErrorCodes.invalid_token
+            )
         return payload
 
-
-    def get_consumer_header(self, request, header='x-consumer-username'):
+    def get_consumer_header(self, request, header="x-consumer-username"):
         """
         Gets request's consumer's id which Kong attached.
         """
 
-        user_id = request.headers.get(header, 'anonymous')
+        user_id = request.headers.get(header, "anonymous")
 
-        if user_id == 'anonymous' and request.headers.get('x-anonymous-consumer', None) == 'true':
+        if (
+            user_id == "anonymous"
+            and request.headers.get("x-anonymous-consumer", None) == "true"
+        ):
             return None
 
         return user_id
@@ -97,7 +104,9 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
         """
         Returns an active user that matches the payload's user id and email.
         """
-        raise NotImplementedError(".authenticate_credentials() must be overridden.")  # pragma: no cover
+        raise NotImplementedError(
+            ".authenticate_credentials() must be overridden."
+        )  # pragma: no cover
 
     async def authenticate(self, request):
         """
@@ -112,7 +121,7 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
         payload = self.try_decode_jwt(**jwt_value)
         user, service = await self.authenticate_credentials(request, payload)
 
-        return user, service, jwt_value['token']
+        return user, service, jwt_value["token"]
 
 
 class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
@@ -123,11 +132,12 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
 
         Authorization: JWT eyJhbGciOiAiSFMyNTYiLCAidHlwIj
     """
-    www_authenticate_realm = 'api'
+
+    www_authenticate_realm = "api"
 
     @property
     def auth_header_prefix(self):
-        return settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'].lower()
+        return settings.JWT_AUTH["JWT_AUTH_HEADER_PREFIX"].lower()
 
     def authenticate_header(self, request):
         """
@@ -135,17 +145,20 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
         header in a `401 Unauthenticated` response, or `None` if the
         authentication scheme should return `403 Permission Denied` responses.
         """
-        return '{0} realm="{1}"'.format(self.auth_header_prefix, self.www_authenticate_realm)
+        return '{0} realm="{1}"'.format(
+            self.auth_header_prefix, self.www_authenticate_realm
+        )
 
     async def authenticate_credentials(self, request, payload):
-        user_id = payload.pop('id', payload.get('user_id'))
+        user_id = payload.pop("id", payload.get("user_id"))
 
         user = User(id=user_id, is_authenticated=True, **payload)
 
         if not user.is_active:
-            msg = 'User account is disabled.'
-            raise exceptions.AuthenticationFailed(msg,
-                                                  error_code=GlobalErrorCodes.inactive_user)
+            msg = "User account is disabled."
+            raise exceptions.AuthenticationFailed(
+                msg, error_code=GlobalErrorCodes.inactive_user
+            )
 
         return user, AnonymousRequestService
 
@@ -155,23 +168,25 @@ class ServiceJWTAuthentication(BaseJSONWebTokenAuthentication):
 
     @property
     def auth_header_prefix(self):
-        return settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'].lower()
+        return settings.JWT_SERVICE_AUTH["JWT_AUTH_HEADER_PREFIX"].lower()
 
     def decode_jwt(self, **kwargs):
-        token = kwargs.pop('token')
+        token = kwargs.pop("token")
         return handlers.jwt_service_decode_handler(token)
 
     async def authenticate_credentials(self, request, payload):
 
-        if 'user' in payload:
+        if "user" in payload:
             # to make backwards compatible with insanic version <0.5.0
-            user_params = payload.pop('user', None)
+            user_params = payload.pop("user", None)
         else:
             user_params = {"id": "", "level": -1}
 
-            for f in request.headers.get(settings.INTERNAL_REQUEST_USER_HEADER, '').split(';'):
+            for f in request.headers.get(
+                settings.INTERNAL_REQUEST_USER_HEADER, ""
+            ).split(";"):
                 if f:
-                    k, v = f.split('=')
+                    k, v = f.split("=")
                     user_params.update({k: v})
 
         user = User(**user_params)
@@ -180,7 +195,8 @@ class ServiceJWTAuthentication(BaseJSONWebTokenAuthentication):
 
         if not service.is_valid:
             msg = f"Invalid request to {settings.SERVICE_NAME}."
-            raise exceptions.AuthenticationFailed(msg,
-                                                  error_code=GlobalErrorCodes.invalid_service_token)
+            raise exceptions.AuthenticationFailed(
+                msg, error_code=GlobalErrorCodes.invalid_service_token
+            )
 
         return user, service

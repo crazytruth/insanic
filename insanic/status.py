@@ -43,7 +43,9 @@ HTTP_422_UNPROCESSABLE_ENTITY = 422
 HTTP_428_PRECONDITION_REQUIRED = 428
 HTTP_429_TOO_MANY_REQUESTS = 429
 HTTP_431_REQUEST_HEADER_FIELDS_TOO_LARGE = 431
-HTTP_497_SAGOCHIN_NYOSUK = 497  # made up status code for mmt usage. (banned people)
+HTTP_497_SAGOCHIN_NYOSUK = (
+    497  # made up status code for mmt usage. (banned people)
+)
 HTTP_499_CLIENT_CLOSED_REQUEST = 499
 HTTP_500_INTERNAL_SERVER_ERROR = 500
 HTTP_501_NOT_IMPLEMENTED = 501
@@ -53,4 +55,8 @@ HTTP_504_GATEWAY_TIMEOUT = 504
 HTTP_505_HTTP_VERSION_NOT_SUPPORTED = 505
 HTTP_511_NETWORK_AUTHENTICATION_REQUIRED = 511
 
-REVERSE_STATUS = {code: " ".join(ref.split('_')[2:]).title() for ref, code in locals().items() if ref.isupper()}
+REVERSE_STATUS = {
+    code: " ".join(ref.split("_")[2:]).title()
+    for ref, code in locals().items()
+    if ref.isupper()
+}

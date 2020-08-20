@@ -15,7 +15,9 @@ def context_user():
 
 def context_correlation_id():
     try:
-        correlation_id = aiotask_context.get(settings.TASK_CONTEXT_CORRELATION_ID, "unknown")
+        correlation_id = aiotask_context.get(
+            settings.TASK_CONTEXT_CORRELATION_ID, "unknown"
+        )
     except AttributeError:
         correlation_id = "not set"
     return correlation_id

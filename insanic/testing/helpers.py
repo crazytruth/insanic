@@ -22,7 +22,7 @@ DEFAULT_USER_LEVEL = UserLevels.ACTIVE
 
 
 class PyTestCommand(TestCommand):
-    user_options = [('pytest-args=', 'a', "Arguments to pass to pytest")]
+    user_options = [("pytest-args=", "a", "Arguments to pass to pytest")]
 
     def initialize_options(self):
         TestCommand.initialize_options(self)
@@ -30,9 +30,11 @@ class PyTestCommand(TestCommand):
 
     def run_tests(self):
         import shlex
+
         # import here, cause outside the eggs aren't loaded
         import pytest
-        os.environ['MMT_ENV'] = "test"
+
+        os.environ["MMT_ENV"] = "test"
 
         errno = pytest.main(shlex.split(self.pytest_args))
         sys.exit(errno)
@@ -43,8 +45,9 @@ class BaseMockService:
     service_responses = {}
 
     def __init__(self):
-        self.register_mock_dispatch("POST", "/api/v1/ip", {}, )
-
+        self.register_mock_dispatch(
+            "POST", "/api/v1/ip", {},
+        )
 
     def _key_for_request(self, method, endpoint, body):
         body_list = []
@@ -58,10 +61,23 @@ class BaseMockService:
             body_list.extend([k, v])
         return (method.upper(), endpoint, ":".join(body_list))
 
-    async def mock_dispatch(self, method, endpoint, req_ctx={}, *, query_params={}, payload={}, headers={},
-                            propagate_error=False, include_status_code=False, **kwargs):
+    async def mock_dispatch(
+        self,
+        method,
+        endpoint,
+        req_ctx={},
+        *,
+        query_params={},
+        payload={},
+        headers={},
+        propagate_error=False,
+        include_status_code=False,
+        **kwargs,
+    ):
 
-        request = self._normalize_request(method, endpoint, query_params, payload)
+        request = self._normalize_request(
+            method, endpoint, query_params, payload
+        )
         keys = self._keys_for_request(request)
         #
         # if method == "GET" and query_params != {}:
@@ -79,11 +95,16 @@ class BaseMockService:
 
                 if propagate_error and 400 <= status_code:
                     # raise aiohttp.client_exceptions.ClientResponseError('', '', status=status_code)
-                    exc = APIException(description=resp.get('description'),
-                                       error_code=_unpack_enum_error_message(
-                                           resp.get('error_code', GlobalErrorCodes.unknown_error)),
-                                       status_code=status_code)
-                    exc.message = resp.get('message') or exc.message
+                    exc = APIException(
+                        description=resp.get("description"),
+                        error_code=_unpack_enum_error_message(
+                            resp.get(
+                                "error_code", GlobalErrorCodes.unknown_error
+                            )
+                        ),
+                        status_code=status_code,
+                    )
+                    exc.message = resp.get("message") or exc.message
                     raise exc
 
                 if include_status_code:
@@ -92,40 +113,67 @@ class BaseMockService:
                     return copy.deepcopy(resp)
 
         raise RuntimeError(
-            "Unknown service request: {0} {1}. Need to register mock dispatch.".format(method.upper(), endpoint))
+            "Unknown service request: {0} {1}. Need to register mock dispatch.".format(
+                method.upper(), endpoint
+            )
+        )
 
     def _keys_for_request(self, request):
 
         body = json.loads(request.body._value)
 
         sorted_body = OrderedDict(sorted(body.items()))
-        yield self._key_for_request(request.method, request.url.path_qs, sorted_body)
-        yield self._key_for_request(request.method, request.url.path, sorted_body)
+        yield self._key_for_request(
+            request.method, request.url.path_qs, sorted_body
+        )
+        yield self._key_for_request(
+            request.method, request.url.path, sorted_body
+        )
         yield self._key_for_request(request.method, request.url.path_qs, {})
         yield self._key_for_request(request.method, request.url.path, {})
 
     def _normalize_request(self, method, endpoint, query_params, request_body):
         fudge_url = "http://localhost"
-        return aiohttp.ClientRequest(method=method.upper(), url=URL(fudge_url + endpoint),
-                                     params=OrderedDict(sorted((query_params or {}).items())),
-                                     data=aiohttp.payload.JsonPayload(
-                                         OrderedDict(sorted((request_body or {}).items()))))
+        return aiohttp.ClientRequest(
+            method=method.upper(),
+            url=URL(fudge_url + endpoint),
+            params=OrderedDict(sorted((query_params or {}).items())),
+            data=aiohttp.payload.JsonPayload(
+                OrderedDict(sorted((request_body or {}).items()))
+            ),
+        )
 
-    def register_mock_dispatch(self, method, endpoint, response, response_status_code=200, request_body=None,
-                               query_params=None):
+    def register_mock_dispatch(
+        self,
+        method,
+        endpoint,
+        response,
+        response_status_code=200,
+        request_body=None,
+        query_params=None,
+    ):
 
-        request = self._normalize_request(method, endpoint, query_params, request_body)
+        request = self._normalize_request(
+            method, endpoint, query_params, request_body
+        )
 
         for k in self._keys_for_request(request):
             if k in self.service_responses:
-                if self.service_responses[k] == (response, response_status_code):
+                if self.service_responses[k] == (
+                    response,
+                    response_status_code,
+                ):
                     pass
                 else:
-                    print(f"""Service Response already exists for {json.dumps(k)}
+                    print(
+                        f"""Service Response already exists for {json.dumps(k)}
                     expected response: {json.dumps((response, response_status_code))}
-                    registered response: {json.dumps(self.service_responses[k])}""")
+                    registered response: {json.dumps(self.service_responses[k])}"""
+                    )
 
-            self.service_responses.update({k: (response, response_status_code)})
+            self.service_responses.update(
+                {k: (response, response_status_code)}
+            )
 
         # key = self._key_for_request(request.method, request.url.path, OrderedDict(sorted(request.url.query)))
         #
@@ -170,26 +218,43 @@ class DunnoValue:
                 return True
         else:
             return isinstance(other, self.expected_type)
-        
+
     def __repr__(self):
         return f"DunnoValue with {self.expected_type}"
 
 
 class TestAPIEndpoint:
-    def test_api_endpoint(self, insanic_application, test_user_token_factory, test_service_token_factory, *,
-                          endpoint, method, request_headers, request_body, expected_response_status,
-                          expected_response_body, user_level):
+    def test_api_endpoint(
+        self,
+        insanic_application,
+        test_user_token_factory,
+        test_service_token_factory,
+        *,
+        endpoint,
+        method,
+        request_headers,
+        request_body,
+        expected_response_status,
+        expected_response_body,
+        user_level,
+    ):
 
         # setup
-        self._update_headers(test_user_token_factory, test_service_token_factory, request_headers, user_level)
-        handler_kwargs = self._get_handler_kwargs(request_headers, request_body)
+        self._update_headers(
+            test_user_token_factory,
+            test_service_token_factory,
+            request_headers,
+            user_level,
+        )
+        handler_kwargs = self._get_handler_kwargs(
+            request_headers, request_body
+        )
 
         # execute
         handler = getattr(insanic_application.test_client, method.lower())
-        request, response = handler(endpoint,
-                                    debug=True,
-                                    headers=request_headers,
-                                    **handler_kwargs)
+        request, response = handler(
+            endpoint, debug=True, headers=request_headers, **handler_kwargs
+        )
         # assert
         self._assert_response_status(expected_response_status, response)
         response_body = response.text
@@ -197,25 +262,56 @@ class TestAPIEndpoint:
             response_body = json.loads(response.text)
         except ValueError:
             pass
-        self._assert_response_body(response, response_body, expected_response_body, expected_response_status)
+        self._assert_response_body(
+            response,
+            response_body,
+            expected_response_body,
+            expected_response_status,
+        )
 
-    def _update_headers(self, test_user_token_factory, test_service_token_factory, request_headers, user_level):
+    def _update_headers(
+        self,
+        test_user_token_factory,
+        test_service_token_factory,
+        request_headers,
+        user_level,
+    ):
         request_headers.update({"accept": "application/json"})
 
-        if "Authorization" in request_headers.keys() and request_headers.get("Authorization") == _TokenType('user'):
-            user, token = test_user_token_factory(level=user_level, return_with_user=True)
-            request_headers.update({"Authorization": token, 'x-consumer-username': user.id})
-        elif "Authorization" in request_headers.keys() and request_headers.get("Authorization") == _TokenType(
-                'service'):
-            user, token = test_user_token_factory(level=user_level, return_with_user=True)
+        if "Authorization" in request_headers.keys() and request_headers.get(
+            "Authorization"
+        ) == _TokenType("user"):
+            user, token = test_user_token_factory(
+                level=user_level, return_with_user=True
+            )
+            request_headers.update(
+                {"Authorization": token, "x-consumer-username": user.id}
+            )
+        elif "Authorization" in request_headers.keys() and request_headers.get(
+            "Authorization"
+        ) == _TokenType("service"):
+            user, token = test_user_token_factory(
+                level=user_level, return_with_user=True
+            )
 
-            request_headers.update({"Authorization": test_service_token_factory(user)})
-            request_headers.update({settings.INTERNAL_REQUEST_USER_HEADER.lower(): to_header_value(user)})
+            request_headers.update(
+                {"Authorization": test_service_token_factory(user)}
+            )
+            request_headers.update(
+                {
+                    settings.INTERNAL_REQUEST_USER_HEADER.lower(): to_header_value(
+                        user
+                    )
+                }
+            )
         elif "Authorization" not in request_headers.keys():
-            request_headers.update({'x-anonymous-consumer': 'true'})
+            request_headers.update({"x-anonymous-consumer": "true"})
 
     def _get_handler_kwargs(self, request_headers, request_body):
-        if request_headers.get('content-type', "application/json") == "application/json":
+        if (
+            request_headers.get("content-type", "application/json")
+            == "application/json"
+        ):
             handler_kwargs = {"json": request_body}
         else:
             handler_kwargs = {"data": request_body}
@@ -225,49 +321,102 @@ class TestAPIEndpoint:
     def _assert_response_status(self, expected_response_status, response):
         assert expected_response_status == response.status, response.text
 
-    def _assert_response_body(self, response, response_body, expected_response_body, expected_response_status):
+    def _assert_response_body(
+        self,
+        response,
+        response_body,
+        expected_response_body,
+        expected_response_status,
+    ):
         response_status_category = int(expected_response_status / 100)
         assertion_message = f"\nExpected: {expected_response_body}\n\nReturned: {response_body}"
 
         if response_status_category == 2:
-            if isinstance(response_body, dict) and isinstance(expected_response_body, dict):
-                assert expected_response_body == response_body, assertion_message
-            elif isinstance(response_body, dict) and isinstance(expected_response_body, list):
-                assert sorted(expected_response_body) == sorted(response_body.keys()), assertion_message
-            elif isinstance(response_body, list) and isinstance(expected_response_body, list):
-                assert sorted(response_body) == sorted(expected_response_body), assertion_message
-            elif isinstance(response_body, list) and isinstance(expected_response_body, int):
-                assert expected_response_body == len(response_body), assertion_message
+            if isinstance(response_body, dict) and isinstance(
+                expected_response_body, dict
+            ):
+                assert (
+                    expected_response_body == response_body
+                ), assertion_message
+            elif isinstance(response_body, dict) and isinstance(
+                expected_response_body, list
+            ):
+                assert sorted(expected_response_body) == sorted(
+                    response_body.keys()
+                ), assertion_message
+            elif isinstance(response_body, list) and isinstance(
+                expected_response_body, list
+            ):
+                assert sorted(response_body) == sorted(
+                    expected_response_body
+                ), assertion_message
+            elif isinstance(response_body, list) and isinstance(
+                expected_response_body, int
+            ):
+                assert expected_response_body == len(
+                    response_body
+                ), assertion_message
             elif isinstance(expected_response_body, str):
-                assert expected_response_body == response_body, assertion_message
+                assert (
+                    expected_response_body == response_body
+                ), assertion_message
             else:
-                raise RuntimeError("Shouldn't be in here. Check response type.")
+                raise RuntimeError(
+                    "Shouldn't be in here. Check response type."
+                )
         elif response_status_category == 3:
             raise RuntimeError("Shouldn't be in here. Redirects not possible.")
         elif response_status_category == 4:
             # if http status code is in the 4 hundreds, check error code
             if isinstance(expected_response_body, dict):
-                assert expected_response_body == response_body, assertion_message
+                assert (
+                    expected_response_body == response_body
+                ), assertion_message
             elif isinstance(expected_response_body, list):
-                assert sorted(expected_response_body) == sorted(response_body.keys()), assertion_message
+                assert sorted(expected_response_body) == sorted(
+                    response_body.keys()
+                ), assertion_message
             elif isinstance(expected_response_body, Enum):
-                assert expected_response_body.value == response_body['error_code']['value'], assertion_message
+                assert (
+                    expected_response_body.value
+                    == response_body["error_code"]["value"]
+                ), assertion_message
             elif isinstance(expected_response_body, int):
-                assert expected_response_body == response_body['error_code']['value'], assertion_message
+                assert (
+                    expected_response_body
+                    == response_body["error_code"]["value"]
+                ), assertion_message
             else:
-                raise RuntimeError("Shouldn't be in here. Check response type.")
+                raise RuntimeError(
+                    "Shouldn't be in here. Check response type."
+                )
         elif response_status_category == 5:
-            raise RuntimeError("We got a 500 level status code, something isn't right.")
+            raise RuntimeError(
+                "We got a 500 level status code, something isn't right."
+            )
 
 
-test_api_endpoint = partial(TestAPIEndpoint.test_api_endpoint, self=TestAPIEndpoint())
+test_api_endpoint = partial(
+    TestAPIEndpoint.test_api_endpoint, self=TestAPIEndpoint()
+)
 test_api_endpoint.__name__ = "test_api_endpoint"
 
-TestParams = namedtuple('TestParams', ['method', 'endpoint', 'request_headers', 'request_body',
-                                       'expected_response_status', 'expected_response_body', 'user_level'])
+TestParams = namedtuple(
+    "TestParams",
+    [
+        "method",
+        "endpoint",
+        "request_headers",
+        "request_body",
+        "expected_response_status",
+        "expected_response_body",
+        "user_level",
+    ],
+)
 
 
 # TestParams = namedtuple("TestParams", [k for k,v in inspect.signature(test_api_endpoint).parameters.items() if v.kind == v.KEYWORD_ONLY])
+
 
 class _TokenType:
     def __init__(self, type):
@@ -280,52 +429,87 @@ class _TokenType:
             return False
 
 
-
-def test_parameter_generator(method, endpoint, *, request_headers, request_body, expected_response_status,
-                             expected_response_body, check_authorization=True, check_permissions=True,
-                             user_level=DEFAULT_USER_LEVEL, is_service_only=False, **kwargs):
+def test_parameter_generator(
+    method,
+    endpoint,
+    *,
+    request_headers,
+    request_body,
+    expected_response_status,
+    expected_response_body,
+    check_authorization=True,
+    check_permissions=True,
+    user_level=DEFAULT_USER_LEVEL,
+    is_service_only=False,
+    **kwargs,
+):
 
     if check_permissions:
         if "permissions_endpoint" not in kwargs:
-            raise RuntimeError("'permissions_endpoint' must be passed for permissions check parameters.")
+            raise RuntimeError(
+                "'permissions_endpoint' must be passed for permissions check parameters."
+            )
 
     # auth_token = request_headers.pop("Authorization", empty)
 
     if "Authorization" not in request_headers and is_service_only:
-        request_headers.update({"Authorization": _TokenType('service')})
+        request_headers.update({"Authorization": _TokenType("service")})
     elif "Authorization" not in request_headers:
-        request_headers.update({"Authorization": _TokenType('user')})
+        request_headers.update({"Authorization": _TokenType("user")})
 
-
-    test_parameters_template = TestParams(method=method, endpoint=endpoint, request_headers=request_headers,
-                                          request_body=request_body, expected_response_status=expected_response_status,
-                                          expected_response_body=expected_response_body, user_level=user_level)
+    test_parameters_template = TestParams(
+        method=method,
+        endpoint=endpoint,
+        request_headers=request_headers,
+        request_body=request_body,
+        expected_response_status=expected_response_status,
+        expected_response_body=expected_response_body,
+        user_level=user_level,
+    )
     if check_authorization:
         _req_headers = request_headers.copy()
         if "Authorization" in _req_headers:
-            del _req_headers['Authorization']
+            del _req_headers["Authorization"]
 
-        p = test_parameters_template. \
-            _replace(request_headers=_req_headers,
-                     expected_response_status=401,
-                     expected_response_body=GlobalErrorCodes.authentication_credentials_missing)
+        p = test_parameters_template._replace(
+            request_headers=_req_headers,
+            expected_response_status=401,
+            expected_response_body=GlobalErrorCodes.authentication_credentials_missing,
+        )
         # parameters.append(p)
         yield tuple(p)
 
     if check_permissions:
-        p = test_parameters_template._replace(endpoint=kwargs['permissions_endpoint'],
-                                              expected_response_status=403,
-                                              expected_response_body=GlobalErrorCodes.permission_denied)
+        p = test_parameters_template._replace(
+            endpoint=kwargs["permissions_endpoint"],
+            expected_response_status=403,
+            expected_response_body=GlobalErrorCodes.permission_denied,
+        )
 
         yield tuple(p)
 
     yield tuple(test_parameters_template)
 
 
-def test_parameter(method, endpoint, request_headers, request_body, expected_response_status, expected_response_body,
-                   user_level=DEFAULT_USER_LEVEL):
-    return [tuple(TestParams(method=method, endpoint=endpoint, request_headers=request_headers,
-                             request_body=request_body, expected_response_status=expected_response_status,
-                             expected_response_body=expected_response_body, user_level=user_level))]
-
-
+def test_parameter(
+    method,
+    endpoint,
+    request_headers,
+    request_body,
+    expected_response_status,
+    expected_response_body,
+    user_level=DEFAULT_USER_LEVEL,
+):
+    return [
+        tuple(
+            TestParams(
+                method=method,
+                endpoint=endpoint,
+                request_headers=request_headers,
+                request_body=request_body,
+                expected_response_status=expected_response_status,
+                expected_response_body=expected_response_body,
+                user_level=user_level,
+            )
+        )
+    ]

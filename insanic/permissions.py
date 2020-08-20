@@ -3,7 +3,7 @@ Provides a set of pluggable permission policies.
 """
 from insanic.models import _AnonymousUser
 
-SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
+SAFE_METHODS = ["GET", "HEAD", "OPTIONS"]
 
 
 class BasePermission(object):
@@ -59,8 +59,8 @@ class IsAuthenticatedOrReadOnly(BasePermission):
     async def has_permission(self, request, view):
         user = await request.user
 
-        return (
-                request.method in SAFE_METHODS or not isinstance(user, _AnonymousUser)
+        return request.method in SAFE_METHODS or not isinstance(
+            user, _AnonymousUser
         )
 
 

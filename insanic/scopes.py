@@ -10,7 +10,6 @@ from insanic.errors import GlobalErrorCodes
 from insanic.exceptions import BadRequest
 
 
-
 AWS_ECS_METADATA_ENDPOINT = "169.254.170.2/v2/metadata"
 
 
@@ -54,19 +53,25 @@ def public_facing(fn=None, *, params=None):
                         if isinstance(o, Request):
                             for qp in o.query_params:
                                 if qp not in params:
-                                    error_logger.error(f"Request with invalid params detected! "
-                                                       f"{qp} not in {', '.join(params)}.")
+                                    error_logger.error(
+                                        f"Request with invalid params detected! "
+                                        f"{qp} not in {', '.join(params)}."
+                                    )
 
-                                    raise BadRequest(description=f"Invalid query params. Allowed: {', '.join(params)}",
-                                                     error_code=GlobalErrorCodes.invalid_query_params)
+                                    raise BadRequest(
+                                        description=f"Invalid query params. Allowed: {', '.join(params)}",
+                                        error_code=GlobalErrorCodes.invalid_query_params,
+                                    )
                             break
                     else:
                         """
                         if here, this means request object was not found... 
                         """
-                        raise RuntimeError("`request` object was not found. "
-                                           "Must decorate a view function "
-                                           "or class view method.")
+                        raise RuntimeError(
+                            "`request` object was not found. "
+                            "Must decorate a view function "
+                            "or class view method."
+                        )
 
                 return fn(*args, **kwargs)
 
@@ -79,15 +84,17 @@ def public_facing(fn=None, *, params=None):
 @lru_cache(maxsize=1)
 def _is_docker():
     try:
-        r = urllib.request.urlopen("http://" + AWS_ECS_METADATA_ENDPOINT, timeout=0.5)
+        r = urllib.request.urlopen(
+            "http://" + AWS_ECS_METADATA_ENDPOINT, timeout=0.5
+        )
 
         return r.status == 200
     except:
         try:
-            with open('/proc/self/cgroup', 'r') as proc_file:
+            with open("/proc/self/cgroup", "r") as proc_file:
                 for line in proc_file:
-                    fields = line.strip().split('/')
-                    if fields[1] == 'docker':
+                    fields = line.strip().split("/")
+                    if fields[1] == "docker":
                         return True
         except FileNotFoundError:
             pass
@@ -100,10 +107,12 @@ is_docker = _is_docker()
 @lru_cache(maxsize=1)
 def get_machine_id():
     if is_docker:
-        machine_id = os.environ.get('HOSTNAME')
+        machine_id = os.environ.get("HOSTNAME")
     else:
         ip = get_my_ip()
-        machine_id = '{:02X}{:02X}{:02X}{:02X}'.format(*map(int, ip.split('.')))
+        machine_id = "{:02X}{:02X}{:02X}{:02X}".format(
+            *map(int, ip.split("."))
+        )
     return machine_id
 
 
@@ -111,14 +120,14 @@ def get_machine_id():
 def get_my_ip():
     try:
         ip = socket.gethostbyname(get_hostname())
-        if ip and ip != '127.0.0.1':
+        if ip and ip != "127.0.0.1":
             return ip
         else:
             raise socket.gaierror
     except socket.gaierror:
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(('192.255.255.255', 1))
+            s.connect(("192.255.255.255", 1))
             ip = s.getsockname()[0]
         finally:
             s.close()

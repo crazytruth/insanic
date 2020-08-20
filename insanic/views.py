@@ -8,11 +8,22 @@ from insanic.errors import GlobalErrorCodes
 
 
 class InsanicView(HTTPMethodView):
-    http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
+    http_method_names = [
+        "get",
+        "post",
+        "put",
+        "patch",
+        "delete",
+        "head",
+        "options",
+        "trace",
+    ]
 
     permission_classes = [permissions.IsAuthenticated]
     throttle_classes = []
-    authentication_classes = [authentication.JSONWebTokenAuthentication, ]
+    authentication_classes = [
+        authentication.JSONWebTokenAuthentication,
+    ]
 
     def _allowed_methods(self):
         return [m.upper() for m in self.http_method_names if hasattr(self, m)]
@@ -27,7 +38,7 @@ class InsanicView(HTTPMethodView):
     @property
     def default_response_headers(self):
         headers = {
-            'Allow': ', '.join(self.allowed_methods),
+            "Allow": ", ".join(self.allowed_methods),
         }
         return headers
 
@@ -55,8 +66,12 @@ class InsanicView(HTTPMethodView):
         If request is not permitted, determine what kind of exception to raise.
         """
         if not request.successful_authenticator:
-            raise exceptions.NotAuthenticated(error_code=GlobalErrorCodes.authentication_credentials_missing)
-        raise exceptions.PermissionDenied(message, error_code=GlobalErrorCodes.permission_denied)
+            raise exceptions.NotAuthenticated(
+                error_code=GlobalErrorCodes.authentication_credentials_missing
+            )
+        raise exceptions.PermissionDenied(
+            message, error_code=GlobalErrorCodes.permission_denied
+        )
 
     def get_permissions(self):
         """
@@ -82,8 +97,9 @@ class InsanicView(HTTPMethodView):
         Raises an appropriate exception if the request is throttled.
         """
         throttles = self.get_throttles()
-        throttle_results = await asyncio.gather(*[t.allow_request(request, self)
-                                                  for t in throttles])
+        throttle_results = await asyncio.gather(
+            *[t.allow_request(request, self) for t in throttles]
+        )
 
         if not all(throttle_results):
             for i in range(len(throttles)):
@@ -94,7 +110,9 @@ class InsanicView(HTTPMethodView):
         """
         Instantiates and returns the list of authenticators that this view can use.
         """
-        return [authentication.ServiceJWTAuthentication()] + [auth() for auth in self.authentication_classes]
+        return [authentication.ServiceJWTAuthentication()] + [
+            auth() for auth in self.authentication_classes
+        ]
 
     async def convert_keywords(self):
         pass

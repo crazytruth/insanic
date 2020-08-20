@@ -3,9 +3,7 @@ import datetime
 SERVICE_ALIAS = ""
 SERVICE_TOKEN_KEY = ""
 
-ADMINS = (
-    ('David', 'kwangjinkim@gmail.com')
-)
+ADMINS = ("David", "kwangjinkim@gmail.com")
 
 DEBUG = False
 
@@ -59,14 +57,14 @@ INSANIC_CACHES = {
     "insanic": {
         "ENGINE": "aioredis",
         "CONNECTION_INTERFACE": "create_redis_pool",
-        "CLOSE_CONNECTION_INTERFACE": (('close',), ("wait_closed",)),
-        "DATABASE": 1
+        "CLOSE_CONNECTION_INTERFACE": (("close",), ("wait_closed",)),
+        "DATABASE": 1,
     },
     "throttle": {
         "ENGINE": "aioredis",
         "CONNECTION_INTERFACE": "create_redis_pool",
-        "CLOSE_CONNECTION_INTERFACE": (('close',), ("wait_closed",)),
-        "DATABASE": 2
+        "CLOSE_CONNECTION_INTERFACE": (("close",), ("wait_closed",)),
+        "DATABASE": 2,
     },
 }
 
@@ -74,7 +72,7 @@ CACHES = {
     "default": {
         "ENGINE": "aioredis",
         "CONNECTION_INTERFACE": "create_redis_pool",
-        "CLOSE_CONNECTION_INTERFACE": (('close',), ("wait_closed",))
+        "CLOSE_CONNECTION_INTERFACE": (("close",), ("wait_closed",)),
     },
 }
 
@@ -86,55 +84,40 @@ REDIS_PORT = 6379
 REDIS_DB = 0
 
 JWT_AUTH = {
-    'JWT_ENCODE_HANDLER':
-        'rest_framework_jwt.utils.jwt_encode_handler',
-
-    'JWT_DECODE_HANDLER':
-        'rest_framework_jwt.utils.jwt_decode_handler',
-
-    'JWT_PAYLOAD_HANDLER':
-        'rest_framework_jwt.utils.jwt_payload_handler',
-
-    'JWT_PAYLOAD_GET_USER_ID_HANDLER':
-        'rest_framework_jwt.utils.jwt_get_user_id_from_payload_handler',
-
-    'JWT_RESPONSE_PAYLOAD_HANDLER':
-        'rest_framework_jwt.utils.jwt_response_payload_handler',
-
-    'JWT_PUBLIC_KEY': None,
-    'JWT_PRIVATE_KEY': None,
-    'JWT_ALGORITHM': 'HS256',
-    'JWT_VERIFY': False,
-    'JWT_VERIFY_EXPIRATION': True,
-    'JWT_LEEWAY': 0,
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=7),
-    'JWT_AUDIENCE': '.mymusictaste.com',
-    'JWT_ISSUER': 'mymusictaste.com',
-
-    'JWT_ALLOW_REFRESH': True,
-    'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=7),
-    'JWT_ROLE': 'user',
-
-    'JWT_AUTH_HEADER_PREFIX': 'Bearer',
+    "JWT_ENCODE_HANDLER": "rest_framework_jwt.utils.jwt_encode_handler",
+    "JWT_DECODE_HANDLER": "rest_framework_jwt.utils.jwt_decode_handler",
+    "JWT_PAYLOAD_HANDLER": "rest_framework_jwt.utils.jwt_payload_handler",
+    "JWT_PAYLOAD_GET_USER_ID_HANDLER": "rest_framework_jwt.utils.jwt_get_user_id_from_payload_handler",
+    "JWT_RESPONSE_PAYLOAD_HANDLER": "rest_framework_jwt.utils.jwt_response_payload_handler",
+    "JWT_PUBLIC_KEY": None,
+    "JWT_PRIVATE_KEY": None,
+    "JWT_ALGORITHM": "HS256",
+    "JWT_VERIFY": False,
+    "JWT_VERIFY_EXPIRATION": True,
+    "JWT_LEEWAY": 0,
+    "JWT_EXPIRATION_DELTA": datetime.timedelta(days=7),
+    "JWT_AUDIENCE": ".mymusictaste.com",
+    "JWT_ISSUER": "mymusictaste.com",
+    "JWT_ALLOW_REFRESH": True,
+    "JWT_REFRESH_EXPIRATION_DELTA": datetime.timedelta(days=7),
+    "JWT_ROLE": "user",
+    "JWT_AUTH_HEADER_PREFIX": "Bearer",
 }
 
 JWT_SERVICE_AUTH = {
-    'JWT_ALGORITHM': 'HS256',
-    'JWT_ROLE': 'service',
-    'JWT_AUTH_HEADER_PREFIX': 'MSA',
-    'JWT_VERIFY': True,
+    "JWT_ALGORITHM": "HS256",
+    "JWT_ROLE": "service",
+    "JWT_AUTH_HEADER_PREFIX": "MSA",
+    "JWT_VERIFY": True,
 }
 
 INTERNAL_IPS = ()
 
 # THROTTLES_NUM_PROXIES = None # deprecated
-THROTTLES_DEFAULT_THROTTLE_RATES = {
-    'user': None,
-    'anon': None
-}
+THROTTLES_DEFAULT_THROTTLE_RATES = {"user": None, "anon": None}
 
 REQUEST_ID_HEADER_FIELD = "X-Insanic-Request-ID"
-INTERNAL_REQUEST_USER_HEADER = 'x-insanic-request-user'
+INTERNAL_REQUEST_USER_HEADER = "x-insanic-request-user"
 INTERNAL_REQUEST_SERVICE_HEADER = "x-insanic-request-service"
 
 SERVICE_UNAVAILABLE_MESSAGE = "{} is currently unavailable."

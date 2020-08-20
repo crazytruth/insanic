@@ -25,14 +25,13 @@ class cache_get_response:
         self.ttl = ttl
 
     def __call__(self, func):
-
         @wraps(func)
         async def wrapper(*args, **kwargs):
             view = args[0]
             request = view.request
             assert request.method == "GET", "Can only cache GET methods."
 
-            redis = await get_connection('insanic')
+            redis = await get_connection("insanic")
             key = self.get_key(request)
             response = await self.get(redis, key)
             if response:
@@ -41,7 +40,9 @@ class cache_get_response:
 
             # only cache if response status is 200
             if 200 <= view_response.status < 300:
-                asyncio.ensure_future(self.update(view_response, redis, key, self.ttl))
+                asyncio.ensure_future(
+                    self.update(view_response, redis, key, self.ttl)
+                )
             return view_response
 
         return wrapper
@@ -69,13 +70,15 @@ class cache_get_response:
             value = await conn.get(key)
             if value:
                 value = jsonloads(value)
-                return json(value['body'], status=value['status'])
+                return json(value["body"], status=value["status"])
             else:
                 return None
 
     async def update(self, response, redis, key, ttl):
 
-        cache_data = jsondumps({"status": response.status, "body": jsonloads(response.body)})
+        cache_data = jsondumps(
+            {"status": response.status, "body": jsonloads(response.body)}
+        )
 
         with await redis as conn:
             await conn.set(key, cache_data, expire=ttl)

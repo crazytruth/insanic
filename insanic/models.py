@@ -6,7 +6,8 @@ class User:
     """
     WARNING: when updating update service.proto
     """
-    __slots__ = ('_is_authenticated', 'id', 'level')
+
+    __slots__ = ("_is_authenticated", "id", "level")
 
     def __init__(self, *, id="", level=-1, is_authenticated=False, **kwargs):
         self._is_authenticated = is_authenticated
@@ -47,20 +48,28 @@ class User:
         yield ("level", self.level)
         yield ("is_authenticated", self.is_authenticated)
 
-class _AnonymousUser(User):
 
+class _AnonymousUser(User):
     def __init__(self):
-        super().__init__(id='', level=-1)
+        super().__init__(id="", level=-1)
 
 
 class RequestService:
     """
     WARNING: when updating update service.proto
     """
-    __slots__ = ['request_service', 'destination_service', 'source_ip',
-                 'destination_version', 'is_authenticated', ]
 
-    def __init__(self, *, source, aud, source_ip, destination_version, is_authenticated):
+    __slots__ = [
+        "request_service",
+        "destination_service",
+        "source_ip",
+        "destination_version",
+        "is_authenticated",
+    ]
+
+    def __init__(
+        self, *, source, aud, source_ip, destination_version, is_authenticated
+    ):
         self.request_service = source
         self.destination_service = aud
         self.source_ip = source_ip
@@ -69,7 +78,10 @@ class RequestService:
 
     @property
     def is_valid(self):
-        return self.destination_service == settings.SERVICE_NAME and self.is_authenticated
+        return (
+            self.destination_service == settings.SERVICE_NAME
+            and self.is_authenticated
+        )
 
     def __str__(self):
         if not self.is_authenticated:
@@ -89,8 +101,13 @@ class RequestService:
 # need only 1 instance so.. just instantiate and use
 AnonymousUser = _AnonymousUser()
 
-AnonymousRequestService = RequestService(source="", aud="", source_ip="", destination_version="",
-                                         is_authenticated=False)
+AnonymousRequestService = RequestService(
+    source="",
+    aud="",
+    source_ip="",
+    destination_version="",
+    is_authenticated=False,
+)
 
 
 def to_header_value(user):

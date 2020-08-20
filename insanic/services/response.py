@@ -3,7 +3,6 @@ from aiohttp.client_exceptions import ClientResponseError
 
 
 class InsanicResponse(ClientResponse):
-
     def raise_for_status(self):
         if 400 <= self.status:
             raise ClientResponseError(
@@ -11,5 +10,5 @@ class InsanicResponse(ClientResponse):
                 self.history,
                 status=self.status,
                 message=self.text(),
-                headers=self.headers)
-
+                headers=self.headers,
+            )

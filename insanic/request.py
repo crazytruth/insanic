@@ -36,16 +36,43 @@ class Request(SanicRequest):
     """
 
     __slots__ = (
-        'app', 'headers', 'version', 'method', '_cookies', 'transport',
-        'body', 'parsed_json', 'parsed_args', 'parsed_form', 'parsed_files',
-        '_ip', '_parsed_url', 'uri_template', 'stream', '_remote_addr',
-        'authenticators', 'parsed_data',
-        '_stream', '_authenticator', '_user', '_auth',
-        '_request_time', '_service', '_id',
+        "app",
+        "headers",
+        "version",
+        "method",
+        "_cookies",
+        "transport",
+        "body",
+        "parsed_json",
+        "parsed_args",
+        "parsed_form",
+        "parsed_files",
+        "_ip",
+        "_parsed_url",
+        "uri_template",
+        "stream",
+        "_remote_addr",
+        "authenticators",
+        "parsed_data",
+        "_stream",
+        "_authenticator",
+        "_user",
+        "_auth",
+        "_request_time",
+        "_service",
+        "_id",
     )
 
-    def __init__(self, url_bytes, headers, version, method, transport, app,
-                 authenticators=None):
+    def __init__(
+        self,
+        url_bytes,
+        headers,
+        version,
+        method,
+        transport,
+        app,
+        authenticators=None,
+    ):
         """
 
         :param url_bytes:
@@ -65,14 +92,17 @@ class Request(SanicRequest):
 
     @property
     def socket(self):
-        if not hasattr(self, '_socket'):
+        if not hasattr(self, "_socket"):
             self._get_address()
         return self._socket
 
     @property
     def id(self):
         if self._id is empty:
-            self._id = self.headers.get(settings.REQUEST_ID_HEADER_FIELD, f"I-{uuid.uuid4()}-{self._request_time}")
+            self._id = self.headers.get(
+                settings.REQUEST_ID_HEADER_FIELD,
+                f"I-{uuid.uuid4()}-{self._request_time}",
+            )
         return self._id
 
     @property
@@ -88,7 +118,7 @@ class Request(SanicRequest):
         Returns the user associated with the current request, as authenticated
         by the authentication classes provided to the request.
         """
-        if not hasattr(self, '_user'):
+        if not hasattr(self, "_user"):
             await self._authenticate()
         return self._user
 
@@ -108,7 +138,7 @@ class Request(SanicRequest):
 
     @property
     async def service(self):
-        if not hasattr(self, '_service'):
+        if not hasattr(self, "_service"):
             await self._authenticate()
         return self._service
 
@@ -122,7 +152,7 @@ class Request(SanicRequest):
         Returns any non-user authentication information associated with the
         request, such as an authentication token.
         """
-        if not hasattr(self, '_auth'):
+        if not hasattr(self, "_auth"):
             self._authenticate()
         return self._auth
 
@@ -140,13 +170,13 @@ class Request(SanicRequest):
         Return the instance of the authentication instance class that was used
         to authenticate the request, or `None`.
         """
-        if not hasattr(self, '_authenticator'):
+        if not hasattr(self, "_authenticator"):
             self._authenticate()
         return self._authenticator
 
     @property
     def data(self):
-        if not _hasattr(self, 'parsed_data'):
+        if not _hasattr(self, "parsed_data"):
             try:
                 self.parsed_data = self.json
             except InvalidUsage:
@@ -164,17 +194,21 @@ class Request(SanicRequest):
             self.parsed_form = RequestParameters()
             self.parsed_files = RequestParameters()
             content_type = self.headers.get(
-                'Content-Type', DEFAULT_HTTP_CONTENT_TYPE)
+                "Content-Type", DEFAULT_HTTP_CONTENT_TYPE
+            )
             content_type, parameters = parse_header(content_type)
             try:
-                if content_type == 'application/x-www-form-urlencoded':
+                if content_type == "application/x-www-form-urlencoded":
                     self.parsed_form = RequestParameters(
-                        parse_qs(self.body.decode('utf-8')))
-                elif content_type == 'multipart/form-data':
+                        parse_qs(self.body.decode("utf-8"))
+                    )
+                elif content_type == "multipart/form-data":
                     # TODO: Stream this instead of reading to/from memory
-                    boundary = parameters['boundary'].encode('utf-8')
-                    self.parsed_form, self.parsed_files = (
-                        parse_multipart_form(self.body, boundary))
+                    boundary = parameters["boundary"].encode("utf-8")
+                    (
+                        self.parsed_form,
+                        self.parsed_files,
+                    ) = parse_multipart_form(self.body, boundary)
             except Exception:
                 error_logger.exception("Failed when parsing form")
 
@@ -206,7 +240,7 @@ class Request(SanicRequest):
             #         settings.REAL_IP_HEADER
             #     ]
             elif settings.FORWARDED_FOR_HEADER and self.headers.get(
-                    settings.FORWARDED_FOR_HEADER
+                settings.FORWARDED_FOR_HEADER
             ):
                 forwarded_for = self.headers.get(
                     settings.FORWARDED_FOR_HEADER, ""
@@ -221,13 +255,12 @@ class Request(SanicRequest):
                 elif len(remote_addrs) >= settings.PROXIES_COUNT:
                     self._remote_addr = remote_addrs[
                         -1 * settings.PROXIES_COUNT
-                        ]
+                    ]
                 else:
                     self._remote_addr = ""
             else:
                 self._remote_addr = ""
         return self._remote_addr
-
 
     async def _authenticate(self):
         """
@@ -237,7 +270,9 @@ class Request(SanicRequest):
         """
         for authenticator in self.authenticators:
             try:
-                user_auth_tuple = await authenticator.authenticate(request=self)
+                user_auth_tuple = await authenticator.authenticate(
+                    request=self
+                )
             except exceptions.APIException as e:
                 self._not_authenticated()
                 raise
@@ -258,14 +293,21 @@ class Request(SanicRequest):
         Defaults are None, AnonymousUser & None.
         """
         from insanic.models import AnonymousUser, AnonymousRequestService
+
         self._authenticator = None
         self.user = AnonymousUser
         self.service = AnonymousRequestService
         self.auth = None
 
-def build_request_repr(request, path_override=None, GET_override=None,
-                       POST_override=None, COOKIES_override=None,
-                       META_override=None):
+
+def build_request_repr(
+    request,
+    path_override=None,
+    GET_override=None,
+    POST_override=None,
+    COOKIES_override=None,
+    META_override=None,
+):
     """
     Builds and returns the request's representation string. The request's
     attributes may be overridden by pre-processed values.
@@ -273,46 +315,58 @@ def build_request_repr(request, path_override=None, GET_override=None,
     # Since this is called as part of error handling, we need to be very
     # robust against potentially malformed input.
     try:
-        get = (pformat(GET_override)
-               if GET_override is not None
-               else pformat(request.GET))
+        get = (
+            pformat(GET_override)
+            if GET_override is not None
+            else pformat(request.GET)
+        )
     except Exception:
-        get = '<could not parse>'
+        get = "<could not parse>"
 
     try:
-        post = (pformat(POST_override)
-                if POST_override is not None
-                else pformat(request.data))
+        post = (
+            pformat(POST_override)
+            if POST_override is not None
+            else pformat(request.data)
+        )
     except Exception:
-        post = '<could not parse>'
+        post = "<could not parse>"
 
     try:
-        cookies = (pformat(COOKIES_override)
-                   if COOKIES_override is not None
-                   else pformat(request.cookies))
+        cookies = (
+            pformat(COOKIES_override)
+            if COOKIES_override is not None
+            else pformat(request.cookies)
+        )
     except Exception:
-        cookies = '<could not parse>'
+        cookies = "<could not parse>"
     try:
-        meta = (pformat(META_override)
-                if META_override is not None
-                else pformat(request.headers))
+        meta = (
+            pformat(META_override)
+            if META_override is not None
+            else pformat(request.headers)
+        )
     except Exception:
-        meta = '<could not parse>'
+        meta = "<could not parse>"
 
     try:
         query_params = pformat(request.args)
     except Exception:
-        query_params = '<could not parse>'
+        query_params = "<could not parse>"
 
     path = path_override if path_override is not None else request.path
-    return force_str('<%s\npath:%s,\nGET:%s,\nPOST:%s,\nCOOKIES:%s,\nMETA:%s,\nQUERY_PARAMS:%s>' %
-                     (request.__class__.__name__,
-                      path,
-                      str(get),
-                      str(post),
-                      str(cookies),
-                      str(meta),
-                      str(query_params)))
+    return force_str(
+        "<%s\npath:%s,\nGET:%s,\nPOST:%s,\nCOOKIES:%s,\nMETA:%s,\nQUERY_PARAMS:%s>"
+        % (
+            request.__class__.__name__,
+            path,
+            str(get),
+            str(post),
+            str(cookies),
+            str(meta),
+            str(query_params),
+        )
+    )
 
 
 def parse_multipart_form(body, boundary):
@@ -327,37 +381,38 @@ def parse_multipart_form(body, boundary):
     form_parts = body.split(boundary)
     for form_part in form_parts[1:-1]:
         file_name = None
-        content_type = 'text/plain'
-        content_charset = 'utf-8'
+        content_type = "text/plain"
+        content_charset = "utf-8"
         field_name = None
         line_index = 2
         line_end_index = 0
         while not line_end_index == -1:
-            line_end_index = form_part.find(b'\r\n', line_index)
-            form_line = form_part[line_index:line_end_index].decode('utf-8')
+            line_end_index = form_part.find(b"\r\n", line_index)
+            form_line = form_part[line_index:line_end_index].decode("utf-8")
             line_index = line_end_index + 2
 
             if not form_line:
                 break
 
-            colon_index = form_line.index(':')
+            colon_index = form_line.index(":")
             form_header_field = form_line[0:colon_index].lower()
             form_header_value, form_parameters = parse_header(
-                form_line[colon_index + 2:])
+                form_line[colon_index + 2 :]
+            )
 
-            if form_header_field == 'content-disposition':
-                file_name = form_parameters.get('filename')
-                field_name = form_parameters.get('name')
-            elif form_header_field == 'content-type':
+            if form_header_field == "content-disposition":
+                file_name = form_parameters.get("filename")
+                field_name = form_parameters.get("name")
+            elif form_header_field == "content-type":
                 content_type = form_header_value
-                content_charset = form_parameters.get('charset', 'utf-8')
+                content_charset = form_parameters.get("charset", "utf-8")
 
         if field_name:
             post_data = form_part[line_index:-4]
             if file_name:
-                form_file = File(type=content_type,
-                                 name=file_name,
-                                 body=post_data)
+                form_file = File(
+                    type=content_type, name=file_name, body=post_data
+                )
                 if field_name in files:
                     files[field_name].append(form_file)
                 else:
@@ -369,7 +424,9 @@ def parse_multipart_form(body, boundary):
                 else:
                     fields[field_name] = [value]
         else:
-            logger.debug('Form-data field does not have a \'name\' parameter \
-                         in the Content-Disposition header')
+            logger.debug(
+                "Form-data field does not have a 'name' parameter \
+                         in the Content-Disposition header"
+            )
 
     return fields, files

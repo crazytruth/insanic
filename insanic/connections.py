@@ -10,11 +10,10 @@ from insanic.conf import settings
 from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import cached_property
 
-logger = logging.getLogger('root')
+logger = logging.getLogger("root")
 
 
 class ConnectionHandler:
-
     def __init__(self):
         """
         databases is an optional dictionary of database definitions (structured
@@ -42,8 +41,10 @@ class ConnectionHandler:
 
             for k, v in settings.CACHES.items():
                 if k in caches:
-                    raise ImproperlyConfigured(f"Cannot override {k}.  This is a "
-                                               f"protected cache reserved for insanic use.")
+                    raise ImproperlyConfigured(
+                        f"Cannot override {k}.  This is a "
+                        f"protected cache reserved for insanic use."
+                    )
                 caches.update({k: v})
 
             self._caches = caches
@@ -60,14 +61,19 @@ class ConnectionHandler:
         # if alias == "redis_client":
         connection_config = self.caches[alias]
 
-        if connection_config['ENGINE'] == "aioredis":
-            _pool = await aioredis.create_pool((settings.REDIS_HOST, settings.REDIS_PORT),
-                                               encoding='utf-8',
-                                               db=int(connection_config.get("DATABASE", settings.REDIS_DB)),
-                                               loop=self.loop,
-                                               minsize=1, maxsize=10)
+        if connection_config["ENGINE"] == "aioredis":
+            _pool = await aioredis.create_pool(
+                (settings.REDIS_HOST, settings.REDIS_PORT),
+                encoding="utf-8",
+                db=int(connection_config.get("DATABASE", settings.REDIS_DB)),
+                loop=self.loop,
+                minsize=1,
+                maxsize=10,
+            )
         else:
-            raise ImproperlyConfigured(f"This engine has not been implemented in insanic yet.")
+            raise ImproperlyConfigured(
+                f"This engine has not been implemented in insanic yet."
+            )
 
         return _pool
 
@@ -115,7 +121,9 @@ class ConnectionHandler:
             # if isawaitable(_conn):
             #     _conn = await _conn
 
-            close_connection_interface = self.caches[alias].get('CLOSE_CONNECTION_INTERFACE', [])
+            close_connection_interface = self.caches[alias].get(
+                "CLOSE_CONNECTION_INTERFACE", []
+            )
 
             logger.info("Closing database connection: {0}".format(alias))
             for close_attr in close_connection_interface:

@@ -5,15 +5,15 @@ from insanic.functional import LazyObject, empty
 
 from insanic.services import Service
 
-class LazyServiceRegistry(LazyObject):
 
+class LazyServiceRegistry(LazyObject):
     def _setup(self):
         self._wrapped = ServiceRegistry()
 
     def __repr__(self):
         if self._wrapped is empty:
-            return '<LazyServiceRegistry> [Unevaluated]'
-        return f'<LazyServiceRegistry> {self._wrapped.__class__.__name__}'
+            return "<LazyServiceRegistry> [Unevaluated]"
+        return f"<LazyServiceRegistry> {self._wrapped.__class__.__name__}"
 
     def __getitem__(self, item):
         if self._wrapped is empty:
@@ -38,10 +38,11 @@ class LazyServiceRegistry(LazyObject):
 
 
 class ServiceRegistry(Mapping):
-
     def __init__(self):
-        self.available_services = set(list(settings.SERVICE_CONNECTIONS) +
-                                 list(settings.REQUIRED_SERVICE_CONNECTIONS))
+        self.available_services = set(
+            list(settings.SERVICE_CONNECTIONS)
+            + list(settings.REQUIRED_SERVICE_CONNECTIONS)
+        )
 
         for s in self.available_services:
             self.__dict__[s] = None
@@ -56,8 +57,11 @@ class ServiceRegistry(Mapping):
 
             value = self.__dict__[item]
         except KeyError:
-            raise RuntimeError("{0} service does not exist. Only the following: {1}"
-                               .format(item, ", ".join(self.keys())))
+            raise RuntimeError(
+                "{0} service does not exist. Only the following: {1}".format(
+                    item, ", ".join(self.keys())
+                )
+            )
         else:
             if value is None:
                 value = Service(item)

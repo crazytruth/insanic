@@ -42,16 +42,17 @@ class LazySettings(LazyObject):
                 "Requested %s, but settings are not configured. "
                 "You must either define the environment variable %s "
                 "or call settings.configure() before accessing settings."
-                % (desc, ENVIRONMENT_VARIABLE))
+                % (desc, ENVIRONMENT_VARIABLE)
+            )
 
         self._wrapped = self.config_class(settings_module)
 
     def __repr__(self):
         # Hardcode the class name as otherwise it yields 'Settings'.
         if self._wrapped is empty:
-            return '<LazySettings [Unevaluated]>'
+            return "<LazySettings [Unevaluated]>"
         return '<LazySettings "%(settings_module)s">' % {
-            'settings_module': self._wrapped.__class__.__name__,
+            "settings_module": self._wrapped.__class__.__name__,
         }
 
     def __getattr__(self, name):
@@ -63,7 +64,9 @@ class LazySettings(LazyObject):
 
         # some special cases
         if name in {"SERVICE_NAME", "SECRET_KEY"} and not val:
-            raise ImproperlyConfigured("The SERVICE_NAME setting must not be empty.")
+            raise ImproperlyConfigured(
+                "The SERVICE_NAME setting must not be empty."
+            )
 
         self.__dict__[name] = val
         return val
@@ -73,7 +76,7 @@ class LazySettings(LazyObject):
         Set the value of setting. Clear all cached values if _wrapped changes
         (@override_settings does this) or clear single values when set.
         """
-        if name == '_wrapped':
+        if name == "_wrapped":
             self.__dict__.clear()
         else:
             self.__dict__.pop(name, None)
@@ -92,7 +95,7 @@ class LazySettings(LazyObject):
         argument must support attribute access (__getattr__)).
         """
         if self._wrapped is not empty:
-            raise RuntimeError('Settings already configured.')
+            raise RuntimeError("Settings already configured.")
         holder = UserSettingsHolder(default_settings)
         for name, value in options.items():
             setattr(holder, name, value)
@@ -116,22 +119,27 @@ class LazySettings(LazyObject):
 
     def _infer_app_name(self):
         t = []
-        for root, dirs, files in os.walk('.'):
+        for root, dirs, files in os.walk("."):
             t.append((root, dirs, files))
 
-            exclude_dirs = [d for d in dirs if d.startswith('.') or d.startswith('_')]
+            exclude_dirs = [
+                d for d in dirs if d.startswith(".") or d.startswith("_")
+            ]
             for d in exclude_dirs:
                 dirs.remove(d)
 
             if "config.py" in files:
                 return root.split(os.sep)[-1]
 
-        raise EnvironmentError("Unable to predict service_name. "
-                               "Maybe you are running in a wrong working directory?")
+        raise EnvironmentError(
+            "Unable to predict service_name. "
+            "Maybe you are running in a wrong working directory?"
+        )
 
 
 class UserSettingsHolder:  # pragma: no cover
     """Holder for user configured settings."""
+
     # SETTINGS_MODULE doesn't make much sense in the manually configured
     # (standalone) case.
     SETTINGS_MODULE = None
@@ -141,7 +149,7 @@ class UserSettingsHolder:  # pragma: no cover
         Requests for configuration variables not in this class are satisfied
         from the module specified in default_settings (if possible).
         """
-        self.__dict__['_deleted'] = set()
+        self.__dict__["_deleted"] = set()
 
         final_settings = Config()
         final_settings.from_object(global_settings)
@@ -165,19 +173,22 @@ class UserSettingsHolder:  # pragma: no cover
 
     def __dir__(self):
         return sorted(
-            s for s in list(self.__dict__) + dir(self.default_settings)
+            s
+            for s in list(self.__dict__) + dir(self.default_settings)
             if s not in self._deleted
         )
 
     def is_overridden(self, setting):
-        deleted = (setting in self._deleted)
-        set_locally = (setting in self.__dict__)
-        set_on_default = getattr(self.default_settings, 'is_overridden', lambda s: False)(setting)
+        deleted = setting in self._deleted
+        set_locally = setting in self.__dict__
+        set_on_default = getattr(
+            self.default_settings, "is_overridden", lambda s: False
+        )(setting)
         return deleted or set_locally or set_on_default
 
     def __repr__(self):
-        return '<%(cls)s>' % {
-            'cls': self.__class__.__name__,
+        return "<%(cls)s>" % {
+            "cls": self.__class__.__name__,
         }
 
 

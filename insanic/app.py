@@ -17,8 +17,13 @@ from insanic.protocol import InsanicHttpProtocol
 from insanic.router import InsanicRouter
 from insanic.scopes import get_my_ip
 
-LISTENER_TYPES = ("before_server_start", "after_server_start", "before_server_stop", "after_server_stop")
-MIDDLEWARE_TYPES = ('request', 'response')
+LISTENER_TYPES = (
+    "before_server_start",
+    "after_server_start",
+    "before_server_stop",
+    "after_server_stop",
+)
+MIDDLEWARE_TYPES = ("request", "response")
 
 
 class Insanic(Sanic):
@@ -33,6 +38,7 @@ class Insanic(Sanic):
         error_handler = error_handler or ErrorHandler()
 
         from insanic.conf import settings
+
         self.version = ""
 
         for c in app_config:
@@ -52,33 +58,50 @@ class Insanic(Sanic):
                 service_name += c
             else:
                 break
-        super().__init__(name, router, error_handler, strict_slashes=True, log_config=get_logging_config(),
-                         request_class=Request)
+        super().__init__(
+            name,
+            router,
+            error_handler,
+            strict_slashes=True,
+            log_config=get_logging_config(),
+            request_class=Request,
+        )
 
         self.config = settings
         settings.SERVICE_NAME = service_name
 
         from insanic import listeners
+
         for module_name in dir(listeners):
             for l in LISTENER_TYPES:
                 if module_name.startswith(l):
                     self.listeners[l].append(getattr(listeners, module_name))
 
         from insanic import middleware
+
         for module_name in dir(middleware):
             for m in MIDDLEWARE_TYPES:
                 if module_name.startswith(m):
-                    self.register_middleware(getattr(middleware, module_name), attach_to=m)
+                    self.register_middleware(
+                        getattr(middleware, module_name), attach_to=m
+                    )
 
-        self.blueprint(blueprint_monitor, url_prefix=f"/{settings.SERVICE_NAME}")
+        self.blueprint(
+            blueprint_monitor, url_prefix=f"/{settings.SERVICE_NAME}"
+        )
 
         def _service_version():
             import importlib
+
             try:
-                return importlib.import_module(f'{settings.SERVICE_NAME}').__version__
+                return importlib.import_module(
+                    f"{settings.SERVICE_NAME}"
+                ).__version__
 
             except (ModuleNotFoundError, ImportError, AttributeError):
-                error_logger.critical("Please put `__version__ = 'X.X.X'`in your __init__.py")
+                error_logger.critical(
+                    "Please put `__version__ = 'X.X.X'`in your __init__.py"
+                )
                 if settings.MMT_ENV == "test":
                     return "0.0.0.dev0"
                 else:
@@ -86,17 +109,21 @@ class Insanic(Sanic):
 
         service_version = _service_version()
         settings.SERVICE_VERSION = service_version
-        logger.info(f"{settings.SERVICE_NAME} v{settings.SERVICE_VERSION} service loaded.")
+        logger.info(
+            f"{settings.SERVICE_NAME} v{settings.SERVICE_VERSION} service loaded."
+        )
         self.attach_plugins()
 
         self.metrics = InsanicMetrics
-        self.metrics.META.info({
-            "service": service_name,
-            "service_version": service_version,
-            "status": "OK",
-            "insanic_version": __version__,
-            "ip": get_my_ip()
-        })
+        self.metrics.META.info(
+            {
+                "service": service_name,
+                "service_version": service_version,
+                "status": "OK",
+                "insanic_version": __version__,
+                "ip": get_my_ip(),
+            }
+        )
 
         self.initialized_plugins = {}
 
@@ -110,8 +137,10 @@ class Insanic(Sanic):
 
         for plugin in self.config.REQUIRED_PLUGINS:
             if plugin not in self.initialized_plugins.keys():
-                raise ImproperlyConfigured(f"{plugin} is defined in `REQUIRED_PLUGINS` in this "
-                                           f"environment but has not been initialized.")
+                raise ImproperlyConfigured(
+                    f"{plugin} is defined in `REQUIRED_PLUGINS` in this "
+                    f"environment but has not been initialized."
+                )
 
     def plugin_initialized(self, plugin_name, instance):
         self.initialized_plugins.update({plugin_name: instance})
@@ -119,10 +148,21 @@ class Insanic(Sanic):
     def attach_plugins(self):
         SanicUserAgent.init_app(self)
 
-    def run(self, host=None, port=None, debug=False, ssl=None,
-            sock=None, workers=1, protocol=None,
-            backlog=65535, stop_event=None, register_sys_signals=True,
-            access_log=True, **kwargs):
+    def run(
+        self,
+        host=None,
+        port=None,
+        debug=False,
+        ssl=None,
+        sock=None,
+        workers=1,
+        protocol=None,
+        backlog=65535,
+        stop_event=None,
+        register_sys_signals=True,
+        access_log=True,
+        **kwargs,
+    ):
         """Run the HTTP Server and listen until keyboard interrupt or term
         signal. On termination, drain connections before closing.
 
@@ -146,25 +186,61 @@ class Insanic(Sanic):
             protocol = InsanicHttpProtocol
 
         logger.info(f"ATTEMPTING TO RUN INSANIC ON {host}:{port}")
-        super().run(host, port, debug, ssl, sock, workers, protocol, backlog,
-                    stop_event, register_sys_signals, access_log, **kwargs)
+        super().run(
+            host,
+            port,
+            debug,
+            ssl,
+            sock,
+            workers,
+            protocol,
+            backlog,
+            stop_event,
+            register_sys_signals,
+            access_log,
+            **kwargs,
+        )
 
-    def _helper(self, host=None, port=None, debug=False,
-                ssl=None, sock=None, workers=1, loop=None,
-                protocol=InsanicHttpProtocol, backlog=100, stop_event=None,
-                register_sys_signals=True, run_async=False, auto_reload=False):
+    def _helper(
+        self,
+        host=None,
+        port=None,
+        debug=False,
+        ssl=None,
+        sock=None,
+        workers=1,
+        loop=None,
+        protocol=InsanicHttpProtocol,
+        backlog=100,
+        stop_event=None,
+        register_sys_signals=True,
+        run_async=False,
+        auto_reload=False,
+    ):
 
         if port:
             settings.SERVICE_PORT = port
 
         try:
-            workers = int(os.environ.get('INSANIC_WORKERS', workers))
+            workers = int(os.environ.get("INSANIC_WORKERS", workers))
         except ValueError:
             workers = workers
 
         settings.WORKERS = workers
 
-        server_settings = super()._helper(host, port, debug, ssl, sock,
-                                          workers, loop, protocol, backlog, stop_event,
-                                          register_sys_signals, run_async, auto_reload)
+        server_settings = super()._helper(
+            host,
+            port,
+            debug,
+            ssl,
+            sock,
+            workers,
+            loop,
+            protocol,
+            backlog,
+            stop_event,
+            register_sys_signals,
+            run_async,
+            auto_reload,
+        )
         return server_settings

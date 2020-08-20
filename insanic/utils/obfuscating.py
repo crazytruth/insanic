@@ -1,21 +1,23 @@
 import re
 
 HIDDEN_KEY_WORDS = [
-    'API',
-    'TOKEN',
-    'KEY',
-    'SECRET',
-    'PASS',
-    'PROFANITIES_LIST',
-    'SIGNATURE',
-    'SESSION',
+    "API",
+    "TOKEN",
+    "KEY",
+    "SECRET",
+    "PASS",
+    "PROFANITIES_LIST",
+    "SIGNATURE",
+    "SESSION",
     "EMAIL",
-    "PHONE"
+    "PHONE",
 ]
 
-HIDDEN_SETTINGS = re.compile("|".join(HIDDEN_KEY_WORDS + [v.lower() for v in HIDDEN_KEY_WORDS]))
+HIDDEN_SETTINGS = re.compile(
+    "|".join(HIDDEN_KEY_WORDS + [v.lower() for v in HIDDEN_KEY_WORDS])
+)
 
-CLEANSED_SUBSTITUTE = '*********'
+CLEANSED_SUBSTITUTE = "*********"
 
 
 def cleanse_value(key, value):
@@ -28,7 +30,9 @@ def cleanse_value(key, value):
             cleansed = CLEANSED_SUBSTITUTE
         else:
             if isinstance(value, dict):
-                cleansed = dict((k, cleanse_value(k, v)) for k, v in value.items())
+                cleansed = dict(
+                    (k, cleanse_value(k, v)) for k, v in value.items()
+                )
             else:
                 cleansed = value
     except TypeError:

@@ -6,7 +6,7 @@ from sanic.config import Config
 from insanic.conf import global_settings
 from insanic.log import logger
 
-INSANIC_PREFIX = 'INSANIC_'
+INSANIC_PREFIX = "INSANIC_"
 
 INSANIC_LOGO = """
                                       ***********.
@@ -53,11 +53,13 @@ INSANIC_LOGO = """
 
 
 class InsanicConfig(Config):
-
-    def __init__(self, settings_module: str = "",
-                 defaults: dict = None,
-                 load_env: bool = True,
-                 keep_alive=None):
+    def __init__(
+        self,
+        settings_module: str = "",
+        defaults: dict = None,
+        load_env: bool = True,
+        keep_alive=None,
+    ):
         """
         Load order:
         1. Sanic DEFAULT_CONFIG
@@ -75,7 +77,9 @@ class InsanicConfig(Config):
         :param load_env:
         :param keep_alive:
         """
-        super().__init__(defaults=defaults, load_env=load_env, keep_alive=keep_alive)
+        super().__init__(
+            defaults=defaults, load_env=load_env, keep_alive=keep_alive
+        )
 
         self.SETTINGS_MODULE = None
 
