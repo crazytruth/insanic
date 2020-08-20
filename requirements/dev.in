@@ -2,5 +2,5 @@
 pip-tools
 pre-commit
 tox
-flake8
+black
 zest.releaser[recommended]
