@@ -41,11 +41,6 @@ class Service(object):
     def service_name(self):
         return self._service_name
 
-    def raise_503(self):
-        raise exceptions.ServiceUnavailable503Error(description=f"{self._service_name} is currently unavailable.",
-                                                    error_code=GlobalErrorCodes.service_unavailable,
-                                                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
-
     @cached_property_with_ttl(ttl=60)
     def schema(self):
         return settings.SERVICE_GLOBAL_SCHEMA

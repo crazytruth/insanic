@@ -21,13 +21,13 @@ class LazyServiceRegistry(LazyObject):
 
         return self._wrapped[item]
 
-    def __len__(self):
+    def __len__(self):  # pragma: no cover
         if self._wrapped is empty:
             self._setup()
 
         return len(self._wrapped)
 
-    def __iter__(self):
+    def __iter__(self):  # pragma: no cover
         if self._wrapped is empty:
             self._setup()
 
@@ -40,17 +40,20 @@ class LazyServiceRegistry(LazyObject):
 class ServiceRegistry(Mapping):
 
     def __init__(self):
-        available_services = set(list(settings.SERVICE_CONNECTIONS) +
+        self.available_services = set(list(settings.SERVICE_CONNECTIONS) +
                                  list(settings.REQUIRED_SERVICE_CONNECTIONS))
 
-        for s in available_services:
+        for s in self.available_services:
             self.__dict__[s] = None
 
-    def __len__(self):
-        return len(self)
+    def __len__(self):  # pragma: no cover
+        return len(self.__dict__)
 
     def __getitem__(self, item):
         try:
+            if item not in self.available_services:
+                raise KeyError
+
             value = self.__dict__[item]
         except KeyError:
             raise RuntimeError("{0} service does not exist. Only the following: {1}"

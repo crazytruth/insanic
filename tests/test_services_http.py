@@ -59,6 +59,14 @@ class TestServiceRegistry:
         with pytest.raises(RuntimeError):
             s = self.registry['test2']
 
+    def test_repr(self):
+        self.registry.reset()
+
+        assert repr(self.registry).endswith("[Unevaluated]")
+        len(self.registry)
+
+        assert repr(self.registry).endswith("ServiceRegistry")
+
 
 class TestServiceClass:
     service_name = "test"
