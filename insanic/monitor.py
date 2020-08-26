@@ -98,10 +98,7 @@ class PingPongView(InsanicView):
 
 
 blueprint_monitor.add_route(
-    PingPongView.as_view(),
-    PING_ENDPOINT,
-    methods=["GET"],
-    strict_slashes=True,
+    PingPongView.as_view(), PING_ENDPOINT, methods=["GET"], strict_slashes=True,
 )
 
 

@@ -44,6 +44,13 @@ class Service(object):
     def service_name(self):
         return self._service_name
 
+    def raise_503(self):
+        raise exceptions.ServiceUnavailable503Error(
+            description=f"{self._service_name} is currently unavailable.",
+            error_code=GlobalErrorCodes.service_unavailable,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
     @cached_property_with_ttl(ttl=60)
     def schema(self):
         return settings.SERVICE_GLOBAL_SCHEMA
@@ -83,9 +90,7 @@ class Service(object):
     @property
     def url(self):
         url_partial_path = "/api/v1/"
-        return URL(
-            f"{self.schema}://{self.host}:{self.port}{url_partial_path}"
-        )
+        return URL(f"{self.schema}://{self.host}:{self.port}{url_partial_path}")
 
     @classmethod
     def add_trace_config(cls, trace_config):
@@ -156,7 +161,7 @@ class Service(object):
 
         if "content-type" not in lower_headers:
             files = files or {}
-            if len(files) is 0:
+            if len(files) == 0:
                 lower_headers.update({"content-type": "application/json"})
 
         lower_headers.update(
@@ -291,17 +296,17 @@ class Service(object):
             )
         )
 
-    async def _dispatch_future(
+    async def _dispatch_future(  # noqa: C901
         self,
-        method,
-        url,
+        method: str,
+        url: str,
         *,
-        body,
-        headers,
-        propagate_error=False,
-        response_timeout=None,
-        include_status_code=False,
-        retry_count=None,
+        body: dict,
+        headers: dict,
+        propagate_error: bool = False,
+        response_timeout: int = None,
+        include_status_code: bool = False,
+        retry_count: int = None,
         **kwargs,
     ):
         """
@@ -417,9 +422,7 @@ class Service(object):
             raise exc
         except aiohttp.client_exceptions.ServerConnectionError as e:
             """ server connection related errors """
-            if isinstance(
-                e, aiohttp.client_exceptions.ServerDisconnectedError
-            ):
+            if isinstance(e, aiohttp.client_exceptions.ServerDisconnectedError):
                 """ server disconnected """
                 exc = exceptions.ServiceUnavailable503Error(
                     description=e.message,
@@ -452,15 +455,23 @@ class Service(object):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
             raise exc
-        except asyncio.TimeoutError:
+        except aiohttp.client_exceptions.ClientPayloadError:
+            raise exceptions.APIException(
+                description="Invalid Client Payload",
+                error_code=GlobalErrorCodes.client_payload_error,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        except aiohttp.client_exceptions.InvalidURL as e:
+            raise exceptions.APIException(
+                description=f"Invalid URL: {repr(e)}",
+                error_code=GlobalErrorCodes.invalid_url,
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        except (asyncio.TimeoutError, aiohttp.ClientError):
             exc = exceptions.ResponseTimeoutError(
                 description=f"{self.service_name} has timed out."
             )
             raise exc
-        except aiohttp.client_exceptions.ClientPayloadError:
-            raise
-        except aiohttp.client_exceptions.InvalidURL:
-            raise
         # finally:
         #     duration = time.monotonic() - request_start_time
         #     if duration > 5:

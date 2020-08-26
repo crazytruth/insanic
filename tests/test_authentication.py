@@ -31,7 +31,7 @@ def jwt_data_getter(kong_gateway):
 
         # Create test consumer
         requests.post(
-            gateway.kong_base_url.with_path(f"/consumers/"),
+            gateway.kong_base_url.with_path("/consumers/"),
             json={"username": user.id},
         )
 
@@ -94,7 +94,7 @@ def test_base_authentication_on_view(insanic_application):
     assert response.status == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
-@pytest.mark.parametrize("authentication_class", [JSONWebTokenAuthentication,])
+@pytest.mark.parametrize("authentication_class", [JSONWebTokenAuthentication])
 class TestAuthentication:
     def monkeypatch_get_user(self, monkeypatch, authentication_class, user):
         async def mock_get_user(self, user_id):
@@ -130,7 +130,7 @@ class TestAuthentication:
 
         request, response = app.test_client.get(
             "/",
-            headers={"Authorization": token, "x-consumer-username": user.id,},
+            headers={"Authorization": token, "x-consumer-username": user.id},
         )
 
         assert response.status == status.HTTP_401_UNAUTHORIZED
@@ -178,12 +178,6 @@ class TestServiceJWTAuthentication:
         )
 
     def test_decode_jwt(self, auth, test_service_token_factory):
-        test_user_id = "a6454e643f7f4e8889b7085c466548d4"
-        test_user = User(
-            id=uuid.UUID(test_user_id).hex,
-            level=UserLevels.STAFF,
-            is_authenticated=True,
-        )
 
         token = test_service_token_factory()
         assert token is not None
@@ -198,12 +192,6 @@ class TestServiceJWTAuthentication:
     async def test_authenticate_credentials_no_user_header(
         self, auth, test_service_token_factory
     ):
-        test_user_id = "a6454e643f7f4e8889b7085c466548d4"
-        test_user = User(
-            id=uuid.UUID(test_user_id).hex,
-            level=UserLevels.STAFF,
-            is_authenticated=1,
-        )
         token = test_service_token_factory()
         payload = handlers.jwt_service_decode_handler(token.split()[1])
 

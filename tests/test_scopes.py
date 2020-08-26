@@ -1,8 +1,7 @@
 import pytest
 
 from sanic.response import json
-from insanic.functional import empty
-from insanic.scopes import public_facing, get_my_ip
+from insanic.scopes import public_facing
 from insanic.views import InsanicView
 
 
@@ -141,7 +140,6 @@ class TestPublicFacingScope:
         expected_status_code,
     ):
         get_response = {"method": "get"}
-        post_response = {"method": "post"}
 
         class MockView(InsanicView):
             authentication_classes = ()
@@ -228,7 +226,6 @@ class TestPublicFacingScope:
         expected_status_code,
     ):
         get_response = {"method": "get"}
-        post_response = {"method": "post"}
 
         class MockView(InsanicView):
             authentication_classes = ()

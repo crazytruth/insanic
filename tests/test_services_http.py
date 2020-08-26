@@ -9,6 +9,7 @@ import random
 import socket
 import uuid
 import ujson
+from aiohttp.client_reqrep import ConnectionKey, RequestInfo
 
 from aioresponses import aioresponses
 from sanic.request import File
@@ -33,7 +34,7 @@ from insanic.services.registry import LazyServiceRegistry
 from insanic.services.response import InsanicResponse
 from insanic.views import InsanicView
 
-dispatch_tests = pytest.mark.parametrize("dispatch_type", ["http_dispatch",])
+dispatch_tests = pytest.mark.parametrize("dispatch_type", ["http_dispatch"])
 
 IMAGE_PATH = "artwork/insanic.png"
 
@@ -64,7 +65,7 @@ class TestServiceRegistry:
         assert service.service_name == "test1"
 
         with pytest.raises(RuntimeError):
-            s = self.registry["test2"]
+            self.registry["test2"]
 
     def test_repr(self):
         self.registry.reset()
@@ -99,29 +100,6 @@ class TestServiceClass:
 
     def test_service_name(self):
         assert self.service.service_name == self.service_name
-
-    # @pytest.mark.skip(reason="SERVICE_LIST is now deprecated")
-    # def test_service_spec(self, monkeypatch):
-    #     assert self.service._service_spec() == {}
-    #
-    #     with pytest.raises(ServiceUnavailable503Error):
-    #         self.service._service_spec(True)
-    #
-    #     monkeypatch.setattr(settings, "SERVICE_LIST", {self.service_name: self.service_spec})
-    #
-    #     assert self.service._service_spec() == self.service_spec
-    #     assert self.service.schema == self.service_spec['schema']
-    #     assert self.service.host == self.service_spec['host']
-    #     assert self.service.port == self.service_spec['external_service_port']
-    #
-    #     url = self.service.url
-    #     assert isinstance(url, URL)
-    #     assert url.scheme == self.service_spec['schema']
-    #     assert url.host == self.service_spec['host']
-    #     assert url.port == self.service_spec['external_service_port']
-    #     assert url.path == "/api/v1/"
-    #
-    #     assert isinstance(self.service.session, aiohttp.ClientSession)
 
     def test_url_constructor(self, monkeypatch):
         monkeypatch.setattr(
@@ -159,9 +137,7 @@ class TestServiceClass:
 
             loop = uvloop.new_event_loop()
             with pytest.raises(ValueError):
-                loop.run_until_complete(
-                    self.service.http_dispatch("GETS", "/")
-                )
+                loop.run_until_complete(self.service.http_dispatch("GETS", "/"))
 
             loop = uvloop.new_event_loop()
             asyncio.set_event_loop(loop)
@@ -196,7 +172,7 @@ class TestServiceClass:
                 "POST", "/", payload={"a": "b"}, response_timeout=10
             )
         )
-        assert response["response_timeout"] is 10
+        assert response["response_timeout"] == 10
 
     def test_dispatch_dispatch_fetch_response_timeout(self, monkeypatch):
         async def _mock_dispatch_fetch(*args, **kwargs):
@@ -328,9 +304,7 @@ class TestServiceClass:
         expect_content_type,
         final_content_type,
     ):
-        async def _mock_dispatch_fetch(
-            method, url, *, headers, data, **kwargs
-        ):
+        async def _mock_dispatch_fetch(method, url, *, headers, data, **kwargs):
             lower_headers = {k.lower(): v for k, v in headers.items()}
 
             class MockResponse:
@@ -393,7 +367,6 @@ class TestServiceClass:
                     status=202,
                 )
 
-        # insanic_application.listeners["after_server_start"].append(self._force_target_healthy)
         insanic_application.add_route(MockView.as_view(), "/multi")
 
         return loop.run_until_complete(
@@ -451,7 +424,7 @@ class TestServiceClass:
 
             with pytest.raises(APIException):
                 try:
-                    response = loop.run_until_complete(
+                    loop.run_until_complete(
                         self.run_dispatch(
                             "GET",
                             "/",
@@ -517,69 +490,13 @@ class TestServiceClass:
                         log_record = caplog.records[-1]
                         assert log_record.levelno == expected_log_level
                         assert (
-                            f"{method} {endpoint} {status_code} {ujson.dumps(response)} "
+                            f"{method} {endpoint} {status_code} "
+                            f"{ujson.dumps(response)} "
                             f"{ujson.dumps(get_safe_dict(payload))}"
                             in log_record.message
                         )
 
                     raise e
-
-    # def test_dispatch_actual_internal_server_error(self, caplog):
-    #     """
-    #     raise for actual 500 error
-    #
-    #     :param monkeypatch:
-    #     :return:
-    #     """
-    #     loop = uvloop.new_event_loop()
-    #
-    #     with pytest.raises(APIException):
-    #         try:
-    #             response = loop.run_until_complete(self.service.http_dispatch('GET', '/', payload={}, files={}, headers={},
-    #                       propagate_error=True))
-    #         except APIException as e:
-    #             assert e.status_code == 500
-    #             raise e
-
-    # @pytest.mark.parametrize("raise_exception", (
-    #     aiohttp.client_exceptions.ClientError,
-    #     aiohttp.client_exceptions.ClientResponseError,
-    #     aiohttp.client_exceptions.ContentTypeError,
-    #     aiohttp.client_exceptions.ClientHttpProxyError,
-    #     aiohttp.client_exceptions.ClientConnectionError,
-    #     aiohttp.client_exceptions.ClientOSError,
-    #     aiohttp.client_exceptions.ClientConnectorError,
-    #     aiohttp.client_exceptions.ServerConnectionError,
-    #     aiohttp.client_exceptions.ServerDisconnectedError,
-    #     aiohttp.client_exceptions.ServerTimeoutError,
-    #     aiohttp.client_exceptions.ClientPayloadError,
-    #     aiohttp.client_exceptions.InvalidURL,
-    # ))
-    # def test_http_dispatch_raise_for_exception(self, raise_exception):
-    #     """
-    #
-    #
-    #     :param monkeypatch:
-    #     :return:
-    #     """
-    #
-    #     from aioresponses import aioresponses
-    #
-    #     loop = uvloop.new_event_loop()
-    #
-    #     with aioresponses() as m:
-    #         exec = raise_exception("{}", [])
-    #         m.get('http://test:8000/a', exception=exec, response_class=InsanicResponse)
-    #
-    #         with pytest.raises(APIException):
-    #             try:
-    #                 response = loop.run_until_complete(
-    #                     self.service.http_dispatch('GET', '/a',
-    #                                                payload={}, files={}, headers={},
-    #                                                propagate_error=True))
-    #             except APIException as e:
-    #                 assert e
-    #                 raise e
 
     @pytest.mark.parametrize("extra_headers", ({}, {"content-length": 4}))
     async def test_prepare_headers(self, extra_headers, loop):
@@ -748,16 +665,96 @@ class TestServiceClass:
             retry.append(True)
             raise exception
 
-        session = self.service.session()
+        self.service.session()
 
         monkeypatch.setattr(self.service._session, "request", raise_error)
 
         with pytest.raises(exception.__class__):
-            resp = await self.service._dispatch_future_fetch(
+            await self.service._dispatch_future_fetch(
                 method, "somewhere", {}, {}, retry_count=retry_count
             )
 
         assert len(retry) == expected_attempts
+
+
+class TestServiceClassErrorPropagations:
+    async def dispatch_wrapper(self, method, path):
+        Service._session = None
+        service = Service("test")
+
+        return await service.http_dispatch(
+            method,
+            path,
+            payload={},
+            files={},
+            headers={},
+            propagate_error=True,
+        )
+
+    def test_dispatch_actual_internal_server_error(self):
+        """
+        raise for actual 500 error
+
+        :param monkeypatch:
+        :return:
+        """
+
+        loop = uvloop.new_event_loop()
+
+        with pytest.raises(APIException):
+            try:
+                loop.run_until_complete(self.dispatch_wrapper("GET", "/"))
+            except APIException as e:
+                assert e.status_code == 500
+                raise e
+
+    @pytest.mark.parametrize(
+        "raise_exception",
+        (
+            aiohttp.ClientError("{}", []),
+            aiohttp.ContentTypeError(
+                RequestInfo("http:", "GET", {}), (), message="{}"
+            ),
+            aiohttp.ClientHttpProxyError(
+                RequestInfo("http:", "GET", {}), (), message="{}"
+            ),
+            aiohttp.ClientConnectionError("{}", []),
+            aiohttp.ClientOSError("{}", []),
+            aiohttp.ClientConnectorError(
+                ConnectionKey("2.2.2.2", -1, False, False, "", "", 1), OSError()
+            ),
+            aiohttp.ServerConnectionError("{}", []),
+            aiohttp.ServerDisconnectedError("{}"),
+            aiohttp.ServerTimeoutError("{}", []),
+            aiohttp.ClientPayloadError("{}", []),
+            aiohttp.InvalidURL("hs://"),
+        ),
+    )
+    def test_http_dispatch_raise_for_exception(self, raise_exception):
+        """
+
+
+        :param monkeypatch:
+        :return:
+        """
+
+        from aioresponses import aioresponses
+
+        loop = uvloop.new_event_loop()
+
+        with aioresponses() as m:
+            m.get(
+                "http://test:8000/a",
+                exception=raise_exception,
+                response_class=InsanicResponse,
+            )
+
+            with pytest.raises(APIException):
+                try:
+                    loop.run_until_complete(self.dispatch_wrapper("GET", "/a"))
+                except APIException as e:
+                    assert e
+                    raise e
 
 
 class TestAioHttpCompatibility:
@@ -927,61 +924,6 @@ class TestRequestTaskContext:
             resp = await r.json()
             assert resp["user"]["id"] == str(i)
 
-    async def test_task_context_user_multiple_after_authentication(
-        self,
-        insanic_application,
-        monkeypatch,
-        test_client,
-        test_user_token_factory,
-    ):
-        import aiotask_context
-        import asyncio
-
-        # monkeypatch.setattr(settings, "SWARM_SERVICE_LIST", {"userip": {"host": "manager.msa.swarm", "port": 8016}}, False)
-
-        class TokenView(InsanicView):
-            async def get(self, request, *args, **kwargs):
-                context_user = aiotask_context.get(
-                    settings.TASK_CONTEXT_REQUEST_USER
-                )
-                request_user = await request.user
-                payload = handlers.jwt_decode_handler(request.auth)
-
-                assert context_user is not None
-
-                user_id = payload.pop("user_id")
-                assert context_user == dict(request_user)
-
-                service = await request.service
-
-                assert service is not None
-                assert service == AnonymousRequestService
-
-                return json({"user": dict(request_user)})
-
-        insanic_application.add_route(TokenView.as_view(), "/")
-
-        client = await test_client(insanic_application)
-        #
-        # insanic_application.run(host='127.0.0.1', port=unused_port)
-        users = []
-        requests = []
-        for i in range(10):
-            user, token = test_user_token_factory(
-                level=UserLevels.STAFF, return_with_user=True
-            )
-            requests.append(client.get("/", headers={"Authorization": token}))
-            users.append(user)
-
-        responses = await asyncio.gather(*requests)
-
-        for i in range(10):
-            r = responses[i]
-            resp = await r.json()
-            assert r.status == 200, resp
-
-            assert resp["user"]["id"] == users[i].id
-
     @dispatch_tests
     async def test_task_context_user_dispatch_injection(
         self,
@@ -1005,12 +947,12 @@ class TestRequestTaskContext:
                     settings.TASK_CONTEXT_REQUEST_USER
                 )
                 request_user = await request.user
-                payload = handlers.jwt_decode_handler(request.auth)
+                handlers.jwt_decode_handler(request.auth)
 
                 token = UserIPService.service_token
                 assert token is not None
 
-                service_payload = jwt.decode(
+                jwt.decode(
                     token,
                     settings.SERVICE_TOKEN_KEY,
                     verify=False,
@@ -1033,7 +975,56 @@ class TestRequestTaskContext:
         # insanic_application.run(host='127.0.0.1', port=unused_port)
         users = []
         requests = []
+        for _ in range(10):
+            user, token = test_user_token_factory(
+                level=UserLevels.STAFF, return_with_user=True
+            )
+            requests.append(client.get("/", headers={"Authorization": token}))
+            users.append(user)
+
+        responses = await asyncio.gather(*requests)
+
         for i in range(10):
+            r = responses[i]
+            resp = await r.json()
+            assert r.status == 200, resp
+
+            assert resp["user"]["id"] == users[i].id
+
+    async def test_task_context_user_multiple_after_authentication(
+        self, insanic_application, test_client, test_user_token_factory,
+    ):
+        import aiotask_context
+        import asyncio
+
+        class TokenView(InsanicView):
+            async def get(self, request, *args, **kwargs):
+                context_user = aiotask_context.get(
+                    settings.TASK_CONTEXT_REQUEST_USER
+                )
+                request_user = await request.user
+                payload = handlers.jwt_decode_handler(request.auth)
+
+                assert context_user is not None
+
+                payload.pop("user_id")
+                assert context_user == dict(request_user)
+
+                service = await request.service
+
+                assert service is not None
+                assert service == AnonymousRequestService
+
+                return json({"user": dict(request_user)})
+
+        insanic_application.add_route(TokenView.as_view(), "/")
+
+        client = await test_client(insanic_application)
+        #
+        # insanic_application.run(host='127.0.0.1', port=unused_port)
+        users = []
+        requests = []
+        for _ in range(10):
             user, token = test_user_token_factory(
                 level=UserLevels.STAFF, return_with_user=True
             )
@@ -1064,7 +1055,7 @@ class TestRequestTaskContext:
                     settings.TASK_CONTEXT_REQUEST_USER
                 )
                 request_user = await request.user
-                payload = handlers.jwt_decode_handler(request.auth)
+                handlers.jwt_decode_handler(request.auth)
 
                 token = UserIPService.service_token
                 assert token is not None
@@ -1130,12 +1121,12 @@ class TestRequestTaskContext:
                     settings.TASK_CONTEXT_REQUEST_USER
                 )
                 request_user = await request.user
-                payload = handlers.jwt_decode_handler(request.auth)
+                handlers.jwt_decode_handler(request.auth)
 
                 token = UserIPService.service_token
                 assert token is not None
 
-                service_payload = jwt.decode(
+                jwt.decode(
                     token,
                     settings.SERVICE_TOKEN_KEY,
                     verify=False,
@@ -1158,7 +1149,7 @@ class TestRequestTaskContext:
         users = []
         requests = []
 
-        for i in range(10):
+        for _ in range(10):
             user = AnonymousUser
             token = test_service_token_factory()
             requests.append(
@@ -1207,7 +1198,7 @@ class TestRequestTaskContext:
                 token = UserIPService.service_token
                 assert token is not None
 
-                service_payload = jwt.decode(
+                jwt.decode(
                     token,
                     settings.SERVICE_TOKEN_KEY,
                     verify=False,
@@ -1230,7 +1221,7 @@ class TestRequestTaskContext:
         # insanic_application.run(host='127.0.0.1', port=unused_port)
         users = []
         requests = []
-        for i in range(10):
+        for _ in range(10):
             requests.append(client.get("/"))
             users.append(AnonymousUser)
 
@@ -1280,7 +1271,7 @@ class TestRequestTaskContext:
         remote_addrs = []
         import time
 
-        for i in range(5):
+        for _ in range(5):
             time.sleep(1)
             async with amazon.session().request(
                 method="GET", url=url, allow_redirects=False

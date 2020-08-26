@@ -1,5 +1,4 @@
 import pytest
-from insanic.conf import settings
 
 from sanic.exceptions import _sanic_exceptions
 from sanic.response import json

@@ -1,14 +1,12 @@
 """
 Provides various authentication policies.
 """
-import aiohttp
 import jwt
 
 from insanic import exceptions
 from insanic.authentication import handlers
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
-from insanic.log import error_logger
 from insanic.models import User, RequestService, AnonymousRequestService
 
 UNUSABLE_PASSWORD_PREFIX = "!"

@@ -100,7 +100,7 @@ class TestThrottling:
             level=UserLevels.ACTIVE, return_with_user=True
         )
 
-        for dummy in range(3):
+        for _ in range(3):
             insanic_application.test_client.get(
                 "/",
                 headers={
@@ -175,9 +175,7 @@ class TestThrottling:
         Ensure for second based throttles.
         """
         # request = self.factory.get('/')
-        insanic_application.add_route(
-            MockView_NonTimeThrottling.as_view(), "/"
-        )
+        insanic_application.add_route(MockView_NonTimeThrottling.as_view(), "/")
 
         assert (
             hasattr(MockView_NonTimeThrottling.throttle_classes[0], "called")
@@ -308,7 +306,7 @@ class TestScopedRateThrottle:
     def test_unscoped_view_not_throttled(self, insanic_application):
         insanic_application.add_route(self.unscoped_view, "/u")
 
-        for idx in range(10):
+        for _ in range(10):
             self.increment_timer()
             request, response = insanic_application.test_client.get("/u")
             assert response.status == 200
@@ -507,9 +505,7 @@ class TestSimpleRateThrottleTests:
         with pytest.raises(NotImplementedError):
             loop.run_until_complete(SimpleRateThrottle().get_cache_key({}, {}))
 
-    def test_allow_request_returns_true_if_key_is_none(
-        self, loop, monkeypatch
-    ):
+    def test_allow_request_returns_true_if_key_is_none(self, loop, monkeypatch):
         throttle = SimpleRateThrottle()
         throttle.rate = "some rate"
 
@@ -519,9 +515,7 @@ class TestSimpleRateThrottleTests:
         monkeypatch.setattr(throttle, "get_cache_key", gck)
 
         assert (
-            loop.run_until_complete(
-                throttle.allow_request(request={}, view={})
-            )
+            loop.run_until_complete(throttle.allow_request(request={}, view={}))
             is True
         )
 
@@ -567,9 +561,7 @@ class TestAnonRateThrottle:
 
     def test_get_cache_key_returns_correct_value(self, loop):
         user_id = 1
-        user = User(
-            id=user_id, level=UserLevels.ACTIVE, is_authenticated=False
-        )
+        user = User(id=user_id, level=UserLevels.ACTIVE, is_authenticated=False)
 
         class MockRequest:
             ip = None

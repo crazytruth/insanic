@@ -74,7 +74,7 @@ class JSONFormatter(logging.Formatter):
         for key, value in self._fmt_dict.items():
             try:
                 value = value % record.__dict__
-            except KeyError as exc:
+            except KeyError:
                 value = None
                 # raise exc
 
@@ -100,10 +100,7 @@ class JSONFormatter(logging.Formatter):
 
     def usesTime(self):
         return any(
-            [
-                value.find("%(asctime)") >= 0
-                for value in self._fmt_dict.values()
-            ]
+            [value.find("%(asctime)") >= 0 for value in self._fmt_dict.values()]
         )
 
     def _structuring(self, data, record):

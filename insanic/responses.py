@@ -11,7 +11,7 @@ class InsanicHTTPResponse(HTTPResponse):
         content_type="text/plain",
         body_bytes=b"",
     ):
-        if status is 204:
+        if status == 204:
             body = None
 
         super().__init__(body, status, headers, content_type, body_bytes)
@@ -23,7 +23,7 @@ class InsanicHTTPResponse(HTTPResponse):
         if keep_alive and keep_alive_timeout is not None:
             timeout_header = b"Keep-Alive: %d\r\n" % keep_alive_timeout
 
-        if 100 <= self.status < 200 or self.status is 204:
+        if 100 <= self.status < 200 or self.status == 204:
             # Per section 3.3.2 of RFC 7230, "a server MUST NOT send a Content-Length header field
             # in any response with a status code of 1xx (Informational) or 204 (No Content)."
             try:
@@ -41,14 +41,12 @@ class InsanicHTTPResponse(HTTPResponse):
 
         headers = self._parse_headers()
 
-        if self.status is 200:
+        if self.status == 200:
             status = b"OK"
         else:
             status = STATUS_CODES.get(self.status, b"UNKNOWN RESPONSE")
 
-        return (
-            b"HTTP/%b %d %b\r\n" b"Connection: %b\r\n" b"%b" b"%b\r\n" b"%b"
-        ) % (
+        return b"HTTP/%b %d %b\r\nConnection: %b\r\n%b%b\r\n%b" % (
             version.encode(),
             self.status,
             status,

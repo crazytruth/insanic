@@ -147,7 +147,7 @@ class Throttled(APIException):
             self.wait = None
         else:
             self.wait = math.ceil(wait)
-            if self.wait is 1:
+            if self.wait == 1:
                 self.description += " " + (
                     self.extra_detail[0] % {"wait": self.wait}
                 )

@@ -4,7 +4,7 @@ from setuptools.command.test import test as TestCommand
 
 
 class PyTestCommand(TestCommand):
-    user_options = [('pytest-args=', 'a', "Arguments to pass to pytest")]
+    user_options = [("pytest-args=", "a", "Arguments to pass to pytest")]
 
     def initialize_options(self):
         TestCommand.initialize_options(self)
@@ -13,7 +13,9 @@ class PyTestCommand(TestCommand):
 
     def run_tests(self):
         import shlex
+
         # import here, cause outside the eggs aren't loaded
         import pytest
+
         errno = pytest.main(shlex.split(self.pytest_args))
         sys.exit(errno)

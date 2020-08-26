@@ -4,7 +4,6 @@ from sanic.router import RouteExists
 
 from insanic import Insanic
 from insanic.functional import empty
-from insanic.router import InsanicRouter
 from insanic.scopes import public_facing
 from insanic.views import InsanicView
 

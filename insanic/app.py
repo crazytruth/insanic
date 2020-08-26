@@ -73,9 +73,11 @@ class Insanic(Sanic):
         from insanic import listeners
 
         for module_name in dir(listeners):
-            for l in LISTENER_TYPES:
-                if module_name.startswith(l):
-                    self.listeners[l].append(getattr(listeners, module_name))
+            for listener in LISTENER_TYPES:
+                if module_name.startswith(listener):
+                    self.listeners[listener].append(
+                        getattr(listeners, module_name)
+                    )
 
         from insanic import middleware
 
@@ -98,7 +100,7 @@ class Insanic(Sanic):
                     f"{settings.SERVICE_NAME}"
                 ).__version__
 
-            except (ModuleNotFoundError, ImportError, AttributeError):
+            except (ImportError, AttributeError):
                 error_logger.critical(
                     "Please put `__version__ = 'X.X.X'`in your __init__.py"
                 )
@@ -177,7 +179,7 @@ class Insanic(Sanic):
         :param backlog:
         :param stop_event:
         :param register_sys_signals:
-        :param access_log: 
+        :param access_log:
         :param protocol: Subclass of asyncio protocol class
         :return: Nothing
         """

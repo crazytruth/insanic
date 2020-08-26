@@ -14,7 +14,7 @@ Changelog for insanic
     - Removes hvac from required dependencies
 - MAJOR: refactor public routes from Insanic to Router
 - MAJOR: removes testing helpers
-- MAJOR: removes translation management object 
+- MAJOR: removes translation management object
 - MINOR: refactor service registry to use mapping collection
     - Move registry to registry module
     - Lazy loading for registry
@@ -33,24 +33,24 @@ Changelog for insanic
     - dummy cookie jar is set to avoid any cookie handling
     - retry logic on GET methods (defaults to 3)
     - `retry_count` added to http_dispatch. Use with CAUTION on non GET!
-- MAJOR: unlimits all default connection limits but now uses semaphores to limit connections(default 1000) 
+- MAJOR: unlimits all default connection limits but now uses semaphores to limit connections(default 1000)
 - FIX: attach lru_cache to get_my_ip because it will never change #240
-- FIX: when encoding service jwt, instead of resolving ip, use get_my_ip #240 
+- FIX: when encoding service jwt, instead of resolving ip, use get_my_ip #240
 - FIX: gethostname on logs to get from cache
 - FIX: config can vault resolution from gethostbyaddr to gethostbyname
-- FIX: fixes issue where kwargs was not being sent into http_dispatch 
+- FIX: fixes issue where kwargs was not being sent into http_dispatch
 - UPDATE: updates default backlog connnections to 65535
 - UPDATE: increase graceful shutdown timeout to 29
 - UPDATE: optimizes get_utc_timestamp util function
-- UPDATE: implements `add_trace_config` to Services  
+- UPDATE: implements `add_trace_config` to Services
 - UPDATE: adds `SERVICE_CONNECTION_MAX_RETRY_COUNT` (default to 4, so max 5 times)
-- FEAT: include internal service request headers 
+- FEAT: include internal service request headers
 - CHORE: refactor out unused code
 - CHORE: change request service string representation
 - CHORE: refactors service connection metrics to settings
 - CHORE: refactors service timeouts to settings
 - CHORE: (possible BREAKING) removes parser module
-- CHORE: closes service session once on server shutdown 
+- CHORE: closes service session once on server shutdown
 - CHORE: refactors logging config to be more modular
 - CHORE: http_dispatch exceptions just raise in their except instead of in finally
 - FIX: fixes issues when hostname is not resolvable
@@ -80,7 +80,7 @@ Changelog for insanic
 
     - remove GRPCAuthenication
     - remove grpc settings
-    - remove grpc server bindings 
+    - remove grpc server bindings
     - remove grpc log handlers and formatters
     - remove grpc client from service object
     - remove `grpc_dispatch` and `dispatch` methods from Service object
@@ -93,14 +93,14 @@ Changelog for insanic
 
     - if and ONLY if `INSANIC_DEBUG` is set, and vault is not accessiable will load a file from the parent of the project root
     - if value is not in file, then an empty string is returned
-    - also skips kong registration 
-    
+    - also skips kong registration
+
 - BREAKING: all tracing features have been removed from this release
 
     - Segment property from requests removed
     - Removes tracing related settings
     - Tracing will be provided through a separate plugin
-    
+
 - MAJOR: removed infuse plugin checks from insanic
 - MAJOR: added `REQUIRED_PLUGINS` to enforce plugin attachments
 - BREAKING: original metrics response now needs `json` query string for json response
@@ -148,7 +148,7 @@ Changelog for insanic
 not `408 Request Timeout` anymore.
 - FIX: All timeout variables will be used as `ClientTimeout` class, not primitive integer.
 See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts)
-- UPGRADE: minimum requirement for aiohttp updated from 3.1.0 -> 3.3.0 
+- UPGRADE: minimum requirement for aiohttp updated from 3.1.0 -> 3.3.0
 - UPGRADE: increase log level to critical for uncaught exceptions
 - CHORE: changed ttl_dns_cache on service session to reflect dns cache ttl of route53
 - UPDATE: default response timeout for inter-service to 5s
@@ -177,7 +177,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 0.7.10 (2019-03-19)
 -------------------
 
-- HOTFIX: aws-xray-sdk and aiohttp setuppy bug fix 
+- HOTFIX: aws-xray-sdk and aiohttp setuppy bug fix
 
 
 0.7.9 (2019-03-19)
@@ -189,7 +189,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 0.7.8 (2019-03-19)
 ------------------
 
-- HOTFIX: set aws-xray-sdk to 1.1.2 
+- HOTFIX: set aws-xray-sdk to 1.1.2
 
 
 0.7.7 (2019-03-19)
@@ -209,13 +209,13 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 0.7.5 (2019-03-18)
 ------------------
 
-- HOTFIX: remove prometheus counter 
+- HOTFIX: remove prometheus counter
 
 
 0.7.4 (2019-03-18)
 ------------------
 
-- HOTFIX: move global process variable into function 
+- HOTFIX: move global process variable into function
 - HOTFIX: lower library restrictions for aws xray sdk
 
 
@@ -231,7 +231,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 - BREAKING: remove rabbitmq integration
 - CHORE: lowers log level for 4xx status codes from exception(error) to info
 - FEAT: more information on client response errors
-- CHORE: fixes issue when creating gateway aiohttp clientsession   
+- CHORE: fixes issue when creating gateway aiohttp clientsession
 
 0.7.1 (2019-01-30)
 ------------------
@@ -247,10 +247,10 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 - FEAT: update sanic dependency to 18.12.0
 - FEAT: load grpc server classes and serves
 - FEAT: searches installed grpc packages and binds to service client object
-- CHORE: remove grpc health in place of grpclib health  
+- CHORE: remove grpc health in place of grpclib health
 - CHORE: fix tests for new grpclib release 0.2.1
 - CHORE: refactor tests to use test package
-- FEAT: add error codes, method, path and uri template to network logs for better logging 
+- FEAT: add error codes, method, path and uri template to network logs for better logging
 - FEAT: changes the order in which the settings from vault are loaded from  common/config/secret to common/secret/config
 - FEAT: introduce metrics endpoint which exposes cpu/mem usages and task counts
 - FEAT: introduce new config to turn off infuse (INFUSE_ENABLED=0)
@@ -263,7 +263,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 ------------------
 
 - CHORE: sanic access logger to always log for info level
-- FEAT: userip http call to buffer into mq 
+- FEAT: userip http call to buffer into mq
 
 
 0.6.6 (2018-12-04)
@@ -273,7 +273,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 - FEAT: if vault settings and config is not set, fall back to original vault settings
 - FEAT: rabbitmq integration!
 - FEAT: initialize xray subsegments from traced requests
-- FEAT: reduce keep alive to 0 to prevent 1 instance sending requests to only 1 instance 
+- FEAT: reduce keep alive to 0 to prevent 1 instance sending requests to only 1 instance
 - DEPRECATE: sampling rules for views because hard to manage
 - CHORE: refactor legacy span naming to segments
 
@@ -347,7 +347,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 0.5.6 (2018-07-24)
 ------------------
 
-- EDGE: support for gunicorn 
+- EDGE: support for gunicorn
 - FEAT: ip in service health
 
 
@@ -380,7 +380,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 ------------------
 
 - FEAT: add client_ip property in request class to indentify the originating IP address of a client connection with header field x-forwarded-for
-- FIX: plugin tests with service tokens by inject user 
+- FIX: plugin tests with service tokens by inject user
 
 
 0.5.0 (2018-07-16)
@@ -393,7 +393,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 - FEAT: add correlation_id to all logs within a context of a request
 - OPTIMIZATION: interservice communication authorization
     - remove interservice jwt for each user
-    - add single jwt for service-to-service 
+    - add single jwt for service-to-service
     - inject user information to headers
 - FEAT: inject correlation id to interservice requests
 - CHORE: rename datetime util functions that don't represent what they actually do
@@ -411,9 +411,9 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 -------------------
 
 - FEAT: allow workers to set from INSANIC_WORKERS environment variable
-- FEAT: ping/pong service api with depth 
+- FEAT: ping/pong service api with depth
 - FEAT: allow log level to be set from environment variables
-- FIX: add slash to userip call 
+- FIX: add slash to userip call
 
 
 0.4.16 (2018-07-06)
@@ -421,7 +421,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 
 - FIX: hard jwt when no token is provided
 - UPDATE: return 408 when request takes too long. Different from 504 when the server
-- UPDATE: one client session to rule them all!! for service objects 
+- UPDATE: one client session to rule them all!! for service objects
 - UPDATE: json logging to include request service
 
 0.4.15 (2018-07-04)
@@ -441,19 +441,19 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 -------------------
 
 - FEAT: decorators for capturing functions as subsegments
-- FEAT: hard jwt authentication 
+- FEAT: hard jwt authentication
 - FIX: xray tracing not recording body
 - CHORE: refactor gateway registration
 - FIX: multipart/form-data in http_dispatch using aiohttp.FormData
 - TEST: tests for sending multipart/form-data
-- FEAT: wrap service dispatch with xray 
+- FEAT: wrap service dispatch with xray
 
 
 0.4.12 (2018-06-29)
 -------------------
 
 - CHORE: set streaming threshold to lower value
-- HOTFIX: catch error on environment not running on swarm  
+- HOTFIX: catch error on environment not running on swarm
 
 
 0.4.11 (2018-06-27)
@@ -467,7 +467,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 -------------------
 
 - FEAT: catch `asyncio.TimeoutError` on http_dispatch
-- FEAT: `files` parameter on `http_dispatch` to send files. 
+- FEAT: `files` parameter on `http_dispatch` to send files.
     - Will place `multipart/form-data` as content-type
 - FEAT: `request_timeout` on `http_dispatch` to override default
 - FIX: register target as ip instead of hostname on kong
@@ -484,7 +484,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 0.4.8 (2018-06-21)
 ------------------
 
-- REFACTOR: xray config so it is the first thing to happen when starting server 
+- REFACTOR: xray config so it is the first thing to happen when starting server
 
 
 0.4.7 (2018-06-21)
@@ -493,7 +493,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 - FEAT: add request_service in logging
 - FEAT: load settings from environment variables. These take precedence!
 - REFACTOR: tracing related settings
-- DEPRECATE: tracing wrapping of service object 
+- DEPRECATE: tracing wrapping of service object
 - NEW: use aiohttp client config for inter service tracing
 - FEAT: new util method for kong (force_target_healthy)
 - REMOVE: logging for kong healthchecks
@@ -564,7 +564,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 0.3.13 (2018-05-31)
 -------------------
 
-- CRITICAL: http_dispatch bug. 
+- CRITICAL: http_dispatch bug.
 
 
 0.3.12 (2018-05-30)
@@ -579,7 +579,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 - FEAT: add iso_to_datetime util function
 - FIX: rename units_hint to units on utc_to_datetime function
 - FIX: bug with kong plugins where none could be in the list
-- FIX: public facing support for composition views 
+- FIX: public facing support for composition views
 - CHORE: remove req_ctx from http_dispatch. didnt do anything anyways
 
 
@@ -605,7 +605,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 0.3.8 (2018-05-19)
 ------------------
 
-- UPDATE: insanic service authentication with task contexts 
+- UPDATE: insanic service authentication with task contexts
 - UPDATE: service tokens are created with user from task contexts
 - FEAT: just context added to task when authentication if performed
 
@@ -625,7 +625,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 0.3.5 (2018-05-17)
 ------------------
 
-- CHORE: Better Logging for create service on kong 
+- CHORE: Better Logging for create service on kong
 
 
 0.3.4 (2018-05-15)

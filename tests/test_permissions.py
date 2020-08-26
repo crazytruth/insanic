@@ -18,10 +18,10 @@ from insanic.permissions import (
 from insanic.views import InsanicView
 
 
-def permission_view(permissions, authentications=[]):
+def permission_view(permissions, authentications=None):
     class MockView(InsanicView):
         permission_classes = permissions
-        authentication_classes = authentications
+        authentication_classes = authentications or []
 
         def get(self, request, *args, **kwargs):
             return text("get")
@@ -118,7 +118,7 @@ class TestNotAuthenticatedPermissions:
     def test_not_authenticated_permissions(
         self, insanic_application, permission, expected
     ):
-        view = permission_view([permission,])
+        view = permission_view([permission])
         insanic_application.add_route(view.as_view(), "/")
 
         request, response = insanic_application.test_client.get("/")
@@ -156,7 +156,7 @@ class TestNotAuthenticatedWithAuthenticationPermissions:
     def test_not_authenticated_permissions(
         self, insanic_application, permission, safe_expected, not_safe_expected
     ):
-        view = permission_view([permission,], [JSONWebTokenAuthentication,])
+        view = permission_view([permission], [JSONWebTokenAuthentication])
         insanic_application.add_route(view.as_view(), "/")
 
         request, response = insanic_application.test_client.get("/")

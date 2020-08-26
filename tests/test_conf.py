@@ -81,9 +81,7 @@ class TestInsanicSettings:
         module = types.ModuleType("config")
         module.__file__ = filename
         with open(filename) as config_file:
-            exec(
-                compile(config_file.read(), filename, "exec"), module.__dict__
-            )
+            exec(compile(config_file.read(), filename, "exec"), module.__dict__)
 
         return module
 
@@ -146,7 +144,7 @@ class TestInsanicSettings:
         other_prefix_value = 1
 
         monkeypatch.setenv(f"INSANIC_{env_name}", set_value)
-        monkeypatch.setenv(f"INSANIC_FLOAT_VALUE", 1.3)
+        monkeypatch.setenv("INSANIC_FLOAT_VALUE", 1.3)
         monkeypatch.setenv(f"{env_name}", not_set_value)
         monkeypatch.setenv(f"{other_prefix}{env_name}", other_prefix_value)
 
@@ -187,7 +185,7 @@ class TestInsanicSettings:
     def test_sanic_default_config(self):
         from sanic.config import DEFAULT_CONFIG
 
-        for k, v in DEFAULT_CONFIG.items():
+        for k, _v in DEFAULT_CONFIG.items():
             assert hasattr(self.base_config, k)
 
 

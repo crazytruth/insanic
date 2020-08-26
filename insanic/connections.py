@@ -72,7 +72,7 @@ class ConnectionHandler:
             )
         else:
             raise ImproperlyConfigured(
-                f"This engine has not been implemented in insanic yet."
+                "This engine has not been implemented in insanic yet."
             )
 
         return _pool

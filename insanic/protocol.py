@@ -29,16 +29,14 @@ class InsanicHttpProtocol(HttpProtocol):
                 and response.error_code is not None
             ):
                 extra.update({"error_code_name": response.error_code["name"]})
-                extra.update(
-                    {"error_code_value": response.error_code["value"]}
-                )
+                extra.update({"error_code_value": response.error_code["value"]})
 
             if hasattr(self.request, "_service"):
                 extra.update(
                     {
                         "request_service": str(
                             self.request._service.request_service
-                        ),
+                        )
                     }
                 )
             if hasattr(response, "segment"):

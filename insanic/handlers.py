@@ -70,7 +70,7 @@ class ErrorHandler(SanicErrorHandler):
                 response = handler(request=request, exception=exception)
             if response is None:
                 response = self.default(request=request, exception=exception)
-        except Exception as e:
+        except Exception:
             exc = format_exc()
             self.log(exc)
             if self.debug:

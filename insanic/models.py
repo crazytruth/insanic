@@ -55,9 +55,6 @@ class _AnonymousUser(User):
 
 
 class RequestService:
-    """
-    WARNING: when updating update service.proto
-    """
 
     __slots__ = [
         "request_service",

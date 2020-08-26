@@ -36,6 +36,8 @@ class GlobalErrorCodes(Enum):
     server_signature_error = 999601
     service_unavailable = 999603
     service_timeout = 999604
+    invalid_url = 999610
+    client_payload_error = 999620
 
     error_unspecified = 999998
     unknown_error = 999999

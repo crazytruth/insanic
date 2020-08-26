@@ -100,9 +100,8 @@ def test_timestamp_milliseconds_to_datetime():
     test_timestamp = 946684800 * 1000
     test_datetime = datetime(2000, 1, 1, 0, 0, 0, 0, timezone.utc)
 
-    assert (
-        test_datetime
-        == insanic_datetime.timestamp_milliseconds_to_datetime(test_timestamp)
+    assert test_datetime == insanic_datetime.timestamp_milliseconds_to_datetime(
+        test_timestamp
     )
 
 

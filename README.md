@@ -121,14 +121,14 @@ $ docker push {username}/insanic:latest
 
 ## Generating GRPC stubs
 
-We use [grclib][grpclib] for our grpc implementation. This is because the google implementation 
+We use [grclib][grpclib] for our grpc implementation. This is because the google implementation
 isn't compatible with asyncio so the generation is a little different.
 
 ```bash
 # from root of insanic
 # for dispatch service
 $ python -m grpc_tools.protoc --proto_path=. --python_out=. --python_grpc_out=. insanic/grpc/dispatch/dispatch.proto
-# for health 
+# for health
 $ python -m grpc_tools.protoc --proto_path=. --python_out=. --python_grpc_out=. insanic/grpc/health/health.proto
 ```
 
@@ -172,4 +172,3 @@ Distributed under the MIT license. See ``LICENSE`` for more information.
 [aiodns]: https://github.com/saghul/aiodns
 [pyjwt]: https://github.com/jpadilla/pyjwt
 [grpclib]: https://github.com/vmagamedov/grpclib
-

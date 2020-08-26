@@ -114,7 +114,7 @@ class InsanicConfig(Config):
         try:
             config_module = importlib.import_module(self.SETTINGS_MODULE)
             self.from_object(config_module)
-        except (ImportError, ModuleNotFoundError) as e:
+        except ImportError as e:
             logger.debug(
                 "Could not import settings '%s' (Is it on sys.path? Is there an import "
                 "error in the settings file?): %s %s"

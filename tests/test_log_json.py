@@ -86,7 +86,7 @@ class TestLogFormats:
 
         app.add_route(MockView.as_view(), endpoint)
 
-        resp = app.test_client.get(request_path)
+        app.test_client.get(request_path)
         for r in caplog.records:
             if r.name == "sanic.access":
                 assert hasattr(r, "error_code_value")
@@ -108,8 +108,8 @@ class TestLogFormats:
                         ).name
                     )
                 else:
-                    assert r.error_code_value == None
-                    assert r.error_code_name == None
+                    assert r.error_code_value is None
+                    assert r.error_code_name is None
 
                 assert hasattr(r, "method")
                 assert r.method == "GET"
@@ -134,7 +134,7 @@ class TestLogFormats:
         self, exc, expected_message, capsys, monkeypatch
     ):
         monkeypatch.setattr(scopes, "is_docker", True)
-        app = Insanic("test")
+        Insanic("test")
         from insanic.log import error_logger
 
         error_logger.exception(exc)
@@ -190,7 +190,7 @@ class TestLogFormats:
 
         app.add_route(MockView.as_view(), endpoint)
 
-        resp = app.test_client.get(request_path)
+        app.test_client.get(request_path)
         for r in caplog.records:
             if r.name == "sanic.access":
                 assert hasattr(r, "squad")

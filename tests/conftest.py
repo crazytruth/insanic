@@ -2,8 +2,6 @@ import aiotask_context
 import pytest
 import uuid
 
-import requests
-
 from insanic import Insanic
 from insanic.authentication import handlers
 from insanic.choices import UserLevels

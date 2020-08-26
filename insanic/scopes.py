@@ -36,7 +36,7 @@ def public_facing(fn=None, *, params=None):
         def public_f(*args, **kwargs):
             return fn(*args, **kwargs)
 
-        setattr(public_f, "scope", "public")
+        public_f.scope = "public"
         return public_f
 
     else:
@@ -65,7 +65,7 @@ def public_facing(fn=None, *, params=None):
                             break
                     else:
                         """
-                        if here, this means request object was not found... 
+                        if here, this means request object was not found...
                         """
                         raise RuntimeError(
                             "`request` object was not found. "
@@ -75,7 +75,7 @@ def public_facing(fn=None, *, params=None):
 
                 return fn(*args, **kwargs)
 
-            setattr(public_f, "scope", "public")
+            public_f.scope = "public"
             return public_f
 
         return wrap
@@ -89,7 +89,7 @@ def _is_docker():
         )
 
         return r.status == 200
-    except:
+    except Exception:
         try:
             with open("/proc/self/cgroup", "r") as proc_file:
                 for line in proc_file:
@@ -110,9 +110,7 @@ def get_machine_id():
         machine_id = os.environ.get("HOSTNAME")
     else:
         ip = get_my_ip()
-        machine_id = "{:02X}{:02X}{:02X}{:02X}".format(
-            *map(int, ip.split("."))
-        )
+        machine_id = "{:02X}{:02X}{:02X}{:02X}".format(*map(int, ip.split(".")))
     return machine_id
 
 

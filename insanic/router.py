@@ -1,8 +1,6 @@
 from sanic.router import Router as SanicRouter
 from sanic.views import CompositionView
 
-from insanic.functional import empty
-
 
 class InsanicRouter(SanicRouter):
     def __init__(self):
@@ -13,16 +11,12 @@ class InsanicRouter(SanicRouter):
 
         _public_routes = {}
 
-        for url, route in self.routes_all.items():
+        for _url, route in self.routes_all.items():
             for method in route.methods:
                 if hasattr(route.handler, "view_class"):
-                    _handler = getattr(
-                        route.handler.view_class, method.lower()
-                    )
+                    _handler = getattr(route.handler.view_class, method.lower())
                 elif isinstance(route.handler, CompositionView):
-                    _handler = route.handler.handlers[
-                        method.upper()
-                    ].view_class
+                    _handler = route.handler.handlers[method.upper()].view_class
                     _handler = getattr(_handler, method.lower())
                 else:
                     _handler = route.handler

@@ -1,10 +1,8 @@
 import pytest
 import time
-import uuid
 
 from insanic.app import Insanic
 from insanic.conf import settings
-from insanic.exceptions import ServiceUnavailable503Error, BadRequest
 from insanic.services import Service
 
 HTTP_RESPONSE = "http"

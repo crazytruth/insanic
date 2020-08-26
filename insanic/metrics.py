@@ -66,7 +66,7 @@ class InsanicMetrics(object):
             metric = getattr(cls, name)
             try:
                 cls.registry.unregister(metric)
-            except KeyError:
+            except KeyError:  # pragma: no cover
                 pass
             finally:
                 cls.__dict__[name].reset()
