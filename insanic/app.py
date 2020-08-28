@@ -3,8 +3,6 @@ import string
 
 from sanic import Sanic
 
-from sanic_useragent import SanicUserAgent
-
 from insanic import __version__
 from insanic.conf import settings
 from insanic.exceptions import ImproperlyConfigured
@@ -27,8 +25,7 @@ MIDDLEWARE_TYPES = ("request", "response")
 
 
 class Insanic(Sanic):
-    database = None
-    _public_routes = empty
+
     metrics = empty
     initialized_plugins = {}
 
@@ -36,8 +33,6 @@ class Insanic(Sanic):
 
         router = router or InsanicRouter()
         error_handler = error_handler or ErrorHandler()
-
-        from insanic.conf import settings
 
         self.version = ""
 
@@ -111,10 +106,9 @@ class Insanic(Sanic):
 
         service_version = _service_version()
         settings.SERVICE_VERSION = service_version
-        logger.info(
+        logger.debug(
             f"{settings.SERVICE_NAME} v{settings.SERVICE_VERSION} service loaded."
         )
-        self.attach_plugins()
 
         self.metrics = InsanicMetrics
         self.metrics.META.info(
@@ -146,9 +140,6 @@ class Insanic(Sanic):
 
     def plugin_initialized(self, plugin_name, instance):
         self.initialized_plugins.update({plugin_name: instance})
-
-    def attach_plugins(self):
-        SanicUserAgent.init_app(self)
 
     def run(
         self,

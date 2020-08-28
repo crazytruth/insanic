@@ -44,9 +44,8 @@ setup(
         exclude=["contrib", "docs", "requirements", "tests*"]
     ),
     install_requires=[
-        "uvloop==0.12.0",
-        "sanic==19.6.2",
-        "sanic-useragent",
+        "uvloop",
+        "sanic>=19.6.0",
         "aiohttp>=3.3.0",
         "aiodns",
         "aioredis>=1.1.0",

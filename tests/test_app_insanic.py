@@ -9,7 +9,7 @@ from insanic.scopes import public_facing
 class TestInsanic:
     routes = []
 
-    @pytest.fixture("module")
+    @pytest.fixture(scope="module")
     def insanic_application(self):
         return Insanic("test")
 

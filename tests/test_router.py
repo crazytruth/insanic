@@ -13,7 +13,7 @@ from .conftest_constants import ROUTES
 class TestInsanicRouter:
     routes = []
 
-    @pytest.fixture("module")
+    @pytest.fixture(scope="module")
     def insanic_application(self):
         return Insanic("test")
 
