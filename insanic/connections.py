@@ -112,7 +112,7 @@ class ConnectionHandler:
 
     async def close(self, alias):
         try:
-            logger.info("Start Closing database connection: {0}".format(alias))
+            logger.debug("Start Closing database connection: {0}".format(alias))
             if hasattr(self._connections, alias):
                 _conn = getattr(self._connections, alias)
             else:
@@ -125,7 +125,7 @@ class ConnectionHandler:
                 "CLOSE_CONNECTION_INTERFACE", []
             )
 
-            logger.info("Closing database connection: {0}".format(alias))
+            logger.debug("Closing database connection: {0}".format(alias))
             for close_attr in close_connection_interface:
                 close_database = _conn
                 for m in close_attr:
