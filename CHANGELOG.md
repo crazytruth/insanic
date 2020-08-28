@@ -19,6 +19,7 @@ Changelog for insanic
     - Move registry to registry module
     - Lazy loading for registry
 - MINOR: removes gunicorn worker interface (possibly for future implementation)
+- FEAT: tox testing for python>3.6 and sanic>19.3 versions
 - CHORE: extracts extra requirements into their own requirments files
 - CHORE: reorganizes artwork into its own directory
 - CHORE: removes config that are no longer used
