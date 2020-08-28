@@ -231,14 +231,8 @@ class Request(SanicRequest):
         :return: original client ip.
         """
         if not hasattr(self, "_remote_addr"):
-            if settings.PROXIES_COUNT == 0:
+            if settings.PROXIES_COUNT == 0 or settings.PROXIES_COUNT is None:
                 self._remote_addr = ""
-            # elif settings.REAL_IP_HEADER and self.headers.get(
-            #         settings.REAL_IP_HEADER
-            # ):
-            #     self._remote_addr = self.headers[
-            #         settings.REAL_IP_HEADER
-            #     ]
             elif settings.FORWARDED_FOR_HEADER and self.headers.get(
                 settings.FORWARDED_FOR_HEADER
             ):
