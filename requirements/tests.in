@@ -3,7 +3,7 @@ pytest
 pytest-cov
 pytest-sanic
 pytest-redis
-aioresponses
+respx
 requests
 asynctest
 tox

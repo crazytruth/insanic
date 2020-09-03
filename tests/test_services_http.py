@@ -1,25 +1,24 @@
-import aiohttp
+import importlib
+
 import aiotask_context
 import asyncio
+
+import httpx
 import jwt
-import logging
 import uvloop
 import pytest
 import random
-import socket
+import respx
 import uuid
 import ujson
-from aiohttp.client_reqrep import ConnectionKey, RequestInfo
 
-from aioresponses import aioresponses
-from sanic.request import File
+from httpx.config import UNSET
 from sanic.response import json
 
 from insanic import status
 from insanic.authentication import handlers
 from insanic.conf import settings
 from insanic.exceptions import ResponseTimeoutError, APIException
-from insanic.log import error_logger
 from insanic.models import (
     User,
     UserLevels,
@@ -28,15 +27,37 @@ from insanic.models import (
     to_header_value,
 )
 from insanic.permissions import AllowAny
-from insanic.scopes import get_my_ip
 from insanic.services import Service
+from insanic.services.adapters import TransportError, HTTPStatusError
 from insanic.services.registry import LazyServiceRegistry
-from insanic.services.response import InsanicResponse
 from insanic.views import InsanicView
+
+IMAGE_PATH = "artwork/insanic.png"
 
 dispatch_tests = pytest.mark.parametrize("dispatch_type", ["http_dispatch"])
 
-IMAGE_PATH = "artwork/insanic.png"
+
+def httpx_exceptions():
+    from insanic.services.adapters import HTTPX_LEGACY
+
+    if HTTPX_LEGACY:
+        module_name = "httpx.exceptions"
+    else:
+        module_name = "httpx._exceptions"
+
+    exceptions_module = importlib.import_module(module_name)
+
+    exceptions = []
+
+    for exc in dir(exceptions_module):
+        possible_exception = getattr(exceptions_module, exc)
+        try:
+            if issubclass(possible_exception, Exception):
+                exceptions.append(possible_exception)
+        except TypeError:
+            pass
+
+    return exceptions
 
 
 def test_image_file():
@@ -107,32 +128,33 @@ class TestServiceClass:
         )
 
         test_endpoint = "/api/v1/insanic"
-        url = self.service._construct_url(test_endpoint)
+        url = self.service.client.merge_url(test_endpoint)
 
         assert url.path == test_endpoint
 
         test_query_params = {"a": "b"}
-        url = self.service._construct_url(
-            test_endpoint, query_params=test_query_params
-        )
+        query_params = self.service.client.merge_queryparams(test_query_params)
+        url = self.service.client.merge_url(f"{test_endpoint}")
+
         assert url.path == test_endpoint
-        assert url.query == test_query_params
+        assert dict(query_params) == test_query_params
 
-    def test_dispatch(self, monkeypatch):
-
+    def test_dispatch(self):
         mock_response = {"a": "b"}
         mock_status_code = random.randint(200, 300)
 
-        with aioresponses() as m:
-            m.get(
-                f"http://{self.service.host}:{self.service.port}/",
-                status=mock_status_code,
-                payload=mock_response,
+        with respx.mock:
+            respx.request(
+                method="GET",
+                url=f"http://{self.service.url.host}:{self.service.url.port}/",
+                status_code=mock_status_code,
+                content=mock_response,
             )
-            m.get(
-                f"http://{self.service.host}:{self.service.port}/",
-                status=mock_status_code,
-                payload=mock_response,
+            respx.request(
+                method="GET",
+                url=f"http://{self.service.url.host}:{self.service.url.port}/",
+                status_code=mock_status_code,
+                content=mock_response,
             )
 
             loop = uvloop.new_event_loop()
@@ -163,7 +185,7 @@ class TestServiceClass:
         loop = uvloop.new_event_loop()
         asyncio.set_event_loop(loop)
         response = loop.run_until_complete(self.run_dispatch("GET", "/"))
-        assert response["response_timeout"] is None
+        assert response["response_timeout"] is UNSET
 
         loop = uvloop.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -181,7 +203,7 @@ class TestServiceClass:
             class MockResponse:
                 status = 200
 
-                async def json(self, *args, **method_kwargs):
+                def json(self, *args, **method_kwargs):
                     return {"response_timeout": kwargs.get("timeout", None)}
 
                 async def text(self, *args, **method_kwargs):
@@ -197,7 +219,7 @@ class TestServiceClass:
             return MockResponse()
 
         monkeypatch.setattr(
-            self.service, "_dispatch_future_fetch", _mock_dispatch_fetch
+            self.service, "_dispatch_send", _mock_dispatch_fetch
         )
 
         loop = uvloop.new_event_loop()
@@ -206,7 +228,7 @@ class TestServiceClass:
         response = loop.run_until_complete(
             self.run_dispatch("PUT", "/", payload={"a": "b"})
         )
-        assert response["response_timeout"] is None
+        assert response["response_timeout"] is UNSET
 
         loop = uvloop.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -216,135 +238,21 @@ class TestServiceClass:
                 "POST", "/", payload={"a": "b"}, response_timeout=10
             )
         )
-        assert response["response_timeout"]["total"] == 10
+        assert response["response_timeout"] == 10
 
-    async def test_dispatch_catch_timeout(self, monkeypatch):
-        # _disp = getattr(self.service, dispatch_type)
+    async def test_dispatch_catch_connection_timeout(self, monkeypatch):
+        monkeypatch.setattr(settings, "SERVICE_TIMEOUT_TOTAL", 1.0)
+        self.service._client = None
 
-        async def _mock_dispatch_fetch(*args, **kwargs):
-            await asyncio.sleep(settings.SERVICE_TIMEOUT_TOTAL + 1)
-            return {"status": "OK"}
+        async def _mock_open_connection(*args, **kwargs):
+            await asyncio.sleep(settings.SERVICE_TIMEOUT_TOTAL + 10)
 
-        Service._session = None
-        monkeypatch.setattr(
-            self.service.session()._connector, "connect", _mock_dispatch_fetch
-        )
+            return '{"status": "OK"}'
+
+        monkeypatch.setattr("asyncio.open_connection", _mock_open_connection)
 
         with pytest.raises(ResponseTimeoutError):
             await self.service.http_dispatch("GET", "/")
-
-    @pytest.mark.parametrize(
-        "payload,files,headers, expect_content_type, final_content_type",
-        (
-            ({"a": "b"}, {}, {}, "application/json", "application/json",),
-            (
-                {"a": "b"},
-                {},
-                {"content-type": "multipart/form-data"},
-                "multipart/form-data",
-                "multipart/form-data",
-            ),
-            (
-                {},
-                {"image": open(IMAGE_PATH, "rb")},
-                {},
-                "",
-                "multipart/form-data",
-            ),
-            (
-                {},
-                {"image": [open(IMAGE_PATH, "rb")]},
-                {},
-                "",
-                "multipart/form-data",
-            ),
-            (
-                {},
-                {"image": [open(IMAGE_PATH, "rb"), open(IMAGE_PATH, "rb")]},
-                {},
-                "",
-                "multipart/form-data",
-            ),
-            (
-                {},
-                {"image": open(IMAGE_PATH, "rb")},
-                {"content-type": "multipart/form-data"},
-                "multipart/form-data",
-                "multipart/form-data",
-            ),
-            (
-                {},
-                {"image": open(IMAGE_PATH, "rb")},
-                {"Content-Type": "multipart/form-data"},
-                "multipart/form-data",
-                "multipart/form-data",
-            ),
-            (
-                {},
-                {"image": open(IMAGE_PATH, "rb")},
-                {"content-type": "application/json"},
-                "application/json",
-                "application/json",
-            ),
-            (
-                {},
-                {"image": open(IMAGE_PATH, "rb")},
-                {"Content-type": "application/json"},
-                "application/json",
-                "application/json",
-            ),
-        ),
-    )
-    def test_dispatch_aiohttp_request_object_headers(
-        self,
-        monkeypatch,
-        payload,
-        files,
-        headers,
-        expect_content_type,
-        final_content_type,
-    ):
-        async def _mock_dispatch_fetch(method, url, *, headers, data, **kwargs):
-            lower_headers = {k.lower(): v for k, v in headers.items()}
-
-            class MockResponse:
-                status = 200
-
-                async def json(self, *args, **kwargs):
-                    return {"content-type": final_content_type}
-
-                async def text(self, *args, **kwargs):
-                    return ujson.dumps({"content-type": final_content_type})
-
-            # assert "content-type" in lower_headers.keys()
-            assert "accept" in lower_headers.keys()
-
-            assert lower_headers.get("content-type", "").startswith(
-                expect_content_type
-            )
-            return MockResponse()
-
-        monkeypatch.setattr(
-            self.service, "_dispatch_future_fetch", _mock_dispatch_fetch
-        )
-
-        loop = uvloop.new_event_loop()
-        asyncio.set_event_loop(loop)
-        response = loop.run_until_complete(
-            self.run_dispatch(
-                "GET", "/", payload=payload, files=files, headers=headers
-            )
-        )
-        assert final_content_type in response["content-type"]
-
-        loop = uvloop.new_event_loop()
-        asyncio.set_event_loop(loop)
-        response = loop.run_until_complete(
-            self.run_dispatch(
-                "POST", "/", payload={"a": "b"}, files=files, headers=headers
-            )
-        )
-        assert final_content_type in response["content-type"]
 
     @pytest.fixture
     def sanic_test_server(
@@ -374,34 +282,6 @@ class TestServiceClass:
         )
 
     @pytest.mark.parametrize(
-        "payload,files,headers",
-        (
-            ({}, {}, {}),
-            ({"a": "b"}, {}, {}),
-            ({}, {"image": open(IMAGE_PATH, "rb")}, {}),
-            ({"a": "b"}, {"image": open(IMAGE_PATH, "rb")}, {}),
-        ),
-    )
-    async def test_dispatch_files(
-        self, sanic_test_server, payload, files, headers, monkeypatch
-    ):
-
-        monkeypatch.setattr(self.service, "host", "localhost")
-        monkeypatch.setattr(self.service, "port", sanic_test_server.port)
-        monkeypatch.setattr(settings, "GATEWAY_REGISTRATION_ENABLED", False)
-
-        response = await self.service.http_dispatch(
-            "POST", "/multi", payload=payload, files=files, headers=headers
-        )
-
-        assert list(payload.keys()) + list(files.keys()) == response.get(
-            "data", None
-        ), response
-        assert list(files.keys()) == response.get("files", None)
-
-        assert response
-
-    @pytest.mark.parametrize(
         "response_code", [k for k in status.REVERSE_STATUS if k >= 400]
     )
     def test_dispatch_raise_for_status(self, response_code):
@@ -411,15 +291,16 @@ class TestServiceClass:
         :param monkeypatch:
         :return:
         """
+
         loop = uvloop.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        with aioresponses() as m:
-            m.get(
+        with respx.mock:
+            respx.get(
                 "http://test:8000/",
-                status=response_code,
-                payload={"hello": "hi"},
-                response_class=InsanicResponse,
+                status_code=response_code,
+                content={"hello": "hi"},
+                # response_class=InsanicResponse,
             )
 
             with pytest.raises(APIException):
@@ -438,210 +319,28 @@ class TestServiceClass:
                     assert e.status_code == response_code
                     raise e
 
-    @pytest.mark.parametrize(
-        "status_code,expected_log_level",
-        [
-            (k, logging.INFO if k < 500 else logging.ERROR)
-            for k in status.REVERSE_STATUS
-            if k >= 400
-        ],
-    )
-    @pytest.mark.parametrize("log_level", (logging.INFO, logging.ERROR))
-    def test_log_level_for_raise_for_status(
-        self, status_code, expected_log_level, log_level, caplog
-    ):
-        from insanic.utils.obfuscating import get_safe_dict
-
-        error_logger.setLevel(log_level)
-        loop = uvloop.new_event_loop()
-        asyncio.set_event_loop(loop)
-        endpoint = "http://test:8000/"
-        response = {"error": f"{status_code} error"}
-        method = random.choice(["GET", "POST", "PATCH", "DELETE", "PUT"])
-
-        payload = {"password": "asd", "username": "hello"}
-
-        with aioresponses() as m:
-            m.add(
-                endpoint,
-                method=method,
-                status=status_code,
-                payload=response,
-                response_class=InsanicResponse,
-            )
-
-            with pytest.raises(APIException):
-                try:
-
-                    response = loop.run_until_complete(
-                        self.run_dispatch(
-                            method,
-                            "/",
-                            payload=payload,
-                            files={},
-                            headers={},
-                            propagate_error=True,
-                        )
-                    )
-                except APIException as e:
-                    if log_level > expected_log_level:
-                        assert 0 == len(caplog.records)
-                    else:
-                        log_record = caplog.records[-1]
-                        assert log_record.levelno == expected_log_level
-                        assert (
-                            f"{method} {endpoint} {status_code} "
-                            f"{ujson.dumps(response)} "
-                            f"{ujson.dumps(get_safe_dict(payload))}"
-                            in log_record.message
-                        )
-
-                    raise e
-
     @pytest.mark.parametrize("extra_headers", ({}, {"content-length": 4}))
-    async def test_prepare_headers(self, extra_headers, loop):
+    async def test_inject_headers(self, extra_headers, loop):
         aiotask_context.set(
             settings.TASK_CONTEXT_REQUEST_USER, {"some": "user"}
         )
 
-        headers = self.service._prepare_headers(extra_headers)
+        headers = self.service._inject_headers(extra_headers)
 
-        required_headers = ["date", "authorization"]
+        required_headers = [
+            "date",
+            "x-insanic-request-user",
+            "x-insanic-request-id",
+        ]
 
         for h in required_headers:
             assert h in headers.keys()
 
-        assert headers["authorization"].startswith("MSA")
-        assert headers["authorization"].endswith(self.service.service_token)
-        assert len(headers["authorization"].split(" ")) == 2
-
-    @pytest.mark.parametrize(
-        "payload,files,expected_type,expect_count",
-        (
-            ({}, {}, aiohttp.JsonPayload, 0),
-            ({"a": "b"}, {}, aiohttp.JsonPayload, 1),
-            ({}, {"image": open(IMAGE_PATH, "rb")}, aiohttp.FormData, 1),
-            (
-                {},
-                {"image": [open(IMAGE_PATH, "rb"), open(IMAGE_PATH, "rb")]},
-                aiohttp.FormData,
-                2,
-            ),
-            (
-                {"a": "b"},
-                {"image": open(IMAGE_PATH, "rb")},
-                aiohttp.FormData,
-                2,
-            ),
-            (
-                {"a": "b"},
-                {"image": [open(IMAGE_PATH, "rb"), open(IMAGE_PATH, "rb")]},
-                aiohttp.FormData,
-                3,
-            ),
-            (
-                {},
-                {
-                    "image": File(
-                        "image/png",
-                        open(IMAGE_PATH, "rb").read(1024),
-                        IMAGE_PATH,
-                    )
-                },
-                aiohttp.FormData,
-                1,
-            ),
-            (
-                {},
-                {
-                    "image": [
-                        File(
-                            "image/png",
-                            open(IMAGE_PATH, "rb").read(1024),
-                            IMAGE_PATH,
-                        ),
-                        open(IMAGE_PATH, "rb"),
-                    ]
-                },
-                aiohttp.FormData,
-                2,
-            ),
-            (
-                {"a": "b"},
-                {
-                    "image": File(
-                        "image/png",
-                        open(IMAGE_PATH, "rb").read(1024),
-                        IMAGE_PATH,
-                    )
-                },
-                aiohttp.FormData,
-                2,
-            ),
-        ),
-    )
-    async def test_prepare_body(
-        self, payload, files, expected_type, expect_count
-    ):
-        headers = self.service._prepare_headers({}, files)
-
-        body = self.service._prepare_body(headers, payload, files)
-
-        assert isinstance(body, expected_type)
-
-        if expected_type == aiohttp.JsonPayload:
-            value = ujson.loads(body._value.decode())
-            assert value == payload
-        elif expected_type == aiohttp.FormData:
-            assert body.is_multipart is True
-            assert expect_count == len(body._fields)
-
-    # DEPRECATED
-    # async def test_prepare_body_error_duplicate_keys_in_payload_and_files(self):
-    #     payload = {"a": "b"}
-    #     files = {"a": open(IMAGE_PATH, "rb")}
-    #
-    #     headers = self.service._prepare_headers({}, files)
-    #
-    #     with pytest.raises(RuntimeError):
-    #         try:
-    #             self.service._prepare_body(headers, payload, files)
-    #         except RuntimeError as e:
-    #             assert e.args[0].startswith("CONFLICT ERROR:")
-    #             raise
-
-    @pytest.mark.parametrize(
-        "files",
-        (
-            {"i": "string"},
-            {"i": b"bytes"},
-            {"i": 1},
-            {"i": 1.0},
-            {"i": open(IMAGE_PATH, "rb").read(1024)},
-        ),
-    )
-    async def test_prepare_body_error_invalid_file_format(self, files):
-        payload = {"a": "b"}
-        headers = self.service._prepare_headers({}, files)
-
-        with pytest.raises(RuntimeError):
-            try:
-                self.service._prepare_body(headers, payload, files)
-            except RuntimeError as e:
-                assert e.args[0].startswith("INVALID FILE")
-                raise
-
-    async def test_lower_case_headers(self):
-        headers = self.service._prepare_headers({})
-
-        for k in headers:
-            assert k.islower()
-
     @pytest.mark.parametrize(
         "exception",
         (
-            aiohttp.client_exceptions.ClientConnectionError(),
-            aiohttp.client_exceptions.ServerDisconnectedError(),
+            TransportError("hello"),
+            HTTPStatusError("request", request="request", response="response"),
             ConnectionResetError(),
         ),
     )
@@ -658,20 +357,21 @@ class TestServiceClass:
     async def test_retry_fetch(
         self, monkeypatch, exception, method, retry_count, expected_attempts
     ):
-
         retry = []
 
         def raise_error(*args, **kwargs):
             retry.append(True)
             raise exception
 
-        self.service.session()
+        class MockRequest:  # noqa:
+            def __init__(self):
+                self.method = method
 
-        monkeypatch.setattr(self.service._session, "request", raise_error)
+        monkeypatch.setattr(self.service.client, "send", raise_error)
 
         with pytest.raises(exception.__class__):
-            await self.service._dispatch_future_fetch(
-                method, "somewhere", {}, {}, retry_count=retry_count
+            await self.service._dispatch_send(
+                MockRequest(), retry_count=retry_count
             )
 
         assert len(retry) == expected_attempts
@@ -705,32 +405,18 @@ class TestServiceClassErrorPropagations:
             try:
                 loop.run_until_complete(self.dispatch_wrapper("GET", "/"))
             except APIException as e:
-                assert e.status_code == 500
+                assert e.status_code == 503
                 raise e
 
     @pytest.mark.parametrize(
-        "raise_exception",
+        "exception_class",
         (
-            aiohttp.ClientError("{}", []),
-            aiohttp.ContentTypeError(
-                RequestInfo("http:", "GET", {}), (), message="{}"
-            ),
-            aiohttp.ClientHttpProxyError(
-                RequestInfo("http:", "GET", {}), (), message="{}"
-            ),
-            aiohttp.ClientConnectionError("{}", []),
-            aiohttp.ClientOSError("{}", []),
-            aiohttp.ClientConnectorError(
-                ConnectionKey("2.2.2.2", -1, False, False, "", "", 1), OSError()
-            ),
-            aiohttp.ServerConnectionError("{}", []),
-            aiohttp.ServerDisconnectedError("{}"),
-            aiohttp.ServerTimeoutError("{}", []),
-            aiohttp.ClientPayloadError("{}", []),
-            aiohttp.InvalidURL("hs://"),
+            # TransportError("transport error!"),
+            # HTTPStatusError("message", request="request", response="response"),
+            *httpx_exceptions(),
         ),
     )
-    def test_http_dispatch_raise_for_exception(self, raise_exception):
+    def test_http_dispatch_raise_for_httpx_exception(self, exception_class):
         """
 
 
@@ -738,16 +424,16 @@ class TestServiceClassErrorPropagations:
         :return:
         """
 
-        from aioresponses import aioresponses
-
         loop = uvloop.new_event_loop()
 
-        with aioresponses() as m:
-            m.get(
-                "http://test:8000/a",
-                exception=raise_exception,
-                response_class=InsanicResponse,
-            )
+        raise_exception = exception_class(
+            "help!",
+            request=httpx.Request("GET", "http://example.com/"),
+            response=httpx.Response(200, content=b"help me too!"),
+        )
+
+        with respx.mock:
+            respx.get("http://test:8000/a", content=raise_exception)
 
             with pytest.raises(APIException):
                 try:
@@ -755,13 +441,6 @@ class TestServiceClassErrorPropagations:
                 except APIException as e:
                     assert e
                     raise e
-
-
-class TestAioHttpCompatibility:
-    def test_client_response_error(self):
-        error = aiohttp.client_exceptions.ClientResponseError("a", "b")
-
-        assert hasattr(error, "code")
 
 
 class TestRequestTaskContext:
@@ -961,18 +640,12 @@ class TestRequestTaskContext:
 
                 assert dict(request_user) == context_user
 
-                inject_headers = UserIPService._prepare_headers({})
-
-                assert "authorization" in inject_headers
-                assert token == inject_headers["authorization"].split()[-1]
-
                 return json({"user": dict(request_user)})
 
         insanic_application.add_route(TokenView.as_view(), "/")
 
         client = await test_client(insanic_application)
-        #
-        # insanic_application.run(host='127.0.0.1', port=unused_port)
+
         users = []
         requests = []
         for _ in range(10):
@@ -1061,12 +734,6 @@ class TestRequestTaskContext:
                 assert token is not None
 
                 assert dict(request_user) == context_user
-
-                inject_headers = UserIPService._prepare_headers({})
-
-                assert "authorization" in inject_headers
-                assert token == inject_headers["authorization"].split()[-1]
-
                 return json({"user": dict(request_user)})
 
         insanic_application.add_route(TokenView.as_view(), "/")
@@ -1134,12 +801,6 @@ class TestRequestTaskContext:
                 )
 
                 assert dict(request_user) == context_user
-
-                inject_headers = UserIPService._prepare_headers({})
-
-                assert "authorization" in inject_headers
-                assert token == inject_headers["authorization"].split()[-1]
-
                 return json({"user": dict(request_user)})
 
         insanic_application.add_route(TokenView.as_view(), "/")
@@ -1207,11 +868,6 @@ class TestRequestTaskContext:
 
                 assert dict(request_user) == context_user
 
-                inject_headers = UserIPService._prepare_headers({})
-
-                assert "authorization" in inject_headers
-                assert token == inject_headers["authorization"].split()[-1]
-
                 return json({"user": dict(request_user)})
 
         insanic_application.add_route(TokenView.as_view(), "/")
@@ -1233,52 +889,3 @@ class TestRequestTaskContext:
             assert r.status == 200, resp
 
             assert resp["user"]["id"] == str(users[i].id)
-
-    async def test_client_dns_balancing(self, monkeypatch):
-        """
-        is this test needed??
-
-        :param monkeypatch:
-        :return:
-        """
-        if get_my_ip() == "127.0.0.1":
-            pytest.skip("No network configuration. No connection available!")
-
-        monkeypatch.setattr(settings, "SERVICE_CONNECTIONS", ["amazon"])
-        monkeypatch.setattr(
-            settings, "SERVICE_CONNECTION_KEEP_ALIVE_TIMEOUT", 1
-        )
-
-        from insanic.services.registry import registry
-
-        registry.reset()
-
-        from insanic.loading import get_service
-
-        amazon = get_service("amazon")
-
-        amazon_host = "amazonaws.com"
-
-        assert len(socket.gethostbyname_ex(amazon_host)[2]) > 1
-
-        monkeypatch.setattr(amazon, "host", amazon_host)
-        monkeypatch.setattr(amazon, "port", 80)
-
-        assert amazon.url.port == 80
-        assert amazon.url.host == amazon_host
-        url = amazon._construct_url("/")
-
-        remote_addrs = []
-        import time
-
-        for _ in range(5):
-            time.sleep(1)
-            async with amazon.session().request(
-                method="GET", url=url, allow_redirects=False
-            ) as resp:
-                remote_addrs.append(
-                    resp._protocol.transport.get_extra_info("peername")[0]
-                )
-
-        assert len(remote_addrs) == 5
-        assert len(set(remote_addrs)) > 1

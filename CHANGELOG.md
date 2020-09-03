@@ -5,6 +5,7 @@ Changelog for insanic
 0.8.4 (unreleased)
 ------------------
 
+- MAJOR: only supports sanic>=19.12 because of httpx dependency issues
 - MAJOR: removes all kong registration
     - HardJSONAuthentication has been removed
     - InsanicAdminView has been removed
@@ -15,10 +16,15 @@ Changelog for insanic
 - MAJOR: refactor public routes from Insanic to Router
 - MAJOR: removes testing helpers
 - MAJOR: removes translation management object
+- MAJOR: retires aiohttp for httpx
+    - moved `Service` object to client module
+    - created `adapter` module for different httpx version compatibility
+- MINOR: authentication is now only sync
 - MINOR: refactor service registry to use mapping collection
     - Move registry to registry module
     - Lazy loading for registry
 - MINOR: removes gunicorn worker interface (possibly for future implementation)
+- MINOR: removed `destination_version` in request services model
 - FEAT: tox testing for python>3.6 and sanic>19.3 versions
 - CHORE: extracts extra requirements into their own requirments files
 - CHORE: reorganizes artwork into its own directory

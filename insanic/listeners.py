@@ -17,8 +17,8 @@ async def after_server_stop_clean_up(app, loop, **kwargs):
     close_tasks = _connections.close_all()
     await close_tasks
 
-    if Service._session is not None:
-        await Service._session.close()
+    if Service._client is not None:
+        await Service._client.aclose()
         await asyncio.sleep(0)
 
     await asyncio.sleep(0)

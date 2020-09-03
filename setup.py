@@ -45,8 +45,7 @@ setup(
     ),
     install_requires=[
         "uvloop",
-        "sanic>=19.6.0",
-        "aiohttp>=3.3.0",
+        "sanic>=19.12",
         "aiodns",
         "aioredis>=1.1.0",
         "PyJWT",

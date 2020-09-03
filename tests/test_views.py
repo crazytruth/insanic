@@ -288,5 +288,5 @@ def test_sanic_error_handling(sanic_exception):
             ):
                 continue
 
-            assert k in response.headers.keys()
+            assert k.lower() in response.headers.keys()
             assert str(v) == response.headers[k]
