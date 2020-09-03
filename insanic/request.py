@@ -119,7 +119,7 @@ class Request(SanicRequest):
         by the authentication classes provided to the request.
         """
         if not hasattr(self, "_user"):
-            await self._authenticate()
+            self._authenticate()
         return self._user
 
     @user.setter
@@ -139,7 +139,7 @@ class Request(SanicRequest):
     @property
     async def service(self):
         if not hasattr(self, "_service"):
-            await self._authenticate()
+            self._authenticate()
         return self._service
 
     @service.setter
@@ -214,49 +214,7 @@ class Request(SanicRequest):
 
         return self.parsed_form
 
-    # @property
-    # def client_ip(self):
-    #     """
-    #     deprecated in favor of remote_addr
-    #     :return:
-    #     """
-    #
-    #     return self.headers.get('x-forwarded-for', '').split(",")[0] if self.headers.get('x-forwarded-for') else None
-
-    @property
-    def remote_addr(self):
-        """Attempt to return the original client ip based on X-Forwarded-For
-        or X-Real-IP. If HTTP headers are unavailable or untrusted, returns
-        an empty string.
-        :return: original client ip.
-        """
-        if not hasattr(self, "_remote_addr"):
-            if settings.PROXIES_COUNT == 0 or settings.PROXIES_COUNT is None:
-                self._remote_addr = ""
-            elif settings.FORWARDED_FOR_HEADER and self.headers.get(
-                settings.FORWARDED_FOR_HEADER
-            ):
-                forwarded_for = self.headers.get(
-                    settings.FORWARDED_FOR_HEADER, ""
-                ).split(",")
-                remote_addrs = [
-                    addr
-                    for addr in [addr.strip() for addr in forwarded_for]
-                    if addr
-                ]
-                if settings.PROXIES_COUNT == -1:
-                    self._remote_addr = remote_addrs[0]
-                elif len(remote_addrs) >= settings.PROXIES_COUNT:
-                    self._remote_addr = remote_addrs[
-                        -1 * settings.PROXIES_COUNT
-                    ]
-                else:
-                    self._remote_addr = ""
-            else:
-                self._remote_addr = ""
-        return self._remote_addr
-
-    async def _authenticate(self):
+    def _authenticate(self):
         """
         Attempt to authenticate the request using each authentication instance
         in turn.
@@ -264,7 +222,7 @@ class Request(SanicRequest):
         """
         for authenticator in self.authenticators:
             try:
-                user_auth_tuple = await authenticator.authenticate(request=self)
+                user_auth_tuple = authenticator.authenticate(request=self)
             except exceptions.APIException:
                 self._not_authenticated()
                 raise

@@ -82,8 +82,6 @@ def jwt_service_payload_handler(service):
         "source": settings.SERVICE_NAME,
         "aud": service.service_name,
         "source_ip": get_my_ip(),
-        "destination_version": "0.0.1",
-        # "user": user
     }
     return payload
 

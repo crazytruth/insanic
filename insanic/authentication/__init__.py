@@ -27,7 +27,7 @@ class BaseAuthentication(object):
     All authentication classes should extend BaseAuthentication.
     """
 
-    async def authenticate(self, **credentials):
+    def authenticate(self, **credentials):
         """
         Authenticate the request and return a two-tuple of (user, token).
         """
@@ -98,7 +98,7 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
 
         return user_id
 
-    async def authenticate_credentials(self, request, payload):
+    def authenticate_credentials(self, request, payload):
         """
         Returns an active user that matches the payload's user id and email.
         """
@@ -106,7 +106,7 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
             ".authenticate_credentials() must be overridden."
         )  # pragma: no cover
 
-    async def authenticate(self, request):
+    def authenticate(self, request):
         """
         Returns a two-tuple of `User` and token if a valid signature has been
         supplied using JWT-based authentication.  Otherwise returns `None`.
@@ -117,7 +117,7 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
             return None
 
         payload = self.try_decode_jwt(**jwt_value)
-        user, service = await self.authenticate_credentials(request, payload)
+        user, service = self.authenticate_credentials(request, payload)
 
         return user, service, jwt_value["token"]
 
@@ -147,7 +147,7 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
             self.auth_header_prefix, self.www_authenticate_realm
         )
 
-    async def authenticate_credentials(self, request, payload):
+    def authenticate_credentials(self, request, payload):
         user_id = payload.pop("id", payload.get("user_id"))
 
         user = User(id=user_id, is_authenticated=True, **payload)
@@ -172,7 +172,7 @@ class ServiceJWTAuthentication(BaseJSONWebTokenAuthentication):
         token = kwargs.pop("token")
         return handlers.jwt_service_decode_handler(token)
 
-    async def authenticate_credentials(self, request, payload):
+    def authenticate_credentials(self, request, payload):
 
         if "user" in payload:
             # to make backwards compatible with insanic version <0.5.0

@@ -200,9 +200,7 @@ class TestServiceJWTAuthentication:
             def headers(self):
                 return {}
 
-        user, service = await auth.authenticate_credentials(
-            MockRequest(), payload
-        )
+        user, service = auth.authenticate_credentials(MockRequest(), payload)
 
         assert dict(user) == dict(AnonymousUser)
 
@@ -227,9 +225,7 @@ class TestServiceJWTAuthentication:
                     )
                 }
 
-        user, service = await auth.authenticate_credentials(
-            MockRequest(), payload
-        )
+        user, service = auth.authenticate_credentials(MockRequest(), payload)
         assert dict(user) == dict(test_user)
 
     async def test_authenticate_credentials_backwards_compatible(
@@ -244,6 +240,6 @@ class TestServiceJWTAuthentication:
         token = test_service_token_factory_pre_0_4(test_user)
         payload = handlers.jwt_service_decode_handler(token.split()[1])
 
-        user, service = await auth.authenticate_credentials(object(), payload)
+        user, service = auth.authenticate_credentials(object(), payload)
 
         assert dict(user) == dict(test_user)
