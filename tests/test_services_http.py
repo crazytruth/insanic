@@ -300,7 +300,6 @@ class TestServiceClass:
                 "http://test:8000/",
                 status_code=response_code,
                 content={"hello": "hi"},
-                # response_class=InsanicResponse,
             )
 
             with pytest.raises(APIException):

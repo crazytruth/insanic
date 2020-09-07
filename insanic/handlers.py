@@ -1,17 +1,13 @@
 import ujson as json
 
 from sanic import exceptions as sanic_exceptions
-from sanic.handlers import (
-    ErrorHandler as SanicErrorHandler,
-    format_exc,
-    SanicException,
-)
+from sanic.handlers import ErrorHandler as SanicErrorHandler, format_exc
+from sanic.response import json as json_response
 
 from insanic import exceptions, status
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.log import error_logger
-from insanic.responses import json_response
 from insanic.utils import _unpack_enum_error_message
 
 
@@ -132,7 +128,7 @@ class ErrorHandler(SanicErrorHandler):
                 ),
                 headers=headers,
             )
-        elif issubclass(type(exception), SanicException):
+        elif issubclass(type(exception), sanic_exceptions.SanicException):
             # if this error is raised then, need to specify an api exeception
             response = json_response(
                 {

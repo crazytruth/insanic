@@ -2,40 +2,17 @@ import pytest
 import uuid
 import ujson as json
 
+from sanic.response import json as json_response
+
 from insanic import scopes, status
 from insanic.app import Insanic
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.exceptions import BadRequest
-from insanic.responses import json_response
 from insanic.views import InsanicView
 
 
 class TestLogFormats:
-
-    # @pytest.fixture
-    # def insanic_application(selfa, monkeypatch):
-    #     monkeypatch.setattr(scopes, 'is_docker', True)
-    #     app = Insanic('test')
-    #
-    #     class NoAuthPermView(InsanicView):
-    #         authentication_classes = []
-    #         permission_classes = []
-    #
-    #     class MockView(NoAuthPermView):
-    #         async def get(self, request, *args, **kwargs):
-    #             return json_response({}, status=status.HTTP_203_NON_AUTHORITATIVE_INFORMATION)
-    #
-    #     app.add_route(MockView.as_view(), '/log/<user_id:[0-9a-fA-F]{32}>')
-    #
-    #
-    #     yield app
-    # #
-    # @pytest.fixture
-    # def insanic_server(self, loop, insanic_application, test_server, monkeypatch):
-    #     monkeypatch.setattr(settings, 'GRPC_PORT_DELTA', 1)
-    #     return loop.run_until_complete(test_server(insanic_application))
-
     @pytest.mark.parametrize("is_json_log", (True, False,))
     @pytest.mark.parametrize(
         "endpoint,request_path,response_meta",

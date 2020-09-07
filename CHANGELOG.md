@@ -19,6 +19,7 @@ Changelog for insanic
 - MAJOR: retires aiohttp for httpx
     - moved `Service` object to client module
     - created `adapter` module for different httpx version compatibility
+- MAJOR: Removed `responses` module because issue with 204 has been fixed in sanic 19.12 and above
 - MINOR: authentication is now only sync
 - MINOR: refactor service registry to use mapping collection
     - Move registry to registry module
