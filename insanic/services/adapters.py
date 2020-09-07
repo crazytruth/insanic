@@ -12,13 +12,18 @@ from httpx.config import (
     DEFAULT_MAX_REDIRECTS,
 )
 from httpx.models import (
-    AuthTypes,
     QueryParamTypes,
     HeaderTypes,
     CookieTypes,
-    ProxiesTypes,
     URLTypes,
 )
+
+try:
+    from httpx.models import AuthTypes, ProxiesTypes
+except ImportError:
+    from httpx.auth import AuthTypes
+    from httpx.config import ProxiesTypes
+
 
 HTTPX_VERSION_CHANGE = version.parse("0.14.0")
 HTTPX_LEGACY = version.parse(__version__) < HTTPX_VERSION_CHANGE
