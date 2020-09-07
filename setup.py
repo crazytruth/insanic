@@ -16,13 +16,6 @@ def read(fname):
 
 version = "0.8.4.dev0"
 
-
-def pytest_command():
-    from commands.pytest import PyTestCommand
-
-    return PyTestCommand
-
-
 setup(
     name="insanic",
     version=version,
@@ -56,7 +49,6 @@ setup(
         "psutil==5.4.8",
     ],
     test_suite="tests",
-    cmdclass={"test": pytest_command()},
     include_package_data=True,
     zip_safe=False,
 )

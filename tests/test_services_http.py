@@ -16,6 +16,7 @@ from httpx.config import UNSET
 from sanic.response import json
 
 from insanic import status
+from insanic.adapters import match_signature
 from insanic.authentication import handlers
 from insanic.conf import settings
 from insanic.exceptions import ResponseTimeoutError, APIException
@@ -38,12 +39,12 @@ dispatch_tests = pytest.mark.parametrize("dispatch_type", ["http_dispatch"])
 
 
 def httpx_exceptions():
-    from insanic.services.adapters import HTTPX_LEGACY
+    from insanic.services.adapters import IS_HTTPX_VERSION_0_14
 
-    if HTTPX_LEGACY:
-        module_name = "httpx.exceptions"
-    else:
+    if IS_HTTPX_VERSION_0_14:
         module_name = "httpx._exceptions"
+    else:
+        module_name = "httpx.exceptions"
 
     exceptions_module = importlib.import_module(module_name)
 
@@ -425,10 +426,17 @@ class TestServiceClassErrorPropagations:
 
         loop = uvloop.new_event_loop()
 
+        response_signature = match_signature(
+            httpx.Response,
+            status_code=200,
+            content=b"help me too!",
+            request=httpx.Request("GET", "http://example.com/"),
+        )
+
         raise_exception = exception_class(
             "help!",
             request=httpx.Request("GET", "http://example.com/"),
-            response=httpx.Response(200, content=b"help me too!"),
+            response=httpx.Response(**response_signature),
         )
 
         with respx.mock:

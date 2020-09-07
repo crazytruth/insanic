@@ -248,7 +248,11 @@ class Service:
             exc = exceptions.APIException(
                 description=str(e),
                 error_code=GlobalErrorCodes.service_unavailable,
-                status_code=e.response.status_code
+                status_code=getattr(
+                    e.response,
+                    "status_code",
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
                 or status.HTTP_503_SERVICE_UNAVAILABLE,
             )
             raise exc

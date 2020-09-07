@@ -1,9 +1,20 @@
+"""
+Copyright (c) 2016-present Sanic Community
+
+Modified for framework usage
+"""
+
 import os
 import string
+from asyncio import Protocol
+from socket import socket
+from ssl import SSLContext
+from typing import Optional, Union, Type, Any
 
 from sanic import Sanic
 
 from insanic import __version__
+from insanic.adapters import match_signature
 from insanic.conf import settings
 from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import empty
@@ -143,56 +154,79 @@ class Insanic(Sanic):
 
     def run(
         self,
-        host=None,
-        port=None,
-        debug=False,
-        ssl=None,
-        sock=None,
-        workers=1,
-        protocol=None,
-        backlog=65535,
-        stop_event=None,
-        register_sys_signals=True,
-        access_log=True,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        *,
+        debug: bool = False,
+        ssl: Union[dict, SSLContext, None] = None,
+        sock: Optional[socket] = None,
+        workers: int = 1,
+        protocol: Optional[Type[Protocol]] = InsanicHttpProtocol,
+        backlog: int = 65535,
+        stop_event: Any = None,
+        register_sys_signals: bool = True,
+        access_log: Optional[bool] = True,
+        # for sanic>20.6
+        auto_reload: Optional[bool] = None,
+        unix: Optional[str] = None,
         **kwargs,
     ):
         """Run the HTTP Server and listen until keyboard interrupt or term
         signal. On termination, drain connections before closing.
 
         :param host: Address to host on
+        :type host: str
         :param port: Port to host on
+        :type port: int
         :param debug: Enables debug output (slows server)
+        :type debug: bool
+        :param auto_reload: Reload app whenever its source code is changed.
+                            Enabled by default in debug mode.
+        :type auto_relaod: bool
         :param ssl: SSLContext, or location of certificate and key
-                            for SSL encryption of worker(s)
+                    for SSL encryption of worker(s)
+        :type ssl: SSLContext or dict
         :param sock: Socket for the server to accept connections from
-        :param workers: Number of processes
-                            received before it is respected
-        :param backlog:
-        :param stop_event:
-        :param register_sys_signals:
-        :param access_log:
-        :param protocol: Subclass of asyncio protocol class
+        :type sock: socket
+        :param workers: Number of processes received before it is respected
+        :type workers: int
+        :param protocol: Subclass of asyncio Protocol class
+        :type protocol: type[Protocol]
+        :param backlog: a number of unaccepted connections that the system
+                        will allow before refusing new connections
+        :type backlog: int
+        :param stop_event: event to be triggered
+                           before stopping the app - deprecated
+        :type stop_event: None
+        :param register_sys_signals: Register SIG* events
+        :type register_sys_signals: bool
+        :param access_log: Enables writing access logs (slows server)
+        :type access_log: bool
+        :param unix: Unix socket to listen on instead of TCP port
+        :type unix: str
         :return: Nothing
         """
 
-        if protocol is None:
-            protocol = InsanicHttpProtocol
-
         logger.info(f"ATTEMPTING TO RUN INSANIC ON {host}:{port}")
-        super().run(
-            host,
-            port,
-            debug,
-            ssl,
-            sock,
-            workers,
-            protocol,
-            backlog,
-            stop_event,
-            register_sys_signals,
-            access_log,
+        signature = match_signature(
+            super(self.__class__, self).run,
+            host=host,
+            port=port,
+            debug=debug,
+            ssl=ssl,
+            sock=sock,
+            workers=workers,
+            protocol=protocol,
+            backlog=backlog,
+            stop_event=stop_event,
+            register_sys_signals=register_sys_signals,
+            access_log=access_log,
+            auto_reload=auto_reload,
+            unix=unix,
             **kwargs,
         )
+
+        super().run(**signature)
 
     def _helper(
         self,
@@ -209,6 +243,7 @@ class Insanic(Sanic):
         register_sys_signals=True,
         run_async=False,
         auto_reload=False,
+        **kwargs,
     ):
 
         if port:
@@ -221,19 +256,23 @@ class Insanic(Sanic):
 
         settings.WORKERS = workers
 
-        server_settings = super()._helper(
-            host,
-            port,
-            debug,
-            ssl,
-            sock,
-            workers,
-            loop,
-            protocol,
-            backlog,
-            stop_event,
-            register_sys_signals,
-            run_async,
-            auto_reload,
+        signature = match_signature(
+            super(self.__class__, self)._helper,
+            host=host,
+            port=port,
+            debug=debug,
+            ssl=ssl,
+            sock=sock,
+            workers=workers,
+            loop=loop,
+            protocol=protocol,
+            backlog=backlog,
+            stop_event=stop_event,
+            register_sys_signals=register_sys_signals,
+            run_async=run_async,
+            auto_reload=auto_reload,
+            **kwargs,
         )
+
+        server_settings = super()._helper(**signature)
         return server_settings
