@@ -451,6 +451,13 @@ class TestServiceClassErrorPropagations:
 
 
 class TestRequestTaskContext:
+    @pytest.fixture(autouse=True)
+    def reset_registry(self):
+        """ Need to reset registry for each test"""
+        from insanic.services.registry import registry
+
+        registry.reset()
+
     @pytest.fixture()
     def test_user(self):
         test_user_id = "a6454e643f7f4e8889b7085c466548d4"
@@ -721,12 +728,17 @@ class TestRequestTaskContext:
             assert resp["user"]["id"] == users[i].id
 
     async def test_task_context_service_http_dispatch_injection(
-        self, insanic_application, test_client, test_service_token_factory
+        self,
+        insanic_application,
+        test_client,
+        test_service_token_factory,
+        monkeypatch,
     ):
         import aiotask_context
         import asyncio
         from insanic.loading import get_service
 
+        monkeypatch.setattr(settings, "SERVICE_CONNECTIONS", ["userip"])
         UserIPService = get_service("userip")
 
         class TokenView(InsanicView):
@@ -777,12 +789,17 @@ class TestRequestTaskContext:
             assert resp["user"]["id"] == str(users[i].id)
 
     async def test_task_context_service_anonymous_http_dispatch_injection(
-        self, insanic_application, test_client, test_service_token_factory
+        self,
+        insanic_application,
+        test_client,
+        test_service_token_factory,
+        monkeypatch,
     ):
         import aiotask_context
         import asyncio
         from insanic.loading import get_service
 
+        monkeypatch.setattr(settings, "SERVICE_CONNECTIONS", ["userip"])
         UserIPService = get_service("userip")
 
         class TokenView(InsanicView):
@@ -843,12 +860,17 @@ class TestRequestTaskContext:
             assert resp["user"]["id"] == users[i].id
 
     async def test_task_context_anonymous_user_http_dispatch_injection(
-        self, insanic_application, test_client, test_user_token_factory
+        self,
+        insanic_application,
+        test_client,
+        test_user_token_factory,
+        monkeypatch,
     ):
         import aiotask_context
         import asyncio
         from insanic.loading import get_service
 
+        monkeypatch.setattr(settings, "SERVICE_CONNECTIONS", ["userip"])
         UserIPService = get_service("userip")
 
         class TokenView(InsanicView):
