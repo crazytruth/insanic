@@ -77,6 +77,11 @@ class Service:
     def host(self, value: str) -> None:
         self.url.host = value
 
+    async def close_client(self):
+        if self._client is not None:
+            await self._client.aclose()
+            await asyncio.sleep(0)
+
     def add_trace_config(self, trace_config):
         if "trace_configs" not in self.extra_session_configs:
             self.extra_session_configs["trace_configs"] = []

@@ -39,29 +39,35 @@ class LazyServiceRegistry(LazyObject):
 
 class ServiceRegistry(Mapping):
     def __init__(self):
-        self.available_services = set(
+        for s in self.available_services:
+            self.__dict__[s] = None
+
+    @property
+    def available_services(self) -> set:
+        return set(
             list(settings.SERVICE_CONNECTIONS)
             + list(settings.REQUIRED_SERVICE_CONNECTIONS)
         )
-
-        for s in self.available_services:
-            self.__dict__[s] = None
 
     def __len__(self):  # pragma: no cover
         return len(self.__dict__)
 
     def __getitem__(self, item):
         try:
-            if item not in self.available_services:
-                raise KeyError
-
             value = self.__dict__[item]
         except KeyError:
-            raise RuntimeError(
-                "{0} service does not exist. Only the following: {1}".format(
-                    item, ", ".join(self.keys())
+            if item not in self.available_services:
+                raise RuntimeError(
+                    "{0} service does not exist. Only the following: {1}".format(
+                        item, ", ".join(self.keys())
+                    )
                 )
-            )
+            else:
+                raise LookupError(
+                    "Settings for either `SERVICE_CONNECTIONS` or "
+                    "`REQUIRED_SERVICE_CONNECTIONS` must have been modified after "
+                    "initialization."
+                )
         else:
             if value is None:
                 value = Service(item)
