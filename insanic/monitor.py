@@ -107,7 +107,7 @@ def health_check(request):
     return json(
         {
             "service": settings.SERVICE_NAME,
-            "service_version": settings.SERVICE_VERSION,
+            "application_version": settings.APPLICATION_VERSION,
             "status": "OK",
             "insanic_version": __version__,
             "ip": get_my_ip(),

@@ -6,6 +6,8 @@ SERVICE_TOKEN_KEY = ""
 ADMINS = ("David", "kwangjinkim@gmail.com")
 
 DEBUG = False
+APPLICATION_VERSION = None
+ENFORCE_APPLICATION_VERSION = True
 
 # sanic default configs
 # DEFAULT_CONFIG = {
@@ -26,7 +28,6 @@ DEBUG = False
 #     "REAL_IP_HEADER": "X-Real-IP",
 # }
 KEEP_ALIVE_TIMEOUT = 60
-
 
 GRACEFUL_SHUTDOWN_TIMEOUT = 29.0  # sanic default is 15.0s
 
@@ -95,8 +96,8 @@ JWT_AUTH = {
     "JWT_VERIFY_EXPIRATION": True,
     "JWT_LEEWAY": 0,
     "JWT_EXPIRATION_DELTA": datetime.timedelta(days=7),
-    "JWT_AUDIENCE": ".mymusictaste.com",
-    "JWT_ISSUER": "mymusictaste.com",
+    "JWT_AUDIENCE": "",
+    "JWT_ISSUER": "",
     "JWT_ALLOW_REFRESH": True,
     "JWT_REFRESH_EXPIRATION_DELTA": datetime.timedelta(days=7),
     "JWT_ROLE": "user",
