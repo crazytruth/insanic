@@ -202,6 +202,16 @@ class Insanic(Sanic):
                 )
 
     def plugin_initialized(self, plugin_name: str, instance: Any) -> None:
+        """
+        Interface to attach plugin for plugin developers to use.
+        After initialization of plugin, call this!
+
+        >>> app.plugin_initialized('name_of_plugin', self)
+
+        :param plugin_name:
+        :param instance:
+        :return:
+        """
         self.initialized_plugins.update({plugin_name: instance})
 
     def run(
