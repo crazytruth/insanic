@@ -1,27 +1,21 @@
 import os
 
 import logging
-import queue
 import sys
 
 from functools import lru_cache
 
 
 @lru_cache(maxsize=1)
-def get_log_level():
+def get_log_level() -> str:
     from insanic.scopes import is_docker
 
     return os.environ.get("INSANIC_LOG_LEVEL", "INFO" if is_docker else "DEBUG")
 
 
 @lru_cache(maxsize=1)
-def get_access_log_level():
+def get_access_log_level() -> str:
     return os.environ.get("INSANIC_ACCESS_LOG_LEVEL", "INFO")
-
-
-@lru_cache(maxsize=10)
-def get_log_queue(name=None):
-    return queue.Queue(maxsize=-1)
 
 
 def get_logging_config():
@@ -102,7 +96,7 @@ def get_logging_config():
                     "service": "%(service)s",
                     "environment": "%(environment)s",
                     "insanic_version": "%(insanic_version)s",
-                    "service_version": "%(service_version)s",
+                    "application_version": "%(application_version)s",
                     "trace_id": "%(ot_trace_id)s",
                     "span_id": "%(ot_span_id)s",
                     "sampled": "%(ot_sampled)s",

@@ -5,11 +5,10 @@ Modified for framework usage
 """
 
 import os
-import string
 from asyncio import Protocol
 from socket import socket
 from ssl import SSLContext
-from typing import Optional, Union, Type, Any
+from typing import Optional, Union, Type, Any, Iterable
 
 from sanic import Sanic
 
@@ -21,8 +20,9 @@ from insanic.functional import empty
 from insanic.handlers import ErrorHandler
 from insanic.metrics import InsanicMetrics
 from insanic.monitor import blueprint_monitor
-from insanic.log import get_logging_config, error_logger, logger
+from insanic.log import get_logging_config, logger
 from insanic.protocol import InsanicHttpProtocol
+from insanic.request import Request
 from insanic.router import InsanicRouter
 from insanic.scopes import get_my_ip
 
@@ -40,51 +40,143 @@ class Insanic(Sanic):
     metrics = empty
     initialized_plugins = {}
 
-    def __init__(self, name, router=None, error_handler=None, app_config=()):
+    def __init__(
+        self,
+        name: str,
+        router: Optional[InsanicRouter] = None,
+        error_handler: Optional[ErrorHandler] = None,
+        load_env: bool = True,
+        request_class: Optional[Request] = None,
+        strict_slashes: bool = True,
+        log_config: Optional[dict] = None,
+        configure_logging: bool = True,
+        # insanic specific arguments
+        *,
+        app_config: Iterable[Union[str, object]] = (),
+        version: Optional[str] = None,
+        initialize_insanic_listeners: bool = True,
+        initialize_insanic_middlewares: bool = True,
+        attach_monitor_endpoints: bool = True,
+    ) -> None:
+        """
+        Initialize Insanic Application.
 
+        :param name:
+        :param router:
+        :param error_handler:
+        :param load_env:
+        :param request_class:
+        :param strict_slashes:
+        :param log_config:
+        :param configure_logging:
+        :param app_config: order matters! Any configs later in the
+                iterable will overwrite previous set settings
+        :param version:
+        :param initialize_insanic_listeners:
+        :param initialize_insanic_middlewares:
+        :param attach_monitor_endpoints:
+        """
         router = router or InsanicRouter()
         error_handler = error_handler or ErrorHandler()
+        request_class = request_class or Request
+        log_config = log_config or get_logging_config()
 
-        self.version = ""
-
-        for c in app_config:
-            try:
-                settings.from_pyfile(c)
-            except TypeError:
-                settings.from_object(c)
-            except FileNotFoundError:
-                pass
-
-        from insanic.request import Request
-
-        service_name = ""
-
-        for c in name:
-            if c in string.ascii_lowercase:
-                service_name += c
-            else:
-                break
         super().__init__(
-            name,
-            router,
-            error_handler,
-            strict_slashes=True,
-            log_config=get_logging_config(),
-            request_class=Request,
+            name=name,
+            router=router,
+            error_handler=error_handler,
+            load_env=load_env,
+            request_class=request_class,
+            strict_slashes=strict_slashes,
+            log_config=log_config,
+            configure_logging=configure_logging,
         )
 
+        self.initialized_plugins = {}
+
+        for c in app_config:
+            settings.from_object(c)
+
+        settings.SERVICE_NAME = name
+        self.configure_version(version)
+
+        # replace sanic's config with insanic's config
         self.config = settings
-        settings.SERVICE_NAME = service_name
+        if initialize_insanic_listeners:
+            self.initialize_listeners()
+        if initialize_insanic_middlewares:
+            self.initialize_middleware()
+        if attach_monitor_endpoints:
+            self.blueprint(
+                blueprint_monitor, url_prefix=f"/{settings.SERVICE_NAME}"
+            )
+            self.metrics = InsanicMetrics
+            self.metrics.META.info(
+                {
+                    "service": name,
+                    "application_version": settings.APPLICATION_VERSION,
+                    "status": "OK",
+                    "insanic_version": __version__,
+                    "ip": get_my_ip(),
+                }
+            )
+
+        logger.debug(
+            f"{settings.SERVICE_NAME} v{settings.APPLICATION_VERSION} service loaded."
+        )
+
+    def configure_version(self, version: str) -> None:
+        """
+        Configures the application version and sets the
+        version on settings. This is especially
+        necessary for microservices.
+
+        Precedence
+        1. `version` argument
+        2. APPLICATION_VERSION in settings
+        3. defaults to `UNKNOWN`
+
+        :param version: version of the service or application
+        :return:
+        """
+
+        if (
+            settings.ENFORCE_APPLICATION_VERSION
+            and version is None
+            and settings.APPLICATION_VERSION is None
+        ):
+            raise ImproperlyConfigured(
+                "`version` must be included. Either set "
+                "`ENFORCE_APPLICATION_VERSION` to False or include "
+                "`version` when initializing Insanic. Or just include "
+                "`APPLICATION_VERSION` in your config.`"
+            )
+        settings.APPLICATION_VERSION = (
+            version or settings.APPLICATION_VERSION or "UNKNOWN"
+        )
+
+    def initialize_listeners(self) -> None:
+        """
+        Initializes the default listeners for insanic.
+
+        :return:
+        """
 
         from insanic import listeners
 
         for module_name in dir(listeners):
             for listener in LISTENER_TYPES:
                 if module_name.startswith(listener):
-                    self.listeners[listener].append(
-                        getattr(listeners, module_name)
+                    self.register_listener(
+                        getattr(listeners, module_name), listener
                     )
 
+    def initialize_middleware(self) -> None:
+        """
+        Initializes default middlewares for insanic.
+
+        :return:
+        """
         from insanic import middleware
 
         for module_name in dir(middleware):
@@ -94,47 +186,7 @@ class Insanic(Sanic):
                         getattr(middleware, module_name), attach_to=m
                     )
 
-        self.blueprint(
-            blueprint_monitor, url_prefix=f"/{settings.SERVICE_NAME}"
-        )
-
-        def _service_version():
-            import importlib
-
-            try:
-                return importlib.import_module(
-                    f"{settings.SERVICE_NAME}"
-                ).__version__
-
-            except (ImportError, AttributeError):
-                error_logger.critical(
-                    "Please put `__version__ = 'X.X.X'`in your __init__.py"
-                )
-                if settings.MMT_ENV == "test":
-                    return "0.0.0.dev0"
-                else:
-                    raise
-
-        service_version = _service_version()
-        settings.SERVICE_VERSION = service_version
-        logger.debug(
-            f"{settings.SERVICE_NAME} v{settings.SERVICE_VERSION} service loaded."
-        )
-
-        self.metrics = InsanicMetrics
-        self.metrics.META.info(
-            {
-                "service": service_name,
-                "service_version": service_version,
-                "status": "OK",
-                "insanic_version": __version__,
-                "ip": get_my_ip(),
-            }
-        )
-
-        self.initialized_plugins = {}
-
-    def verify_plugin_requirements(self):
+    def verify_plugin_requirements(self) -> None:
         """
         Checks if the required plugins set in `REQUIRED_PLUGINS` have been
         installed and initialized.
@@ -149,7 +201,7 @@ class Insanic(Sanic):
                     f"environment but has not been initialized."
                 )
 
-    def plugin_initialized(self, plugin_name, instance):
+    def plugin_initialized(self, plugin_name: str, instance: Any) -> None:
         self.initialized_plugins.update({plugin_name: instance})
 
     def run(

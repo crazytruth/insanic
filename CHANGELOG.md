@@ -30,6 +30,7 @@ Changelog for insanic
 - CHORE: extracts extra requirements into their own requirments files
 - CHORE: reorganizes artwork into its own directory
 - CHORE: removes config that are no longer used
+- CHORE: refactors Insanic object
 
 
 0.8.3 (2019-11-21)

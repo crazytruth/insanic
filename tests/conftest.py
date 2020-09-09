@@ -6,6 +6,7 @@ from insanic import Insanic
 from insanic.authentication import handlers
 from insanic.choices import UserLevels
 from insanic.conf import settings
+from insanic.functional import empty
 from insanic.models import User
 
 from pytest_redis import factories
@@ -13,8 +14,8 @@ from pytest_redis import factories
 settings.configure(
     SERVICE_NAME="insanic",
     GATEWAY_REGISTRATION_ENABLED=False,
-    MMT_ENV="test",
     TRACING_ENABLED=False,
+    ENFORCE_APPLICATION_VERSION=False,
 )
 
 for cache_name, cache_config in settings.INSANIC_CACHES.items():
@@ -147,3 +148,9 @@ def clear_prometheus_registry():
     from insanic.metrics import InsanicMetrics
 
     InsanicMetrics.reset()
+
+
+@pytest.fixture(autouse=True)
+def reset_settings():
+    settings._wrapped = empty
+    settings.configure(SERVICE_NAME="test", ENFORCE_APPLICATION_VERSION=False)
