@@ -1,3 +1,10 @@
+"""
+Copyright (c) Django Software Foundation and individual contributors.
+All rights reserved.
+
+Modified for framework usage.
+"""
+
 import copy
 import operator
 from time import time

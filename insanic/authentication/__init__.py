@@ -1,6 +1,11 @@
 """
+Copyright © 2011-present, Encode OSS Ltd. All rights reserved.
+
+Modified for framework use.
 Provides various authentication policies.
 """
+from typing import Union
+
 import jwt
 
 from insanic import exceptions
@@ -8,6 +13,7 @@ from insanic.authentication import handlers
 from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.models import User, RequestService, AnonymousRequestService
+from insanic.request import Request
 
 UNUSABLE_PASSWORD_PREFIX = "!"
 
@@ -47,10 +53,22 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
     Token based authentication using the JSON Web Token standard.
     """
 
-    def decode_jwt(self, **kwargs):
+    def decode_jwt(self, **kwargs) -> dict:
+        """
+        decodes token with arguments
+
+        :param kwargs:
+        :return:
+        """
         return handlers.jwt_decode_handler(**kwargs)
 
-    def get_jwt_value(self, request):
+    def get_jwt_value(self, request: Request) -> Union[dict, None]:
+        """
+
+
+        :param request:
+        :return:
+        """
         auth = get_authorization_header(request).split()
 
         if not auth or str(auth[0].lower()) != self.auth_header_prefix:

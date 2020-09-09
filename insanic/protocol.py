@@ -39,20 +39,6 @@ class InsanicHttpProtocol(HttpProtocol):
                         )
                     }
                 )
-            if hasattr(response, "segment"):
-                segment = response.segment
-                if segment is not None:
-                    extra.update(
-                        {
-                            "ot_trace_id": segment.trace_id,
-                            "ot_parent_id": segment.parent_id,
-                            "ot_sampled": int(segment.sampled),
-                            "ot_duration": (
-                                segment.end_time - segment.start_time
-                            )
-                            * 1000,
-                        }
-                    )
 
             if str(response.status)[0] == "5":
                 access_logger.exception(

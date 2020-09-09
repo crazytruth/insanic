@@ -1,14 +1,14 @@
+from typing import Union
+
 import time
 
 from datetime import datetime, timezone
 from dateutil import parser
 
-import warnings
-
 VALID_UNITS = {"s": 1, "ms": 1000}
 
 
-def get_utc_timestamp():
+def get_utc_timestamp() -> float:
     """
     Returns the current utc timestamp with decimals.
 
@@ -23,7 +23,7 @@ def get_utc_timestamp():
     return time.time()
 
 
-def get_utc_datetime():
+def get_utc_datetime() -> datetime:
     """
     Returns the current utc datetime object.
 
@@ -33,32 +33,7 @@ def get_utc_datetime():
     return datetime.fromtimestamp(get_utc_timestamp(), tz=timezone.utc)
 
 
-def utc_to_datetime(timestamp=None, units=None):
-    warnings.warn(
-        "utc_to_datetime has been deprecated because the "
-        "function name is misleading. Use `timestamp_to_datetime`"
-    )
-    return timestamp_to_datetime(timestamp, units)
-
-
-def utc_milliseconds_to_datetime(timestamp):
-    warnings.warn(
-        "`utc_milliseconds_to_datetime` has been deprecated because the "
-        "function name is misleading. Use `timestamp_milliseconds_to_datetime`"
-    )
-
-    return timestamp_milliseconds_to_datetime(timestamp=timestamp)
-
-
-def utc_to_iso(timestamp=None, units_hint=None):
-    warnings.warn(
-        "`utc_to_iso` has been deprecated because the "
-        "function name is misleading. Use `timestamp_to_iso`"
-    )
-    return timestamp_to_iso(timestamp, units_hint)
-
-
-def timestamp_to_datetime(timestamp=None, units=None):
+def timestamp_to_datetime(timestamp: int = None, units: str = None) -> datetime:
     """
     Converts a timestamp to datetime. Assumes timestamp is in utc timezone.
     If not passed gets the current timestamp and converts that.
@@ -92,15 +67,7 @@ def timestamp_to_datetime(timestamp=None, units=None):
     return datetime.fromtimestamp(timestamp, tz=timezone.utc)
 
 
-def utc_seconds_to_datetime(timestamp):
-    warnings.warn(
-        "`utc_seconds_to_datetime` has been deprecated because the "
-        "function name is misleading. Use `timestamp_seconds_to_datetime`"
-    )
-    return timestamp_seconds_to_datetime(timestamp)
-
-
-def timestamp_seconds_to_datetime(timestamp):
+def timestamp_seconds_to_datetime(timestamp: Union[int, float]) -> datetime:
     """
     Wrapper for timestamp_to_datetime
 
@@ -111,18 +78,22 @@ def timestamp_seconds_to_datetime(timestamp):
     return timestamp_to_datetime(timestamp=timestamp, units="s")
 
 
-def timestamp_milliseconds_to_datetime(timestamp):
+def timestamp_milliseconds_to_datetime(
+    timestamp: Union[int, float]
+) -> datetime:
     """
     Wrapper for timestamp_to_datetime
 
     :param timestamp:
     :type timestamp: int or float
-    :return: datettime
+    :return: datetime
     """
     return timestamp_to_datetime(timestamp=timestamp, units="ms")
 
 
-def timestamp_to_iso(timestamp=None, units=None, units_hint=None):
+def timestamp_to_iso(
+    timestamp: Union[int, float] = None, units: str = None
+) -> str:
     """
     Takes a timestamp and converts it to a iso formatted string
 
@@ -130,23 +101,15 @@ def timestamp_to_iso(timestamp=None, units=None, units_hint=None):
     :param timestamp:
     :param units:
     :type units: string (ms or s)
-    :param units_hint:
     :return:
     :rtype: string
     """
-    if units_hint is not None:
-        warnings.warn(
-            "`units_hint` parameter has been deprecated in favor or `units`. "
-            "They do exactly the same thing but the change is to keep consistency."
-        )
-        units = units_hint
-
     return timestamp_to_datetime(timestamp, units).isoformat(
         timespec="milliseconds"
     )
 
 
-def iso_to_datetime(datetime_string):
+def iso_to_datetime(datetime_string: str) -> datetime:
     """
     Takes an iso formatted datetime string and tries to convert it to a datetime object
 
@@ -158,7 +121,7 @@ def iso_to_datetime(datetime_string):
     return parser.parse(datetime_string).astimezone(timezone.utc)
 
 
-def iso_to_timestamp(iso):
+def iso_to_timestamp(iso: str) -> float:
     """
     Takes an iso formatted string and tries to convert it to a timestamp
 

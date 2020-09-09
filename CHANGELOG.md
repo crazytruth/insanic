@@ -5,6 +5,7 @@ Changelog for insanic
 0.8.4 (unreleased)
 ------------------
 
+- BREAKING: `request.user` and `request.service` is now synchronous.
 - MAJOR: only supports sanic>=19.12 because of httpx dependency issues
 - MAJOR: removes all kong registration
     - HardJSONAuthentication has been removed
@@ -20,7 +21,7 @@ Changelog for insanic
     - moved `Service` object to client module
     - created `adapter` module for different httpx version compatibility
 - MAJOR: Removed `responses` module because issue with 204 has been fixed in sanic 19.12 and above
-- MINOR: authentication is now only sync
+- MINOR: authentication and permission checks are now only synchronous
 - MINOR: refactor service registry to use mapping collection
     - Move registry to registry module
     - Lazy loading for registry

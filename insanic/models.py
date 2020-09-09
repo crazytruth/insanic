@@ -3,9 +3,6 @@ from insanic.conf import settings
 
 
 class User:
-    """
-    WARNING: when updating update service.proto
-    """
 
     __slots__ = ("_is_authenticated", "id", "level")
 

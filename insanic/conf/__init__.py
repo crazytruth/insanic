@@ -117,25 +117,6 @@ class LazySettings(LazyObject):
         except AttributeError:
             return None
 
-    def _infer_app_name(self):
-        t = []
-        for root, dirs, files in os.walk("."):
-            t.append((root, dirs, files))
-
-            exclude_dirs = [
-                d for d in dirs if d.startswith(".") or d.startswith("_")
-            ]
-            for d in exclude_dirs:
-                dirs.remove(d)
-
-            if "config.py" in files:
-                return root.split(os.sep)[-1]
-
-        raise EnvironmentError(
-            "Unable to predict service_name. "
-            "Maybe you are running in a wrong working directory?"
-        )
-
 
 class UserSettingsHolder:  # pragma: no cover
     """Holder for user configured settings."""

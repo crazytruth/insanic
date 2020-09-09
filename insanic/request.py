@@ -113,7 +113,7 @@ class Request(SanicRequest):
         return self.args
 
     @property
-    async def user(self):
+    def user(self):
         """
         Returns the user associated with the current request, as authenticated
         by the authentication classes provided to the request.
@@ -137,7 +137,7 @@ class Request(SanicRequest):
         aiotask_context.set(settings.TASK_CONTEXT_REQUEST_USER, dict(value))
 
     @property
-    async def service(self):
+    def service(self):
         if not hasattr(self, "_service"):
             self._authenticate()
         return self._service

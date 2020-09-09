@@ -42,7 +42,7 @@ class InsanicView(HTTPMethodView):
         }
         return headers
 
-    async def perform_authentication(self, request):
+    def perform_authentication(self, request):
         """
         Perform authentication on the incoming request.
 
@@ -50,15 +50,15 @@ class InsanicView(HTTPMethodView):
         will instead be performed lazily, the first time either
         `request.user` or `request.auth` is accessed.
         """
-        await request.user
+        request.user
 
-    async def check_permissions(self, request):
+    def check_permissions(self, request):
         """
         Check if the request should be permitted.
         Raises an appropriate exception if the request is not permitted.
         """
         for permission in self.get_permissions():
-            if not await permission.has_permission(request, self):
+            if not permission.has_permission(request, self):
                 self.permission_denied(request)
 
     def permission_denied(self, request, message=None):
@@ -127,8 +127,8 @@ class InsanicView(HTTPMethodView):
         self.headers = self.default_response_headers  # deprecate?
 
         await self.convert_keywords()
-        await self.perform_authentication(self.request)
-        await self.check_permissions(self.request)
+        self.perform_authentication(self.request)
+        self.check_permissions(self.request)
         await self.check_throttles(self.request)
 
     async def dispatch_request(self, request, *args, **kwargs):

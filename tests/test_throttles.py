@@ -325,7 +325,7 @@ class TestScopedRateThrottle:
 
         class MockRequest:
             @property
-            async def user(self):
+            def user(self):
                 return user
 
         request = MockRequest()
@@ -548,7 +548,7 @@ class TestAnonRateThrottle:
 
         class MockRequest:
             @property
-            async def user(self):
+            def user(self):
                 return user
 
         mock_request = MockRequest()
@@ -572,7 +572,7 @@ class TestAnonRateThrottle:
                 return None
 
             @property
-            async def user(self):
+            def user(self):
                 return user
 
         mock_request = MockRequest()

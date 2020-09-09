@@ -479,10 +479,10 @@ class TestRequestTaskContext:
                 user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER)
                 assert user is not None
                 assert user == dict(test_user)
-                request_user = await request.user
+                request_user = request.user
                 assert user == dict(request_user)
 
-                service = await request.service
+                service = request.service
                 assert service.request_service == "test"
 
                 return json({"hi": "hello"})
@@ -512,10 +512,10 @@ class TestRequestTaskContext:
                 user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER)
                 assert user is not None
                 assert user == dict(test_user)
-                request_user = await request.user
+                request_user = request.user
                 assert user == dict(request_user)
 
-                service = await request.service
+                service = request.service
                 assert service.request_service == "test"
 
                 return json({"hi": "hello"})
@@ -545,10 +545,10 @@ class TestRequestTaskContext:
                 user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER)
                 assert user is not None
                 assert user == dict(test_user)
-                request_user = await request.user
+                request_user = request.user
                 assert user == dict(request_user)
 
-                service = await request.service
+                service = request.service
                 assert str(service).startswith("AnonymousService")
 
                 return json({"hi": "hello"})
@@ -577,7 +577,7 @@ class TestRequestTaskContext:
                 user = aiotask_context.get(settings.TASK_CONTEXT_REQUEST_USER)
                 assert user is not None
 
-                request_user = await request.user
+                request_user = request.user
                 assert user == dict(request_user)
 
                 payload = handlers.jwt_decode_handler(request.auth)
@@ -639,7 +639,7 @@ class TestRequestTaskContext:
                 context_user = aiotask_context.get(
                     settings.TASK_CONTEXT_REQUEST_USER
                 )
-                request_user = await request.user
+                request_user = request.user
                 handlers.jwt_decode_handler(request.auth)
 
                 token = UserIPService.service_token
@@ -689,7 +689,7 @@ class TestRequestTaskContext:
                 context_user = aiotask_context.get(
                     settings.TASK_CONTEXT_REQUEST_USER
                 )
-                request_user = await request.user
+                request_user = request.user
                 payload = handlers.jwt_decode_handler(request.auth)
 
                 assert context_user is not None
@@ -697,7 +697,7 @@ class TestRequestTaskContext:
                 payload.pop("user_id")
                 assert context_user == dict(request_user)
 
-                service = await request.service
+                service = request.service
 
                 assert service is not None
                 assert service == AnonymousRequestService
@@ -746,7 +746,7 @@ class TestRequestTaskContext:
                 context_user = aiotask_context.get(
                     settings.TASK_CONTEXT_REQUEST_USER
                 )
-                request_user = await request.user
+                request_user = request.user
                 handlers.jwt_decode_handler(request.auth)
 
                 token = UserIPService.service_token
@@ -811,7 +811,7 @@ class TestRequestTaskContext:
                 context_user = aiotask_context.get(
                     settings.TASK_CONTEXT_REQUEST_USER
                 )
-                request_user = await request.user
+                request_user = request.user
                 handlers.jwt_decode_handler(request.auth)
 
                 token = UserIPService.service_token
@@ -882,7 +882,7 @@ class TestRequestTaskContext:
                 context_user = aiotask_context.get(
                     settings.TASK_CONTEXT_REQUEST_USER
                 )
-                request_user = await request.user
+                request_user = request.user
                 assert request.auth is None
 
                 token = UserIPService.service_token

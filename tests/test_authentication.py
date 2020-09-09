@@ -1,8 +1,6 @@
 import pytest
 import uuid
 
-import requests
-
 from sanic.response import json
 
 from insanic import status, Insanic
@@ -18,56 +16,6 @@ from insanic.errors import GlobalErrorCodes
 from insanic.models import User, to_header_value, AnonymousUser
 from insanic.scopes import public_facing
 from insanic.views import InsanicView
-
-
-@pytest.fixture
-def jwt_data_getter(kong_gateway):
-    gateway = kong_gateway
-
-    created_test_user_ids = set()
-
-    def factory(user):
-        created_test_user_ids.add(user.id)
-
-        # Create test consumer
-        requests.post(
-            gateway.kong_base_url.with_path("/consumers/"),
-            json={"username": user.id},
-        )
-
-        # Generate JWT information
-        response = requests.post(
-            gateway.kong_base_url.with_path(f"/consumers/{user.id}/jwt/")
-        )
-        response.raise_for_status()
-
-        token_data = response.json()
-
-        return token_data
-
-    yield factory
-
-    for user_id in created_test_user_ids:
-        # Delete JWTs
-        response = requests.get(
-            gateway.kong_base_url.with_path(f"/consumers/{user_id}/jwt/")
-        )
-        response.raise_for_status()
-
-        jwt_ids = (response.json())["data"]
-        for jwt in jwt_ids:
-            response = requests.delete(
-                gateway.kong_base_url.with_path(
-                    f"/consumers/{user_id}/jwt/{jwt['id']}/"
-                )
-            )
-            response.raise_for_status()
-
-        # Delete test consumer
-        response = requests.delete(
-            gateway.kong_base_url.with_path(f"/consumers/{user_id}/")
-        )
-        response.raise_for_status()
 
 
 def test_base_authentication(loop):
