@@ -216,3 +216,13 @@ class TestInsanic:
         app = Insanic("good", initialize_insanic_middlewares=False)
         initialized_middleware_list = self.get_attached_middlewares(app)
         assert initialized_middleware_list == set()
+
+    def test_helper_method(self):
+        """
+        Checks if the port is set in the settings.
+
+        :return:
+        """
+        app = Insanic("taels")
+        app._helper(port=10000)
+        assert settings.SERVICE_PORT == 10000

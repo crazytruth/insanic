@@ -4,7 +4,6 @@ Copyright (c) 2016-present Sanic Community
 Modified for framework usage
 """
 
-import os
 from asyncio import Protocol
 from socket import socket
 from ssl import SSLContext
@@ -236,6 +235,9 @@ class Insanic(Sanic):
         """Run the HTTP Server and listen until keyboard interrupt or term
         signal. On termination, drain connections before closing.
 
+        Insanic overrides this because we want to use `InsanicHttpProtocol`
+        instead of Sanic's HttpProtocol.
+
         :param host: Address to host on
         :type host: str
         :param port: Port to host on
@@ -307,17 +309,6 @@ class Insanic(Sanic):
         auto_reload=False,
         **kwargs,
     ):
-
-        if port:
-            settings.SERVICE_PORT = port
-
-        try:
-            workers = int(os.environ.get("INSANIC_WORKERS", workers))
-        except ValueError:
-            workers = workers
-
-        settings.WORKERS = workers
-
         signature = match_signature(
             super(self.__class__, self)._helper,
             host=host,
@@ -337,4 +328,8 @@ class Insanic(Sanic):
         )
 
         server_settings = super()._helper(**signature)
+
+        # need to do this here because port could change
+        settings.SERVICE_PORT = server_settings.get("port")
+
         return server_settings
