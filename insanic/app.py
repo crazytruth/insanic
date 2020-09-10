@@ -230,6 +230,7 @@ class Insanic(Sanic):
         # for sanic>20.6
         auto_reload: Optional[bool] = None,
         unix: Optional[str] = None,
+        loop: None = None,
         **kwargs,
     ):
         """Run the HTTP Server and listen until keyboard interrupt or term
@@ -299,6 +300,7 @@ class Insanic(Sanic):
         debug=False,
         ssl=None,
         sock=None,
+        unix=None,
         workers=1,
         loop=None,
         protocol=InsanicHttpProtocol,
@@ -316,6 +318,7 @@ class Insanic(Sanic):
             debug=debug,
             ssl=ssl,
             sock=sock,
+            unix=unix,
             workers=workers,
             loop=loop,
             protocol=protocol,
