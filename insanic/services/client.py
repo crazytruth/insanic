@@ -75,9 +75,9 @@ class Service:
 
     @host.setter
     def host(self, value: str) -> None:
-        self.url.host = value
+        self.url.host = value  # TODO: this wont work
 
-    async def close_client(self):
+    async def close_client(self) -> None:
         if self._client is not None:
             await self._client.aclose()
             await asyncio.sleep(0)

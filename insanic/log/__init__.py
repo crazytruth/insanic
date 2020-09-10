@@ -18,7 +18,7 @@ def get_access_log_level() -> str:
     return os.environ.get("INSANIC_ACCESS_LOG_LEVEL", "INFO")
 
 
-def get_logging_config():
+def get_logging_config() -> dict:
     log_level = get_log_level()
     from insanic.scopes import is_docker
 
