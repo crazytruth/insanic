@@ -33,6 +33,7 @@ Changelog for insanic
 - CHORE: removes config that are no longer used
 - CHORE: refactors Insanic object
 - CHORE: refactor jwt handlers and authentication
+- CHORE: simplify connections module
 
 
 0.8.3 (2019-11-21)

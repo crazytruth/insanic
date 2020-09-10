@@ -31,8 +31,6 @@ KEEP_ALIVE_TIMEOUT: int = 60
 
 GRACEFUL_SHUTDOWN_TIMEOUT: float = 29.0  # sanic default is 15.0s
 
-# SERVICE_NAME = None
-
 SERVICE_CONNECTIONS: List[str] = []
 REQUIRED_SERVICE_CONNECTIONS: List[str] = []
 
@@ -44,41 +42,24 @@ SERVICE_GLOBAL_PORT: str = "8000"
 SERVICE_CONNECTOR_MAX: int = 100
 SERVICE_CONNECTOR_MAX_KEEPALIVE: int = 20
 SERVICE_TIMEOUT_TOTAL: float = 5.0
-# SERVICE_TIMEOUT_CONNECT = None
-# SERVICE_TIMEOUT_READ = None
-# SERVICE_TIMEOUT_WRITE = None
-# SERVICE_TIMEOUT_POOL = None
+# SERVICE_TIMEOUT_CONNECT: float = None
+# SERVICE_TIMEOUT_READ: float = None
+# SERVICE_TIMEOUT_WRITE: float = None
+# SERVICE_TIMEOUT_POOL: float = None
 # httpx configs - end
 
 SERVICE_CONNECTION_DEFAULT_RETRY_COUNT: int = 2
 SERVICE_CONNECTION_MAX_RETRY_COUNT: int = 4
 
-INSANIC_CACHES = {
-    "insanic": {
-        "ENGINE": "aioredis",
-        "CONNECTION_INTERFACE": "create_redis_pool",
-        "CLOSE_CONNECTION_INTERFACE": (("close",), ("wait_closed",)),
-        "DATABASE": 1,
-    },
-    "throttle": {
-        "ENGINE": "aioredis",
-        "CONNECTION_INTERFACE": "create_redis_pool",
-        "CLOSE_CONNECTION_INTERFACE": (("close",), ("wait_closed",)),
-        "DATABASE": 2,
-    },
+INSANIC_CACHES: Dict[str, dict] = {
+    "insanic": {"HOST": "localhost", "PORT": 6379, "DATABASE": 1},
+    "throttle": {"HOST": "localhost", "PORT": 6379, "DATABASE": 2},
 }
 
-CACHES = {
-    "default": {
-        "ENGINE": "aioredis",
-        "CONNECTION_INTERFACE": "create_redis_pool",
-        "CLOSE_CONNECTION_INTERFACE": (("close",), ("wait_closed",)),
-    },
+CACHES: Dict[str, dict] = {
+    "default": {"HOST": "localhost", "PORT": 6379, "DATABASE": 0},
 }
 
-REDIS_HOST = "localhost"
-REDIS_PORT = 6379
-REDIS_DB = 0
 
 TASK_CONTEXT_REQUEST_USER: str = "request_user"
 TASK_CONTEXT_CORRELATION_ID: str = "correlation_id"

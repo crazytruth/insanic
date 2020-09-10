@@ -56,11 +56,21 @@ def set_redis_connection_info(redisdb, monkeypatch):
         .split("/")[-1]
         .split(".")[1]
     )
-    db = redisdb.connection_pool.connection_kwargs["db"]
 
-    monkeypatch.setattr(settings, "REDIS_PORT", int(port))
-    monkeypatch.setattr(settings, "REDIS_HOST", "127.0.0.1")
-    monkeypatch.setattr(settings, "REDIS_DB", db)
+    insanic_caches = settings.INSANIC_CACHES.copy()
+
+    for cache_name in insanic_caches.keys():
+        insanic_caches[cache_name]["HOST"] = "127.0.0.1"
+        insanic_caches[cache_name]["PORT"] = int(port)
+
+    caches = settings.CACHES.copy()
+
+    for cache_name in caches.keys():
+        caches[cache_name]["HOST"] = "127.0.0.1"
+        caches[cache_name]["PORT"] = int(port)
+
+    monkeypatch.setattr(settings, "INSANIC_CACHES", insanic_caches)
+    monkeypatch.setattr(settings, "CACHES", caches)
 
 
 def jwt_payload_handler(user, issuer):

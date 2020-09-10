@@ -61,19 +61,14 @@ class ConnectionHandler:
         # if alias == "redis_client":
         connection_config = self.caches[alias]
 
-        if connection_config["ENGINE"] == "aioredis":
-            _pool = await aioredis.create_pool(
-                (settings.REDIS_HOST, settings.REDIS_PORT),
-                encoding="utf-8",
-                db=int(connection_config.get("DATABASE", settings.REDIS_DB)),
-                loop=self.loop,
-                minsize=1,
-                maxsize=10,
-            )
-        else:
-            raise ImproperlyConfigured(
-                "This engine has not been implemented in insanic yet."
-            )
+        _pool = await aioredis.create_pool(
+            (connection_config["HOST"], connection_config["PORT"]),
+            encoding="utf-8",
+            db=int(connection_config.get("DATABASE", 0)),
+            loop=self.loop,
+            minsize=1,
+            maxsize=10,
+        )
 
         return _pool
 
@@ -120,25 +115,9 @@ class ConnectionHandler:
 
             # if isawaitable(_conn):
             #     _conn = await _conn
-
-            close_connection_interface = self.caches[alias].get(
-                "CLOSE_CONNECTION_INTERFACE", []
-            )
-
+            _conn.close()
+            await _conn.wait_closed()
             logger.debug("Closing database connection: {0}".format(alias))
-            for close_attr in close_connection_interface:
-                close_database = _conn
-                for m in close_attr:
-                    if hasattr(close_database, m):
-                        close_database = getattr(close_database, m)
-                    else:
-                        break
-
-                if _conn != close_database:
-                    closing = close_database()
-
-                    if isawaitable(closing):
-                        await closing
         except AttributeError:
             pass
         except Exception as e:
