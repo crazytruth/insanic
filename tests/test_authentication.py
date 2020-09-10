@@ -122,7 +122,7 @@ class TestServiceJWTAuthentication:
     def test_service_auth(self, auth):
         assert (
             auth.auth_header_prefix
-            == settings.JWT_SERVICE_AUTH["JWT_AUTH_HEADER_PREFIX"].lower()
+            == settings.JWT_SERVICE_AUTH_AUTH_HEADER_PREFIX.lower()
         )
 
     def test_decode_jwt(self, auth, test_service_token_factory):
@@ -131,7 +131,7 @@ class TestServiceJWTAuthentication:
         assert token is not None
         assert (
             token.split()[0].lower()
-            == settings.JWT_SERVICE_AUTH["JWT_AUTH_HEADER_PREFIX"].lower()
+            == settings.JWT_SERVICE_AUTH_AUTH_HEADER_PREFIX.lower()
         )
 
         # payload = handlers.jwt_service_decode_handler(token.split()[1])
@@ -174,20 +174,4 @@ class TestServiceJWTAuthentication:
                 }
 
         user, service = auth.authenticate_credentials(MockRequest(), payload)
-        assert dict(user) == dict(test_user)
-
-    async def test_authenticate_credentials_backwards_compatible(
-        self, auth, test_service_token_factory_pre_0_4
-    ):
-        test_user_id = "a6454e643f7f4e8889b7085c466548d4"
-        test_user = User(
-            id=uuid.UUID(test_user_id).hex,
-            level=UserLevels.STAFF,
-            is_authenticated=True,
-        )
-        token = test_service_token_factory_pre_0_4(test_user)
-        payload = handlers.jwt_service_decode_handler(token.split()[1])
-
-        user, service = auth.authenticate_credentials(object(), payload)
-
         assert dict(user) == dict(test_user)

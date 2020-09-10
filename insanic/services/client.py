@@ -64,7 +64,7 @@ class Service:
                 timeout=timeout,
                 base_url=self.url,
                 headers={
-                    "authorization": f"{settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX']} {self.service_token}"
+                    "authorization": f"{settings.JWT_SERVICE_AUTH_AUTH_HEADER_PREFIX} {self.service_token}"
                 },
             )
         return self._client

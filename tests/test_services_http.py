@@ -649,7 +649,7 @@ class TestRequestTaskContext:
                     token,
                     settings.SERVICE_TOKEN_KEY,
                     verify=False,
-                    algorithms=[settings.JWT_SERVICE_AUTH["JWT_ALGORITHM"]],
+                    algorithms=[settings.JWT_SERVICE_AUTH_ALGORITHM],
                 )
 
                 assert dict(request_user) == context_user
@@ -821,7 +821,7 @@ class TestRequestTaskContext:
                     token,
                     settings.SERVICE_TOKEN_KEY,
                     verify=False,
-                    algorithms=[settings.JWT_SERVICE_AUTH["JWT_ALGORITHM"]],
+                    algorithms=[settings.JWT_SERVICE_AUTH_ALGORITHM],
                 )
 
                 assert dict(request_user) == context_user
@@ -892,7 +892,7 @@ class TestRequestTaskContext:
                     token,
                     settings.SERVICE_TOKEN_KEY,
                     verify=False,
-                    algorithms=[settings.JWT_SERVICE_AUTH["JWT_ALGORITHM"]],
+                    algorithms=[settings.JWT_SERVICE_AUTH_ALGORITHM],
                 )
 
                 assert dict(request_user) == context_user

@@ -85,7 +85,7 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
                 msg, error_code=GlobalErrorCodes.invalid_authorization_header
             )
 
-        return {"token": auth[1], "verify": False}
+        return {"token": auth[1], "verify": settings.JWT_AUTH_VERIFY}
 
     def try_decode_jwt(self, **jwt_value):
         try:
@@ -153,7 +153,7 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
 
     @property
     def auth_header_prefix(self):
-        return settings.JWT_AUTH["JWT_AUTH_HEADER_PREFIX"].lower()
+        return settings.JWT_AUTH_AUTH_HEADER_PREFIX.lower()
 
     def authenticate_header(self, request):
         """
@@ -184,7 +184,7 @@ class ServiceJWTAuthentication(BaseJSONWebTokenAuthentication):
 
     @property
     def auth_header_prefix(self):
-        return settings.JWT_SERVICE_AUTH["JWT_AUTH_HEADER_PREFIX"].lower()
+        return settings.JWT_SERVICE_AUTH_AUTH_HEADER_PREFIX.lower()
 
     def decode_jwt(self, **kwargs):
         token = kwargs.pop("token")
@@ -192,18 +192,14 @@ class ServiceJWTAuthentication(BaseJSONWebTokenAuthentication):
 
     def authenticate_credentials(self, request, payload):
 
-        if "user" in payload:
-            # to make backwards compatible with insanic version <0.5.0
-            user_params = payload.pop("user", None)
-        else:
-            user_params = {"id": "", "level": -1}
+        user_params = {"id": "", "level": -1}
 
-            for f in request.headers.get(
-                settings.INTERNAL_REQUEST_USER_HEADER, ""
-            ).split(";"):
-                if f:
-                    k, v = f.split("=")
-                    user_params.update({k: v})
+        for f in request.headers.get(
+            settings.INTERNAL_REQUEST_USER_HEADER, ""
+        ).split(";"):
+            if f:
+                k, v = f.split("=")
+                user_params.update({k: v})
 
         user = User(**user_params)
 

@@ -1,6 +1,10 @@
 import aiotask_context
+import datetime
+import jwt
 import pytest
 import uuid
+
+from calendar import timegm
 
 from insanic import Insanic
 from insanic.authentication import handlers
@@ -59,6 +63,26 @@ def set_redis_connection_info(redisdb, monkeypatch):
     monkeypatch.setattr(settings, "REDIS_DB", db)
 
 
+def jwt_payload_handler(user, issuer):
+
+    payload = {
+        "user_id": user.id,
+        "level": user.level,
+        "iss": issuer,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7),
+        "orig_iat": timegm(datetime.datetime.utcnow().utctimetuple()),
+        "rol": "user",
+    }
+
+    # Include original issued at time for a brand new token,
+    # to allow token refresh
+
+    if settings.JWT_AUTH_AUDIENCE is not None:
+        payload["aud"] = settings.JWT_AUTH_AUDIENCE
+
+    return payload
+
+
 @pytest.fixture(scope="session")
 def test_user_token_factory():
     # created_test_user_ids = set()
@@ -68,28 +92,20 @@ def test_user_token_factory():
             id = uuid.uuid4().hex
 
         user = User(id=id, level=level)
-        # created_test_user_ids.add(user.id)
-        # Create test consumer
-        # requests.post(f"http://kong.msa.swarm:18001/consumers/", json={'username': user.id})
 
-        # Generate JWT information
-        # response = requests.post(f'http://kong.msa.swarm:18001/consumers/{user.id}/jwt/')
-        # response.raise_for_status()
-
-        # token_data = response.json()
         mock_issuer = uuid.uuid4().hex
         mock_secret = uuid.uuid4().hex
 
-        payload = handlers.jwt_payload_handler(user, mock_issuer)
-        token = handlers.jwt_encode_handler(payload, mock_secret, "HS256")
+        payload = jwt_payload_handler(user, mock_issuer)
+        token = jwt.encode(payload, mock_secret, "HS256").decode()
 
         if return_with_user:
             return (
                 user,
-                " ".join([settings.JWT_AUTH["JWT_AUTH_HEADER_PREFIX"], token]),
+                " ".join([settings.JWT_AUTH_AUTH_HEADER_PREFIX, token]),
             )
 
-        return " ".join([settings.JWT_AUTH["JWT_AUTH_HEADER_PREFIX"], token])
+        return " ".join([settings.JWT_AUTH_AUTH_HEADER_PREFIX, token])
 
     yield factory
 
@@ -106,7 +122,7 @@ def test_service_token_factory():
         payload = handlers.jwt_service_payload_handler(service)
         return " ".join(
             [
-                settings.JWT_SERVICE_AUTH["JWT_AUTH_HEADER_PREFIX"],
+                settings.JWT_SERVICE_AUTH_AUTH_HEADER_PREFIX,
                 handlers.jwt_service_encode_handler(payload),
             ]
         )
@@ -133,7 +149,7 @@ def test_service_token_factory_pre_0_4():
 
         return " ".join(
             [
-                settings.JWT_SERVICE_AUTH["JWT_AUTH_HEADER_PREFIX"],
+                settings.JWT_SERVICE_AUTH_AUTH_HEADER_PREFIX,
                 handlers.jwt_service_encode_handler(payload),
             ]
         )
