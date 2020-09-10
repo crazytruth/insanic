@@ -4,6 +4,7 @@ import urllib.request
 import socket
 
 from functools import wraps, lru_cache
+from typing import Optional, Callable
 
 from insanic.log import error_logger
 from insanic.errors import GlobalErrorCodes
@@ -13,7 +14,9 @@ from insanic.exceptions import BadRequest
 AWS_ECS_METADATA_ENDPOINT = "169.254.170.2/v2/metadata"
 
 
-def public_facing(fn=None, *, params=None):
+def public_facing(
+    fn: Optional[Callable] = None, *, params: Optional[list] = None
+) -> Callable:
     """
     depending on usage can be used to validate query params
     @public_facing  -> does not validate query params and anything is allowed

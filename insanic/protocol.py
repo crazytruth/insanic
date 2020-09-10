@@ -1,12 +1,20 @@
 import time
 
+from sanic.response import HTTPResponse
 from sanic.server import HttpProtocol
 
 from insanic.log import access_logger
 
 
 class InsanicHttpProtocol(HttpProtocol):
-    def log_response(self, response):
+    def log_response(self, response: HTTPResponse) -> None:
+        """
+        Logs the response. More expressive than Sanic's implmenetation.
+        Is there a better way to do this?
+
+        :param response:
+        :return:
+        """
         if self.access_log:
             if self.request.url.endswith("/health/"):
                 return

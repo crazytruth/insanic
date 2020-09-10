@@ -1,3 +1,5 @@
+from typing import Union
+
 from insanic.choices import UserLevels
 from insanic.conf import settings
 
@@ -6,26 +8,34 @@ class User:
 
     __slots__ = ("_is_authenticated", "id", "level")
 
-    def __init__(self, *, id="", level=-1, is_authenticated=False, **kwargs):
+    def __init__(
+        self,
+        *,
+        id: str = "",
+        level: int = -1,
+        is_authenticated: Union[bool, int] = False,
+        **kwargs,
+    ):
         self._is_authenticated = is_authenticated
         self.id = id
 
         self.level = int(level)
 
     @property
-    def is_staff(self):
+    def is_staff(self) -> bool:
         return self.level >= UserLevels.STAFF
 
     @property
-    def is_authenticated(self):
+    def is_authenticated(self) -> int:
+        # Why did I make this int?
         return int(self.is_active and self._is_authenticated)
 
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         return self.level >= UserLevels.ACTIVE
 
     @property
-    def is_banned(self):
+    def is_banned(self) -> bool:
         return self.level == UserLevels.BANNED
 
     def __str__(self):
@@ -60,14 +70,21 @@ class RequestService:
         "is_authenticated",
     ]
 
-    def __init__(self, *, source, aud, source_ip, is_authenticated):
+    def __init__(
+        self,
+        *,
+        source: str,
+        aud: str,
+        source_ip: str,
+        is_authenticated: Union[int, bool],
+    ):
         self.request_service = source
         self.destination_service = aud
         self.source_ip = source_ip
         self.is_authenticated = is_authenticated
 
     @property
-    def is_valid(self):
+    def is_valid(self) -> bool:
         return (
             self.destination_service == settings.SERVICE_NAME
             and self.is_authenticated
@@ -95,5 +112,11 @@ AnonymousRequestService = RequestService(
 )
 
 
-def to_header_value(user):
+def to_header_value(user: User) -> str:
+    """
+    A helper method to convert the User object to str.
+
+    :param user:
+    :return:
+    """
     return ";".join([f"{k}={v}" for k, v in dict(user).items()])

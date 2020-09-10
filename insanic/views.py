@@ -1,3 +1,9 @@
+"""
+Copyright © 2011-present, Encode OSS Ltd. All rights reserved.
+
+Modified for framework usage.
+"""
+
 import asyncio
 from inspect import isawaitable
 
@@ -148,8 +154,3 @@ class InsanicView(HTTPMethodView):
         if isawaitable(response):
             response = await response
         return response
-
-
-# class InsanicAdminView(InsanicView):
-#     permission_classes = [permissions.IsAuthenticated, permissions.IsServiceOnly]
-#     authentication_classes = [authentication.HardJSONWebTokenAuthentication, ]

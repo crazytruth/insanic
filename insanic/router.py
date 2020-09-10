@@ -7,7 +7,13 @@ class InsanicRouter(SanicRouter):
         super().__init__()
 
     @property
-    def routes_public(self):
+    def routes_public(self) -> dict:
+        """
+        Gathers all the registered routes and determines if they have been
+        decorated with the public_facing decorator.
+
+        :return:
+        """
 
         _public_routes = {}
 

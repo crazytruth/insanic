@@ -19,10 +19,12 @@ from insanic.views import InsanicView
 blueprint_monitor = Blueprint("monitor", strict_slashes=True)
 
 
-# A service has an health check API endpoint (e.g. HTTP /health) that returns the health of the service.
+# A service has an health check API endpoint (e.g. HTTP /health)
+# that returns the health of the service.
 # The API endpoint handler performs various checks, such as
 #
-# the status of the connections to the infrastructure services used by the service instance
+# the status of the connections to the infrastructure services
+# used by the service instance
 # the status of the host, e.g. disk space
 # application specific logic
 
@@ -49,6 +51,15 @@ async def response_time(func, *args, **kwargs):
 
 
 class PingPongView(InsanicView):
+    """
+    The view gets all the connections to other services
+     defined in settings to send a ping and replies with
+     a pong. Depth can be set to determine how far in the
+     mesh you want to traverse. Useful for creating a
+     trace diagram of who talks to who.
+
+    """
+
     authentication_classes = []
     permission_classes = []
 
@@ -104,6 +115,13 @@ blueprint_monitor.add_route(
 
 @blueprint_monitor.route(HEALTH_ENDPOINT)
 def health_check(request):
+    """
+    Basic health check. Provides basic information about the
+    application.
+
+    :param request:
+    :return:
+    """
     return json(
         {
             "service": settings.SERVICE_NAME,
@@ -118,6 +136,10 @@ def health_check(request):
 
 @blueprint_monitor.route(METRICS_ENDPOINT, methods=("GET",))
 def metrics(request):
+    """
+    Basic metrics of the application and machine/container.
+
+    """
 
     p = psutil.Process()
 

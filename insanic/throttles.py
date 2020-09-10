@@ -1,5 +1,13 @@
+"""
+Copyright © 2011-present, Encode OSS Ltd. All rights reserved.
+
+Modified for framework usage.
+"""
+
 import time
 import ujson as json
+from sanic.request import Request
+from sanic.views import HTTPMethodView
 
 from insanic.conf import settings
 from insanic.connections import get_connection
@@ -13,32 +21,13 @@ class BaseThrottle(object):
     Rate throttling of requests.
     """
 
-    async def allow_request(self, request, view):
+    async def allow_request(self, request, view) -> bool:
         """
         Return `True` if the request should be allowed, `False` otherwise.
         """
         raise NotImplementedError(".allow_request() must be overridden")
 
-    # def get_ident(self, request):
-    #     """
-    #     Identify the machine making the request by parsing HTTP_X_FORWARDED_FOR
-    #     if present and number of proxies is > 0. If not use all of
-    #     HTTP_X_FORWARDED_FOR if it is available, if not use REMOTE_ADDR.
-    #     """
-    #     xff = request.headers.get(settings.FORWARDED_FOR_HEADER)
-    #     remote_addr = request.ip
-    #     num_proxies = settings.PROXIES_COUNT
-    #
-    #     if num_proxies is not -1:
-    #         if num_proxies == 0 or xff is None:
-    #             return remote_addr
-    #         addrs = xff.split(',')
-    #         client_addr = addrs[-min(num_proxies, len(addrs))]
-    #         return client_addr.strip()
-    #
-    #     return ''.join(xff.split()) if xff else remote_addr
-
-    def get_ident(self, request):
+    def get_ident(self, request: Request) -> str:
 
         xff = request.headers.get(settings.FORWARDED_FOR_HEADER)
         remote_addr = request.remote_addr
@@ -48,7 +37,7 @@ class BaseThrottle(object):
             return remote_addr
         return "".join(xff.split()) if xff else remote_addr
 
-    def wait(self):
+    def wait(self) -> int:
         """
         Optionally, return a recommended number of seconds to wait before
         the next request.
@@ -76,7 +65,9 @@ class SimpleRateThrottle(BaseThrottle):
             self.rate = self.get_rate()
         self.num_requests, self.duration = self.parse_rate(self.rate)
 
-    async def get_cache_key(self, request, view):
+    async def get_cache_key(
+        self, request: Request, view: HTTPMethodView
+    ) -> str:
         """
         Should return a unique cache-key which can be used for throttling.
         Must be overridden.
@@ -84,7 +75,7 @@ class SimpleRateThrottle(BaseThrottle):
         """
         raise NotImplementedError(".get_cache_key() must be overridden")
 
-    def get_rate(self):
+    def get_rate(self) -> str:
         """
         Determine the string representation of the allowed request rate.
         """
@@ -101,7 +92,7 @@ class SimpleRateThrottle(BaseThrottle):
             msg = "No default throttle rate set for '%s' scope" % self.scope
             raise ImproperlyConfigured(msg)
 
-    def parse_rate(self, rate):
+    def parse_rate(self, rate: str) -> tuple:
         """
         Given the request rate string, return a two tuple of:
         <allowed number of requests>, <period of time in seconds>
@@ -113,7 +104,9 @@ class SimpleRateThrottle(BaseThrottle):
         duration = {"s": 1, "m": 60, "h": 3600, "d": 86400}[period[0]]
         return (num_requests, duration)
 
-    async def allow_request(self, request, view):
+    async def allow_request(
+        self, request: Request, view: HTTPMethodView
+    ) -> bool:
         """
         Implement the check to see if the request should be throttled.
         On success calls `throttle_success`.
@@ -141,7 +134,7 @@ class SimpleRateThrottle(BaseThrottle):
             return self.throttle_failure()
         return await self.throttle_success()
 
-    async def throttle_success(self):
+    async def throttle_success(self) -> bool:
         """
         Inserts the current request's timestamp along with the key
         into the cache.
@@ -154,13 +147,13 @@ class SimpleRateThrottle(BaseThrottle):
             )
         return True
 
-    def throttle_failure(self):
+    def throttle_failure(self) -> bool:
         """
         Called when a request to the API has failed due to throttling.
         """
         return False
 
-    def wait(self):
+    def wait(self) -> int:
         """
         Returns the recommended next request time in seconds.
         """
@@ -184,7 +177,9 @@ class AnonRateThrottle(SimpleRateThrottle):
 
     scope = "anon"
 
-    async def get_cache_key(self, request, view):
+    async def get_cache_key(
+        self, request: Request, view: HTTPMethodView
+    ) -> str:
         user = request.user
         if user.is_authenticated:
             return None  # Only throttle unauthenticated requests.
@@ -205,7 +200,9 @@ class UserRateThrottle(SimpleRateThrottle):
 
     scope = "user"
 
-    async def get_cache_key(self, request, view):
+    async def get_cache_key(
+        self, request: Request, view: HTTPMethodView
+    ) -> str:
         user = request.user
         if user.is_authenticated:
             ident = user.id
@@ -230,7 +227,9 @@ class ScopedRateThrottle(SimpleRateThrottle):
         # the rate until called by the view.
         pass
 
-    async def allow_request(self, request, view):
+    async def allow_request(
+        self, request: Request, view: HTTPMethodView
+    ) -> bool:
         # We can only determine the scope once we're called by the view.
         self.scope = getattr(view, self.scope_attr, None)
 
@@ -248,7 +247,9 @@ class ScopedRateThrottle(SimpleRateThrottle):
             request, view
         )
 
-    async def get_cache_key(self, request, view):
+    async def get_cache_key(
+        self, request: Request, view: HTTPMethodView
+    ) -> str:
         """
         If `view.throttle_scope` is not set, don't apply this throttle.
         Otherwise generate the unique cache key by concatenating the user id

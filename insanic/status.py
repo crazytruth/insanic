@@ -1,8 +1,13 @@
 """
+Copyright © 2011-present, Encode OSS Ltd. All rights reserved.
+
 Descriptive HTTP status codes, for code readability.
 
 See RFC 2616 - http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
 And RFC 6585 - http://tools.ietf.org/html/rfc6585
+
+Added status code and reverse for framework usage.
+
 """
 HTTP_100_CONTINUE = 100
 HTTP_101_SWITCHING_PROTOCOLS = 101
