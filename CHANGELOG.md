@@ -32,6 +32,7 @@ Changelog for insanic
 - CHORE: reorganizes artwork into its own directory
 - CHORE: removes config that are no longer used
 - CHORE: refactors Insanic object
+- CHORE: refactor jwt handlers and authentication
 
 
 0.8.3 (2019-11-21)
