@@ -10,7 +10,7 @@ import operator
 from time import time
 
 
-class cached_property_with_ttl(object):
+class cached_property_with_ttl(object):  # pragma: no cover
     """
     A property that is only computed once per instance and then replaces itself
     with an ordinary attribute. Setting the ttl to a number expresses how long
@@ -64,7 +64,7 @@ class cached_property_with_ttl(object):
             self.__module__ = func.__module__
 
 
-class cached_property(object):
+class cached_property(object):  # pragma: no cover
     """
     Decorator that converts a method with a single self argument into a
     property cached on the instance.
@@ -83,7 +83,7 @@ class cached_property(object):
 empty = object()
 
 
-def new_method_proxy(func):
+def new_method_proxy(func):  # pragma: no cover
     def inner(self, *args):
         if self._wrapped is empty:
             self._setup()
@@ -92,7 +92,7 @@ def new_method_proxy(func):
     return inner
 
 
-class LazyObject(object):
+class LazyObject(object):  # pragma: no cover
     """
     A wrapper for another class that can be used to delay instantiation of the
     wrapped class.

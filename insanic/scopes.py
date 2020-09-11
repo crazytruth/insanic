@@ -132,9 +132,9 @@ def get_my_ip():
             ip = s.getsockname()[0]
         except OSError:
             error_logger.error("No network! Skipping with local ip.")
+            ip = "127.0.0.1"
         finally:
             s.close()
-
         return ip
 
 

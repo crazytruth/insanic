@@ -128,3 +128,21 @@ def test_iso_to_datetime(test_string):
     test_datetime = datetime(2000, 1, 1, 0, 0, 0, 0, timezone.utc)
 
     assert test_datetime == insanic_datetime.iso_to_datetime(test_string)
+
+
+@pytest.mark.parametrize(
+    "test_string",
+    [
+        "2000-01-01T00:00:00.000000+00:00",
+        "2000-01-01T00:00:00.000000+0000",
+        "2000-01-01T00:00:00.000000+00",
+        "2000-01-01T00:00:00.000+00",
+        "2000-01-01T00:00:00+00",
+    ],
+)
+def test_iso_to_timestamp(test_string):
+    test_datetime = datetime(2000, 1, 1, 0, 0, 0, 0, timezone.utc).timestamp()
+
+    result = insanic_datetime.iso_to_timestamp(test_string)
+    assert test_datetime == result
+    assert isinstance(result, float)

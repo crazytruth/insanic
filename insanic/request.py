@@ -8,21 +8,17 @@ import aiotask_context
 import time
 import uuid
 
-from cgi import parse_header
-from urllib.parse import parse_qs
 from typing import TYPE_CHECKING
 
 from sanic.exceptions import InvalidUsage
 from sanic.request import (
     Request as SanicRequest,
     RequestParameters,
-    parse_multipart_form,
 )
 
 from insanic import exceptions
 from insanic.conf import settings
 from insanic.functional import empty
-from insanic.log import error_logger
 from insanic.models import User, RequestService
 
 if TYPE_CHECKING:
@@ -216,32 +212,6 @@ class Request(SanicRequest):
                         v = self.parsed_files.getlist(k)
                         self.parsed_data.update({k: v})
         return self.parsed_data
-
-    @property
-    def form(self) -> RequestParameters:
-        if self.parsed_form is None:
-            self.parsed_form = RequestParameters()
-            self.parsed_files = RequestParameters()
-            content_type = self.headers.get(
-                "Content-Type", DEFAULT_HTTP_CONTENT_TYPE
-            )
-            content_type, parameters = parse_header(content_type)
-            try:
-                if content_type == "application/x-www-form-urlencoded":
-                    self.parsed_form = RequestParameters(
-                        parse_qs(self.body.decode("utf-8"))
-                    )
-                elif content_type == "multipart/form-data":
-                    # TODO: Stream this instead of reading to/from memory
-                    boundary = parameters["boundary"].encode("utf-8")
-                    (
-                        self.parsed_form,
-                        self.parsed_files,
-                    ) = parse_multipart_form(self.body, boundary)
-            except Exception:
-                error_logger.exception("Failed when parsing form")
-
-        return self.parsed_form
 
     def _authenticate(self) -> None:
         """

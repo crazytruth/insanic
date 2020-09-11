@@ -62,7 +62,7 @@ class ServiceRegistry(Mapping):
                         item, ", ".join(self.keys())
                     )
                 )
-            else:
+            else:  # pragma: no cover
                 raise LookupError(
                     "Settings for either `SERVICE_CONNECTIONS` or "
                     "`REQUIRED_SERVICE_CONNECTIONS` must have been modified after "
