@@ -135,6 +135,10 @@ $ tox
 
 _For full changelogs, please refer to the [CHANGELOG][changelog]._
 
+## Contributing
+
+For guidance on setting up a development environment and how to make a contribution to Insanic,
+see the contributing guidelines.
 
 ## Meta
 
@@ -158,7 +162,8 @@ Thanks to all the people at MyMusicTaste that worked with me to make this possib
 - Releases: https://pypi.org/project/insanic/
 - Code: https://www.github.com/crazytruth/insanic/
 - Issue Tracker: https://www.github.com/crazytruth/insanic/issues
-
+- Sanic Documentation: https://sanic.readthedocs.io/en/latest/index.html
+- Sanic Repository:
 
 
 <!-- Markdown link & img dfn's -->
