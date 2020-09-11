@@ -5,32 +5,29 @@
 #    pip-compile tests.in
 #
 aiohttp==3.6.2            # via pytest-sanic
-appdirs==1.4.4            # via virtualenv
+appdirs==1.4.4            # via black, virtualenv
 async-generator==1.10     # via pytest-sanic
 async-timeout==3.0.1      # via aiohttp
-asynctest==0.13.0         # via -r tests.in, respx
+asynctest==0.13.0         # via -r tests.in
 attrs==19.3.0             # via aiohttp, pytest
-certifi==2020.6.20        # via httpx, requests
-chardet==3.0.4            # via aiohttp, httpx, requests
-contextvars==2.4          # via sniffio
+black==20.8b1             # via -r tests.in
+certifi==2020.6.20        # via requests
+chardet==3.0.4            # via aiohttp, requests
+click==7.1.2              # via black
 coverage==5.2.1           # via -r tests.in, pytest-cov
+dataclasses==0.7          # via black
 distlib==0.3.1            # via virtualenv
 filelock==3.0.12          # via tox, virtualenv
-h11==0.9.0                # via httpx
-h2==3.2.0                 # via httpx
-hpack==3.0.0              # via h2
-hstspreload==2020.9.2     # via httpx
-httpx==0.11.0             # via respx
-hyperframe==5.2.0         # via h2
 idna-ssl==1.1.0           # via aiohttp
-idna==2.10                # via httpx, idna-ssl, requests, yarl
-immutables==0.14          # via contextvars
+idna==2.10                # via idna-ssl, requests, yarl
 importlib-metadata==1.7.0  # via pluggy, pytest, tox, virtualenv
 importlib-resources==3.0.0  # via virtualenv
 mirakuru==2.3.0           # via pytest-redis
 more-itertools==8.4.0     # via pytest
 multidict==4.7.6          # via aiohttp, yarl
+mypy-extensions==0.4.3    # via black
 packaging==20.4           # via pytest, tox
+pathspec==0.8.0           # via black
 pluggy==0.13.1            # via pytest, tox
 port-for==0.4             # via pytest-redis
 psutil==5.7.2             # via mirakuru
@@ -41,16 +38,14 @@ pytest-redis==2.0.0       # via -r tests.in
 pytest-sanic==1.6.1       # via -r tests.in
 pytest==5.4.3             # via -r tests.in, pytest-cov, pytest-redis, pytest-sanic
 redis==3.5.3              # via pytest-redis
+regex==2020.7.14          # via black
 requests==2.24.0          # via -r tests.in
-respx==0.8.3              # via -r tests.in
-rfc3986==1.4.0            # via httpx
 six==1.15.0               # via packaging, tox, virtualenv
-sniffio==1.1.0            # via httpx
-toml==0.10.1              # via tox
-tox-pyenv==1.1.0          # via -r tests.in
-tox==3.19.0               # via -r tests.in, tox-pyenv
-typing-extensions==3.7.4.2  # via aiohttp, yarl
-urllib3==1.25.10          # via httpx, requests
+toml==0.10.1              # via black, tox
+tox==3.19.0               # via -r tests.in
+typed-ast==1.4.1          # via black
+typing-extensions==3.7.4.2  # via aiohttp, black, yarl
+urllib3==1.25.10          # via requests
 virtualenv==20.0.31       # via tox
 wcwidth==0.2.5            # via pytest
 yarl==1.5.0               # via aiohttp

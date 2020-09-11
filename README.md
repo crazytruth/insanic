@@ -137,8 +137,6 @@ see the contributing guidelines.
 ## Meta
 
 - [Kwang Jin Kim](https://github.com/crazytruth)
-- [Sunghyun Lee](https://github.com/sunghyun-lee)
-- [Jaemyun Lee](https://github.com/jaemyunlee)
 
 Distributed under the MIT license. See ``LICENSE`` for more information.
 
