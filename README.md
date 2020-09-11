@@ -1,4 +1,4 @@
-<img src="https://github.com/crazytruth/insanic/blob/master/insanic.png" width="200">
+<img src="https://github.com/crazytruth/insanic/blob/master/artwork/insanic.png" width="200">
 
 # insanic
 
