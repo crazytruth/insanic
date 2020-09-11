@@ -84,7 +84,7 @@ class PingPongView(InsanicView):
                         {
                             s: asyncio.ensure_future(
                                 response_time(
-                                    service.dispatch,
+                                    service.http_dispatch,
                                     "GET",
                                     f"/{s}/ping/",
                                     query_params={"depth": depth - 1},

@@ -75,7 +75,15 @@ class Service:
 
     @host.setter
     def host(self, value: str) -> None:
-        self.url.host = value  # TODO: this wont work
+        self.url = self.url.copy_with(host=value)
+
+    @property
+    def port(self) -> int:
+        return self.url.port
+
+    @port.setter
+    def port(self, value: int) -> None:
+        self.url = self.url.copy_with(port=value)
 
     async def close_client(self) -> None:
         if self._client is not None:
