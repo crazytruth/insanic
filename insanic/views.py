@@ -28,6 +28,7 @@ class InsanicView(HTTPMethodView):
     permission_classes = [permissions.IsAuthenticated]
     throttle_classes = []
     authentication_classes = [
+        authentication.ServiceJWTAuthentication,
         authentication.JSONWebTokenAuthentication,
     ]
 
@@ -116,9 +117,7 @@ class InsanicView(HTTPMethodView):
         """
         Instantiates and returns the list of authenticators that this view can use.
         """
-        return [authentication.ServiceJWTAuthentication()] + [
-            auth() for auth in self.authentication_classes
-        ]
+        return [auth() for auth in self.authentication_classes]
 
     async def convert_keywords(self):
         pass
