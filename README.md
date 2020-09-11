@@ -4,10 +4,10 @@
 
 > A microservice framework that extends [sanic](sanic).
 
-Think of this as django-rest-framework is to django but for microservice usage (and a lot less functionality than drf).
-
-Insanic is a very opinionated framework.  It tries to include all the best practices for
+Insanic is a pretty opinionated framework.  It tries to include all the best practices for
 developing in a microservice architecture.  To do this certain technologies needed to be used.
+
+Think of this as django-rest-framework is to django but for microservice usage (and a lot less functionality than drf).
 
 ### Why we need this
 
@@ -19,7 +19,7 @@ bootstraps the application for quick cycle time between idea and deployment.
 
 ### FEATURES:
 
-- Authentication and Authorization (like drf)
+- Authentication and Authorization for Users and other Services (like drf)
 - Easy Service Requests
 - Normalized Error Message Formats
 - Connection manager to redis
