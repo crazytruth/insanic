@@ -49,12 +49,6 @@ To install:
 pip install insanic
 ```
 
-OR to install from source:
-
-``` bash
-pip install git+https://github.com/MyMusicTaste/insanic.git
-```
-
 ## Usage
 
 For very basic usage, it is pretty much the same as Sanic:
