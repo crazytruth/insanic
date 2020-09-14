@@ -48,3 +48,6 @@ jobs:
     - name: Test with tox
       run: |
         tox -e${{ matrix.sanic-version }}
+    - name: Check lint
+      run: |
+        tox -estyle
