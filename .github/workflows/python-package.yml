@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.6, 3.7, 3.8]
-#        sanic-version: [1912, 2003, 2006]
+        sanic-version: [1912, 2003, 2006]
 
     # Service containers to run with `runner-job`
     services:
@@ -47,4 +47,4 @@ jobs:
         pip install tox-gh-actions
     - name: Test with tox
       run: |
-        tox
+        tox -esanic${{ matrix.sanic-version }}
