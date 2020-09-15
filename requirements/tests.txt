@@ -15,7 +15,7 @@ certifi==2020.6.20        # via requests
 chardet==3.0.4            # via aiohttp, requests
 click==7.1.2              # via black
 coverage==5.2.1           # via -r tests.in, pytest-cov
-dataclasses==0.7          # via black
+dataclasses==0.7 ; python_version < "3.7"  # via -r tests.in, black
 distlib==0.3.1            # via virtualenv
 filelock==3.0.12          # via tox, virtualenv
 idna-ssl==1.1.0           # via aiohttp
