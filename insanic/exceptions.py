@@ -1,4 +1,7 @@
 import math
+from enum import Enum
+from typing import Optional
+
 from insanic.errors import GlobalErrorCodes
 from insanic import status
 
@@ -26,11 +29,15 @@ class APIException(Exception):
     error_code = GlobalErrorCodes.unknown_error
     i18n = False
 
-    def __init__(self, description=None, *, error_code=None, status_code=None):
-        if description is not None:
-            self.description = description
-        else:
-            self.description = self.message
+    def __init__(
+        self,
+        description: Optional[str] = None,
+        *,
+        error_code: Optional[Enum] = None,
+        status_code: Optional[int] = None,
+    ):
+
+        self.description = description or self.message
 
         if status_code is not None:
             self.status_code = status_code
