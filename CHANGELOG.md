@@ -29,6 +29,8 @@ Changelog for insanic
 - MINOR: removed `destination_version` in request services model
 - MINOR: moved `ServiceJWTAuthentication to authenication_classes`
 - FEAT: tox testing for python>3.6 and sanic>19.3 versions
+- FEAT: new deprecation decorator!
+- REMOVAL: removed cache_get_decorator. There are better implementations out there.
 - CHORE: extracts extra requirements into their own requirments files
 - CHORE: reorganizes artwork into its own directory
 - CHORE: removes config that are no longer used
