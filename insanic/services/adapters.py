@@ -182,3 +182,9 @@ class AsyncClient(HTTPXClient):
             trust_env=trust_env,
             **kwargs,
         )
+
+    def aclose(self):
+        if hasattr(super(), "aclose"):
+            return super().aclose()
+        else:
+            return super().close()
