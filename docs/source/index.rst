@@ -15,6 +15,10 @@
    insanic/status_codes
    insanic/request_object
    insanic/authentication_and_permissions
+   insanic/router
+   insanic/intra_service_communications
+   insanic/monitoring_and_health_checks
+   insanic/deprecation_decorator
 
 
 API Reference
