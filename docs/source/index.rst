@@ -14,11 +14,13 @@
    insanic/errors_and_exceptions
    insanic/status_codes
    insanic/request_object
+   insanic/logging
    insanic/authentication_and_permissions
    insanic/router
    insanic/intra_service_communications
    insanic/monitoring_and_health_checks
    insanic/deprecation_decorator
+   insanic/contributing
 
 
 API Reference
