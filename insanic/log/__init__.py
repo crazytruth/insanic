@@ -1,5 +1,4 @@
 import os
-
 import logging
 import sys
 
@@ -114,7 +113,7 @@ def get_logging_config() -> dict:
         },
     )
 
-    if os.getenv("LOG_TYPE", "json") == "access":
+    if os.getenv("LOG_TYPE", "access") == "access":
         LOGGING_CONFIG_DEFAULTS["handlers"]["console"]["formatter"] = "generic"
         LOGGING_CONFIG_DEFAULTS["handlers"]["error_console"][
             "formatter"
