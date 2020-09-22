@@ -11,7 +11,7 @@ Changelog for insanic
     - HardJSONAuthentication has been removed
     - InsanicAdminView has been removed
 - MAJOR: removes VaultConfig settings for less opinionated configs
-    - Streamlines sanic and config config initialization
+    - Streamlines sanic and config initialization
     - Updated tests to reflect changes
     - Removes hvac from required dependencies
 - MAJOR: refactor public routes from Insanic to Router
