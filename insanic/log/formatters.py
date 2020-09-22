@@ -39,7 +39,6 @@ class JSONFormatter(logging.Formatter):
                 "application_version": settings.get(
                     "APPLICATION_VERSION", None
                 ),
-                "squad": settings.get("SQUAD", None),
             }
 
         try:

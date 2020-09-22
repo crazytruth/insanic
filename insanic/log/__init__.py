@@ -111,8 +111,6 @@ def get_logging_config() -> dict:
                     "method": "%(method)s",
                     "path": "%(path)s",
                     "uri_template": "%(uri_template)s",
-                    # added in 0.8.0
-                    "squad": "%(squad)s",
                 },
                 "datefmt": "%Y-%m-%dT%H:%M:%S.%%(msecs)d%z",
             },
