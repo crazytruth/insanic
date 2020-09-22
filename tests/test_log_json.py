@@ -4,7 +4,7 @@ import ujson as json
 
 from sanic.response import json as json_response
 
-from insanic import scopes, status
+from insanic import status
 from insanic.app import Insanic
 from insanic.errors import GlobalErrorCodes
 from insanic.exceptions import BadRequest
@@ -12,7 +12,7 @@ from insanic.views import InsanicView
 
 
 class TestLogFormats:
-    @pytest.mark.parametrize("is_json_log", (True, False,))
+    @pytest.mark.parametrize("log_type", ("json", "access",))
     @pytest.mark.parametrize(
         "endpoint,request_path,response_meta",
         (
@@ -33,7 +33,7 @@ class TestLogFormats:
     )
     def test_log_json(
         self,
-        is_json_log,
+        log_type,
         monkeypatch,
         caplog,
         endpoint,
@@ -43,7 +43,7 @@ class TestLogFormats:
         """
         test added for 0.6.8.  Added `error_code`, `method`, `path`, `view` in json formatters
         """
-        monkeypatch.setattr(scopes, "is_docker", is_json_log)
+        monkeypatch.setenv("LOG_TYPE", log_type)
         app = Insanic("test")
 
         class NoAuthPermView(InsanicView):
@@ -109,7 +109,7 @@ class TestLogFormats:
     def test_exception_logging(
         self, exc, expected_message, capsys, monkeypatch
     ):
-        monkeypatch.setattr(scopes, "is_docker", True)
+        monkeypatch.setenv("LOG_TYPE", "json")
         Insanic("test")
         from insanic.log import error_logger
 

@@ -37,6 +37,7 @@ Changelog for insanic
 - CHORE: refactors Insanic object
 - CHORE: refactor jwt handlers and authentication
 - CHORE: simplify connections module
+- REFACTOR: removes is_docker constant for more flexibility
 
 
 0.8.3 (2019-11-21)

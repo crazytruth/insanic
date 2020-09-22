@@ -1,6 +1,5 @@
 import inspect
 import os
-import urllib.request
 import socket
 
 from functools import wraps, lru_cache
@@ -85,33 +84,10 @@ def public_facing(
 
 
 @lru_cache(maxsize=1)
-def _is_docker():
-    try:
-        r = urllib.request.urlopen(
-            "http://" + AWS_ECS_METADATA_ENDPOINT, timeout=0.5
-        )
-
-        return r.status == 200
-    except Exception:
-        try:
-            with open("/proc/self/cgroup", "r") as proc_file:
-                for line in proc_file:
-                    fields = line.strip().split("/")
-                    if fields[1] == "docker":
-                        return True
-        except FileNotFoundError:
-            pass
-    return False
-
-
-is_docker = _is_docker()
-
-
-@lru_cache(maxsize=1)
 def get_machine_id():
-    if is_docker:
-        machine_id = os.environ.get("HOSTNAME")
-    else:
+    try:
+        machine_id = os.environ["HOSTNAME"]
+    except KeyError:
         ip = get_my_ip()
         machine_id = "{:02X}{:02X}{:02X}{:02X}".format(*map(int, ip.split(".")))
     return machine_id
