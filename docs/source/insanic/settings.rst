@@ -103,7 +103,7 @@ Loading settings from Environment
 
 To load settings from environment variables,
 the environment variables must be prefixed
-with a prefix. The default prefix is `INSANIC`.
+with a prefix. The default prefix is :code:`INSANIC_`.
 
 .. code-block:: bash
 
@@ -120,7 +120,7 @@ and to use the settings:
 
 
 See Also
-------------
+---------
 
-Take a look at the `global variables<api/settings>`_ on the
+Take a look at the :doc:`global variables <global_settings>` for a
 complete list of global config values used in :code:`Insanic`.

@@ -1,5 +1,5 @@
-Error Handling in Insanic
-===========================
+Error Handling
+===============
 
 .. note::
 
@@ -117,7 +117,7 @@ by Insanic's Error Handler to a JSON object. So,
 
 
 2. Insanic APIException
-----------------------
+-------------------------
 
 Insanic provides its own :code:`APIException` base class for its own
 error handling.  This exception will create the response as shown above.
@@ -212,7 +212,7 @@ With this exception we created above, it will create this response.
 EXTRA: What about NON-Insanic Exceptions?
 ------------------------------------------
 
-Any Sanic Exceptions will automatically converted to an
+Any Sanic Exceptions will automatically be converted to an
 Insanic Exception and will try and serialize the message
 into Insanic's error message format.
 
@@ -240,10 +240,10 @@ Will result in...
             "name":"insanic_error_unspecified",
             "value":999998
         }
-}
+    }
 
 Any NON-Insanic and NON-Sanic exceptions raised during the process of a request
-will default to a `500 Internal Server Error`.
+will default to a :code:`500 Internal Server Error`.
 
 .. code-block:: json
 
@@ -257,9 +257,13 @@ will default to a `500 Internal Server Error`.
     }
 
 
+
 See Also...
 -------------
 
-- Refer to the insanic.errors module for insanic's ErrorCodes.
-- Refer to the insanic.exceptions module for Insanic's Exceptions.
-- Refer to the insanic.status module for easy status codes.
+
+
+
+- Refer to the :ref:`api-insanic-errors` module for insanic's ErrorCodes.
+- Refer to the :ref:`api-insanic-exceptions` module for Insanic's Exceptions.
+- Refer to the :ref:`api-insanic-status` module for easy status codes.

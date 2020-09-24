@@ -26,11 +26,18 @@ from insanic.utils.datetime import get_utc_datetime
 
 
 class Service:
+    """
+    The service object to facilitate sending requests to other services.
+
+    :param service_name: The name of the service to send a request to.
+    :param partial_path: Base path of the endpoint to send to.
+    """
 
     _client = None
     extra_session_configs = {}
 
     def __init__(self, service_name: str, partial_path: str = None):
+
         self.service_name = service_name
         self.service_token = jwt_service_encode_handler(
             jwt_service_payload_handler(self)
@@ -46,6 +53,9 @@ class Service:
 
     @property
     def client(self) -> AsyncClient:
+        """
+        The httpx.AsyncClient that will be used to send async requests.
+        """
         if self._client is None:
             limits = Limits(
                 max_connections=settings.SERVICE_CONNECTOR_MAX,
@@ -71,6 +81,9 @@ class Service:
 
     @property
     def host(self) -> str:
+        """
+        The host portion of the url.
+        """
         return self.url.host
 
     @host.setter
@@ -79,6 +92,9 @@ class Service:
 
     @property
     def port(self) -> int:
+        """
+        The port portion of the url.
+        """
         return self.url.port
 
     @port.setter
@@ -86,6 +102,9 @@ class Service:
         self.url = self.url.copy_with(port=value)
 
     async def close_client(self) -> None:
+        """
+        Close the async client on shutdown.
+        """
         if self._client is not None:
             await self._client.aclose()
             await asyncio.sleep(0)
@@ -138,27 +157,15 @@ class Service:
         Interface for sending requests to other services.
 
         :param method: method to send request (GET, POST, PATCH, PUT, etc)
-        :type method: string
         :param endpoint: the path to send request to (eg /api/v1/..)
-        :type endpoint: string
         :param query_params: query params to attach to url
-        :type query_params: dict
         :param payload: the data to send on any non GET requests
-        :type payload: dict
         :param files: if any files to send with request, must be included here
-        :type files: dict
         :param headers: headers to send along with request
-        :type headers: dict
         :param propagate_error: if you want to raise on 400 or greater status codes
-        :type propagate_error: bool
         :param include_status_code: if you want this method to return the response with the status code
-        :type include_status_code: bool
         :param response_timeout: if you want to increase the timeout for this requests
-        :type response_timeout: int
         :param retry_count: number times you want to retry the request if failed on server errors
-        :type response_timeout: int
-        :return:
-        :rtype: dict or tuple(dict, int)
         """
 
         files = files or {}
@@ -290,7 +297,6 @@ class Service:
         :param request:
         :param timeout:
         :param retry_count:
-        :return:
         """
         attempts = 1
         if request.method == "GET":

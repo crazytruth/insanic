@@ -6,14 +6,14 @@ starting.
 
 
 1. Installing Insanic
-----------------------
+^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
     pip install insanic
 
 2. Create a file called `app.py`
----------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
@@ -39,34 +39,34 @@ starting.
 As you can see, usage is very similar to Sanic, but with a couple
 differences.
 
-1. Insanic requires you to passing in a `version` argument.
+1. Insanic requires you to passing in a :code:`version` argument.
 This decision was to enforce versioning when deploying
 applications.  We found it especially important in a
 microservice system.
 
 This however, can be turned off with the
-`ENFORCE_APPLICATION_VERSION` settings. View the
-`settings documentation <sanic/settings>`_ for more information.
+:code:`ENFORCE_APPLICATION_VERSION` settings. View the
+:doc:`settings documentation <settings>` for more information.
 
-2. An Insanic specific settings variable that is accessible
+2. An Insanic specific :code:`settings` variable that is accessible
 anywhere in the application.  Some of you may recognize it
 is very similar to how Django works.  Not only can this
-`settings` variable be accessible anywhere in the application,
+:code:`settings` variable be accessible anywhere in the application,
 it is also compatible with Sanic where the same variables
-can be accessible through `app.config`.  Please read the
-`settings documentation <sanic/settings>`_ for more
+can be accessible through :code:`app.config`.  Please read the
+:doc:`settings documentation <settings>` for more
 information.
 
 
 3. Run the server
-------------------
+^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
     python app.py
 
 4. Check if it works!
-----------------------
+^^^^^^^^^^^^^^^^^^^^^^
 
 Open the address `http://0.0.0.0:8000 <http://0.0.0.0:8000>`_ in your web browser.
 You should see the message *gotta go insanely fast!*.

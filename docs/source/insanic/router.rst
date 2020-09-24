@@ -1,16 +1,12 @@
 .. _Sanic's Router: https://sanic.readthedocs.io/en/latest/sanic/routing.html
 
-Insanic's Router
-=================
+Public Route Flagging
+========================
 
 The reason for this functionality is to provide a list of
 endpoints that should be open to the public.  This
 functionality is to facilitate the API Gateway pattern when
 planning for an microservice architecture.
-
-
-`public_facing` Usage
----------------------
 
 .. note::
 
@@ -18,7 +14,10 @@ planning for an microservice architecture.
     same as `Sanic's Router`_, so please refer to their documentation
     for exact usage.
 
-HOWEVER, The only difference is with the :code:`routes_public`
+`public_facing` usage
+----------------------
+
+The only difference is with the :code:`routes_public`
 attribute that :code:`insanic.router.InsanicRouter` possesses.
 
 To register a public route, we must decorate it with a
@@ -88,24 +87,7 @@ Additional Usages
 The :code:`public_facing` decorator can be configured to only
 accept only a list of defined query parameters.
 
-.. automodule:: insanic.scopes.public_facing
-
-.. code-block:: python
-
-    >>> from insanic.scopes import public_facing
-    >>> print(public_facing.__doc__)
-
-        depending on usage can be used to validate query params
-        @public_facing  -> does not validate query params and anything is allowed
-        @public_facing() -> same as above
-        @public_facing(params=[]) -> does not allow any query_params. hard failure (returns 400)
-        @public_facing(params=['rabbit']) -> only allows query param "rabbit"
-
-        :param fn: view to decorate
-        :param params: params to validate against
-        :return: function
-        :raise: BadRequest if query_params don't validate
-
+.. autodecorator:: insanic.scopes.public_facing
 
 So if we modify our example above and run our code like so...
 
@@ -122,6 +104,7 @@ So if we modify our example above and run our code like so...
 
     $ curl "http://localhost:8000/fast?trash=1"
     {"method":"get"}
+
     $ curl -i "http://localhost:8000/fast?trash=1&garbage=1"
     HTTP/1.1 400 Bad Request
     Content-Length: 147

@@ -1,8 +1,8 @@
-Decorator
-===========
+Endpoint Deprecation
+=====================
 
-Deprecation
-------------
+Deprecation Decorator
+----------------------
 
 Insanic provides a decorator that allows the developer to
 decorate any views that will be deprecated in the future.

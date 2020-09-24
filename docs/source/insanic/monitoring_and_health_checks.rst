@@ -98,7 +98,7 @@ metrics for the respective service's(usually 0ms).  However,
 its real power lies in its ability to ping other services.
 
 This endpoint also gathers the services defined in
-the `SERVICE_CONNECTIONS` and `REQUIRED_SERVICE_CONNECTIONS`
+the :code:`SERVICE_CONNECTIONS` and :code:`REQUIRED_SERVICE_CONNECTIONS`
 settings and also sends a :code:`ping` request
 to all of them.  Depth can be set to determine how far in the
 mesh you want to traverse with the :code:`depth` query parameter.

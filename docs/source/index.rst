@@ -20,6 +20,7 @@
    insanic/intra_service_communications
    insanic/monitoring_and_health_checks
    insanic/deprecation_decorator
+   insanic/datetime_helpers
    insanic/contributing
 
 
@@ -32,7 +33,8 @@ method, this part of the documentation is for you.
 .. toctree::
    :maxdepth: 2
 
-   api
+   insanic/global_settings
+   insanic/api
 
 Indices and tables
 ==================

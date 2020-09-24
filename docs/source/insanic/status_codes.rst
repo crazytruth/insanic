@@ -18,11 +18,16 @@ Usage
 
 
 Possible usages:
+
 - When giving a response.
+
 - Defining status codes in Insanic exceptions.
 
 
-See Also
----------
+.. _`api-insanic-status`:
 
-- `insanic.status` module for available status codes.
+:code:`insanic.status`
+-----------------------
+
+.. automodule:: insanic.status
+    :members:

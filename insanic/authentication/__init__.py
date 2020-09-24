@@ -1,9 +1,8 @@
-"""
-Copyright © 2011-present, Encode OSS Ltd. All rights reserved.
+# Copyright © 2011-present, Encode OSS Ltd. All rights reserved.
+#
+# Modified for framework use.
+# Provides various authentication policies.
 
-Modified for framework use.
-Provides various authentication policies.
-"""
 from typing import Union
 
 import jwt

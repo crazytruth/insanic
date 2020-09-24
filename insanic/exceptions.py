@@ -18,10 +18,10 @@ class APIException(Exception):
     """
     Base class for REST framework exceptions.
     Subclasses should provide `.status_code`, `.error_code` and `.message`  properties.
-    rename
-        default_detail -> message
-        detail -> description
 
+    :param description: A description of the error.
+    :param error_code: The error code associated with the exception.
+    :param status_code: The status code to set for this exception.
     """
 
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR

@@ -1,11 +1,10 @@
-"""
-Referenced from https://github.com/django/django/blob/master/django/conf/__init__.py
+# Referenced from https://github.com/django/django/blob/master/django/conf/__init__.py
+#
+# Copyright (c) Django Software Foundation and individual contributors.
+# All rights reserved.
+#
+# Modified for framework usage
 
-Copyright (c) Django Software Foundation and individual contributors.
-All rights reserved.
-
-Modified for framework usage
-"""
 
 import os
 

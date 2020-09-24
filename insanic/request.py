@@ -1,15 +1,15 @@
-"""
-Copyright © 2011-present, Encode OSS Ltd. All rights reserved.
+# Copyright © 2011-present, Encode OSS Ltd. All rights reserved.
+#
+# Copied and modified a lot of Request object methods for framework usage
 
-Copied and modified a lot of Request object methods for framework usage
-"""
 
 import aiotask_context
 import time
 import uuid
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 
+from multidict import CIMultiDict
 from sanic.exceptions import InvalidUsage
 from sanic.request import (
     Request as SanicRequest,
@@ -33,16 +33,6 @@ def _hasattr(obj, name):
 
 
 class Request(SanicRequest):
-    """
-    Wrapper allowing to enhance a standard `HttpRequest` instance.
-
-    Kwargs:
-        - request(HttpRequest). The original request instance.
-        - parsers_classes(list/tuple). The parsers to use for parsing the
-          request content.
-        - authentication_classes(list/tuple). The authentications used to try
-          authenticating the request's user.
-    """
 
     __slots__ = (
         "app",
@@ -74,21 +64,24 @@ class Request(SanicRequest):
 
     def __init__(
         self,
-        url_bytes,
-        headers,
-        version,
-        method,
+        url_bytes: bytes,
+        headers: CIMultiDict,
+        version: str,
+        method: str,
         transport,
         app,
-        authenticators=None,
+        authenticators: Iterable = None,
     ):
         """
+        Wrapper allowing to enhance a standard `HttpRequest` instance.
+
 
         :param url_bytes:
         :param headers: should be an instance of CIMultiDict
         :param version:
         :param method:
         :param transport:
+        :param app:
         :param authenticators:
         """
 
@@ -96,16 +89,14 @@ class Request(SanicRequest):
 
         self._request_time = int(time.time() * 1000000)
         self._id = empty
-        self.parsed_data = empty
         self.authenticators = authenticators or ()
 
     @property
     def id(self) -> str:
         """
-        Gets a unique request id from either the header,
+        Gets a unique request id from either the header with
+        :code:`REQUEST_ID_HEADER_FIELD` config,
         or generates it's own unique request id.
-
-        :return:
         """
         if self._id is empty:
             self._id = self.headers.get(
@@ -197,9 +188,7 @@ class Request(SanicRequest):
         """
         A single interface for getting the body of the request
         without needing to know the content type of the request.
-        Inspired by django-rest-framework,
-
-        :return:
+        From django-rest-framework.
         """
         if not _hasattr(self, "parsed_data"):
             try:

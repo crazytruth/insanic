@@ -2,3 +2,4 @@ Sphinx
 sphinx-issues
 sphinx-rtd-theme
 sphinxcontrib-log-cabinet
+sphinx-autodoc-typehints

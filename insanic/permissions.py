@@ -1,10 +1,13 @@
+# Copyright © 2011-present, Encode OSS Ltd. All rights reserved.
+#
+# Provides a set of pluggable permission policies.
+#
+# Added several permissions for framework usage.
 """
-Copyright © 2011-present, Encode OSS Ltd. All rights reserved.
-
-Provides a set of pluggable permission policies.
-
-Added several permissions for framework usage.
+Basic Permissions provided by Insanic.
 """
+
+
 from insanic.models import _AnonymousUser
 
 SAFE_METHODS = ["GET", "HEAD", "OPTIONS"]
