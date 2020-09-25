@@ -6,7 +6,7 @@
 Insanic
 =======
 
-> A microservice framework that extends [sanic](sanic).
+    A microservice framework that extends `sanic`_.
 
 Insanic is a pretty opinionated framework.  It tries to include all the best practices for
 developing in a microservice architecture.  To do this, certain technologies needed to be used.
