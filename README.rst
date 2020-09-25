@@ -111,9 +111,9 @@ Testing
 -------
 
 Insanic tests are run with pytest and tox.
-Test with this command:
 
 .. code-block::
+
     $ pytest
 
     # with coverage
@@ -129,18 +129,18 @@ Test with this command:
 Release History
 ---------------
 
-For full changelogs, please refer to the `changelogs <CHANGELOG.rst>`_._
+For full changelogs, please refer to the `CHANGELOG.rst <CHANGELOG.rst>`_.
 
 Since Insanic was initially developed and released internally,
 for changes made during that period, please refer to
-`CHANGELOG_LEGACY.rst`_.
+`CHANGELOG_LEGACY.rst <CHANGELOG_LEGACY.rst>`_.
 
 Contributing
 -------------
 
 For guidance on setting up a development environment and
 how to make a contribution to Insanic,
-see the `contributing <CONTRIBUTING.rst>`_ guidelines.
+see the `CONTRIBUTING.rst <CONTRIBUTING.rst>`_ guidelines.
 
 
 Meta
