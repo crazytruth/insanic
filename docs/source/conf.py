@@ -12,18 +12,26 @@
 #
 import os
 import sys
+import datetime
+
+import pkg_resources
+
 from insanic.conf import settings
 
 sys.path.insert(0, os.path.abspath("../.."))
 
 settings.configure()
 
+on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 
 # -- Project information -----------------------------------------------------
 
 project = "Insanic"
-copyright = "2020, Kwang Jin Kim"
 author = "Kwang Jin Kim"
+version = pkg_resources.get_distribution("insanic").version
+release = version
+this_year = datetime.date.today().year
+copyright = "%s, %s" % (this_year, author)
 
 
 # -- General configuration ---------------------------------------------------
@@ -52,8 +60,13 @@ exclude_patterns = []
 # a list of builtin themes.
 #
 # html_theme = 'alabaster'
-html_theme = "sphinx_rtd_theme"
+if not on_rtd:  # only import and set the theme if we're building docs locally
+    import sphinx_rtd_theme
 
+    html_theme = "sphinx_rtd_theme"
+    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+else:
+    html_theme = "default"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
