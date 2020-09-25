@@ -18,14 +18,18 @@ def public_facing(
 ) -> Callable:
     """
     depending on usage can be used to validate query params
-    @public_facing  -> does not validate query params and anything is allowed
-    @public_facing() -> same as above
-    @public_facing(params=[]) -> does not allow any query_params. hard failure (returns 400)
-    @public_facing(params=['rabbit']) -> only allows query param "rabbit"
+
+    :code:`@public_facing`: Does not validate query params and anything is allowed.
+
+    :code:`@public_facing()`: Same as above.
+
+    :code:`@public_facing(params=[])`: does not allow any query_params.
+    Returns 400 Bad Request Exception if any query params are included in the reuqest.
+
+    :code:`@public_facing(params=['garbage'])`: Only allows query param "garbage".
 
     :param fn: view to decorate
     :param params: params to validate against
-    :return: function
     :raise: BadRequest if query_params doesn't validate
     """
 

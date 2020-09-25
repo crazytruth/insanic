@@ -1,4 +1,7 @@
 import math
+from enum import Enum
+from typing import Optional
+
 from insanic.errors import GlobalErrorCodes
 from insanic import status
 
@@ -15,10 +18,10 @@ class APIException(Exception):
     """
     Base class for REST framework exceptions.
     Subclasses should provide `.status_code`, `.error_code` and `.message`  properties.
-    rename
-        default_detail -> message
-        detail -> description
 
+    :param description: A description of the error.
+    :param error_code: The error code associated with the exception.
+    :param status_code: The status code to set for this exception.
     """
 
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -26,11 +29,15 @@ class APIException(Exception):
     error_code = GlobalErrorCodes.unknown_error
     i18n = False
 
-    def __init__(self, description=None, *, error_code=None, status_code=None):
-        if description is not None:
-            self.description = description
-        else:
-            self.description = self.message
+    def __init__(
+        self,
+        description: Optional[str] = None,
+        *,
+        error_code: Optional[Enum] = None,
+        status_code: Optional[int] = None,
+    ):
+
+        self.description = description or self.message
 
         if status_code is not None:
             self.status_code = status_code

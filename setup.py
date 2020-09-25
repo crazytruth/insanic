@@ -20,7 +20,7 @@ setup(
     name="insanic",
     version=version,
     description="API framework for sanic",
-    long_description=(read("README.md") + "\n\n" + read("CHANGELOG.md")),
+    long_description=(read("README.rst") + "\n\n" + read("CHANGELOG.rst")),
     classifiers=[
         "Intended Audience :: Developers",
         "Development Status :: 3 - Alpha",
@@ -39,7 +39,6 @@ setup(
     install_requires=[
         "uvloop",
         "sanic>=19.12",
-        "aiodns",
         "aioredis>=1.1.0",
         "PyJWT",
         "aiotask_context",

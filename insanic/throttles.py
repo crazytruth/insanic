@@ -1,8 +1,10 @@
+# Copyright © 2011-present, Encode OSS Ltd. All rights reserved.
+#
+# Modified for framework usage.
 """
-Copyright © 2011-present, Encode OSS Ltd. All rights reserved.
+Default throttles provided by Insanic.
+"""
 
-Modified for framework usage.
-"""
 
 import time
 import ujson as json
