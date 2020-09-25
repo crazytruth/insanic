@@ -4,6 +4,6 @@ pytest-cov
 pytest-sanic
 pytest-redis
 requests
-asynctest
 tox
 black
+dataclasses>=0.6; python_version < '3.7'
