@@ -20,7 +20,7 @@ setup(
     name="insanic",
     version=version,
     description="API framework for sanic",
-    long_description=(read("README.md") + "\n\n" + read("CHANGELOG.md")),
+    long_description=(read("README.rst") + "\n\n" + read("CHANGELOG.rst")),
     classifiers=[
         "Intended Audience :: Developers",
         "Development Status :: 3 - Alpha",

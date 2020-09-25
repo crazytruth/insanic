@@ -116,5 +116,5 @@ and to use the settings:
 See Also
 ---------
 
-Take a look at the :doc:`global variables <global_settings>` for a
+Take a look at the :ref:`api-insanic-conf-global-settings` for a
 complete list of global config values used in :code:`Insanic`.

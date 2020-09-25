@@ -31,17 +31,6 @@ API Reference
     :show-inheritance:
 
 
-.. _`api-insanic-errors`:
-
-:code:`insanic.errors`
------------------------
-
-.. autoclass:: insanic.errors.GlobalErrorCodes
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _`api-insanic-listeners`:
 
 :code:`insanic.listeners`
@@ -109,15 +98,7 @@ API Reference
     :undoc-members:
 
 
-:code:`insanic.status`
------------------------
-
-.. automodule:: insanic.status
-    :members:
-    :noindex:
-
-
-.. _`api-insanic-thottles`:
+.. _`api-insanic-throttles`:
 
 :code:`insanic.throttles`
 --------------------------

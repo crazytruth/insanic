@@ -9,6 +9,7 @@
    :maxdepth: 2
    :caption: Contents:
 
+   Foreword <insanic/index>
    insanic/getting_started
    insanic/settings
    insanic/errors_and_exceptions
@@ -21,6 +22,8 @@
    insanic/monitoring_and_health_checks
    insanic/deprecation_decorator
    insanic/datetime_helpers
+   Change Logs <insanic/changelog>
+   Legacy Change Logs <insanic/changelog_legacy>
    insanic/contributing
 
 
@@ -33,8 +36,10 @@ method, this part of the documentation is for you.
 .. toctree::
    :maxdepth: 2
 
-   insanic/global_settings
-   insanic/api
+   insanic/api_configs
+   insanic/api_reference
+   insanic/api_constants
+
 
 Indices and tables
 ==================
