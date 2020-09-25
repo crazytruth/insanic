@@ -7,7 +7,7 @@ import aiotask_context
 import time
 import uuid
 
-from typing import TYPE_CHECKING, Iterable
+from typing import Iterable
 
 from multidict import CIMultiDict
 from sanic.exceptions import InvalidUsage
@@ -20,9 +20,6 @@ from insanic import exceptions
 from insanic.conf import settings
 from insanic.functional import empty
 from insanic.models import User, RequestService
-
-if TYPE_CHECKING:
-    from insanic.authentication import BaseAuthentication
 
 
 DEFAULT_HTTP_CONTENT_TYPE = "application/octet-stream"
@@ -156,28 +153,34 @@ class Request(SanicRequest):
         self._service = value
 
     @property
-    def auth(self) -> "BaseAuthentication":
+    def auth(self):
         """
         Returns any non-user authentication information associated with the
         request, such as an authentication token.
+
+        :rtype: :code:`BaseAuthentication`
         """
         if not hasattr(self, "_auth"):
             self._authenticate()
         return self._auth
 
     @auth.setter
-    def auth(self, value: "BaseAuthentication") -> None:
+    def auth(self, value) -> None:
         """
         Sets any non-user authentication information associated with the
         request, such as an authentication token.
+
+        :param value: :code:`BaseAuthentication`
         """
         self._auth = value
 
     @property
-    def successful_authenticator(self) -> "BaseAuthentication":
+    def successful_authenticator(self):
         """
         Return the instance of the authentication instance class that was used
         to authenticate the request, or `None`.
+
+        :rtype: :code:`BaseAuthentication`
         """
         if not hasattr(self, "_authenticator"):
             self._authenticate()

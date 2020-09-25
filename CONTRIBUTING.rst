@@ -161,7 +161,7 @@ To recompile requirements
 -------------------------
 
 All requirements for development, tests, and documentation are
-in :doc:`requirements` directory.
+in :code:`requirements` directory.
 
 To recompile requirements. Add the requirements to :code:`*.in`
 

@@ -1,17 +1,12 @@
 recursive-include insanic *.py
 include LICENSE
-include README.md
-include CHANGELOG.md
-exclude Dockerfile*
-exclude insanic/log/templates
-exclude insanic/log/templates/500.html
+include README.rst
+include CHANGELOG.rst
 exclude fixtures
 exclude commands
 exclude *.png
 exclude insanic_ascii
 exclude tests
 exclude tests/intest
-exclude tests/tracing
 graft .github
 recursive-exclude tests *.py
-recursive-exclude insanic *.proto
