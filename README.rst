@@ -1,5 +1,5 @@
 .. image:: https://github.com/crazytruth/insanic/blob/master/artwork/insanic.png
-    :width: 200
+    :width: 200px
     :alt: Insanic
 
 
