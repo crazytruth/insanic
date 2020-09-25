@@ -3,9 +3,6 @@ from sanic.views import CompositionView
 
 
 class InsanicRouter(SanicRouter):
-    def __init__(self):
-        super().__init__()
-
     @property
     def routes_public(self) -> dict:
         """

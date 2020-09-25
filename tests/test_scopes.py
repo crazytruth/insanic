@@ -255,15 +255,3 @@ class TestPublicFacingScope:
         )
         print(t)
         assert t < 1, t
-
-    def test_is_docker(self):
-
-        import timeit
-
-        t = timeit.timeit(
-            "is_docker",
-            number=10000,
-            setup="from insanic.scopes import _is_docker, is_docker",
-        )
-        print(t)
-        assert t < 1, t
