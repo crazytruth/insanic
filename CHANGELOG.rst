@@ -3,7 +3,7 @@ Change Logs for Insanic
 
 These are the current tracked changes. There was a point in
 time when Insanic was developed and released privately.
-Refer to :doc:`CHANGELOG_PRIVATE.rst <changelog_legacy>`
+Refer to :doc:`CHANGELOG_LEGACY.rst <changelog_legacy>`
 for changes during that time.
 
 0.8.4 (unreleased)
