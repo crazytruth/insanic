@@ -1,9 +1,3 @@
-.. role:: bash(code)
-    :language: bash
-
-.. role:: python(code)
-    :language: python
-
 Settings
 ==========
 
@@ -32,18 +26,18 @@ the global settings all gets initialized.
 Settings Priority
 ------------------
 
-#. Sanic's :python:`DEFAULT_CONFIG`.
-#. :python:`SANIC_PREFIX` environment variables.
+#. Sanic's :code:`DEFAULT_CONFIG`.
+#. :code:`SANIC_PREFIX` environment variables.
 #. Insanic's global_settings (:code:insanic.conf.global_settings)
-#. Service configs loaded from :bash:`INSANIC_SETTINGS_MODULE` environment variable
-#. :python:`INSANIC_PREFIX` environment variables, without the prefix.
+#. Service configs loaded from :code:`INSANIC_SETTINGS_MODULE` environment variable
+#. :code:`INSANIC_PREFIX` environment variables, without the prefix.
 
 
 Any settings defined in subsequent steps will replace any
 existing values.
 
-For example, if you have :python:`SPEED="fast"` defined in your
-settings module and you have :bash:`INSANIC_SPEED=insanely` in your
+For example, if you have :code:`SPEED="fast"` defined in your
+settings module and you have :code:`INSANIC_SPEED=insanely` in your
 environment variable, the final value will be 'insanely`.
 
 
@@ -64,7 +58,7 @@ General Configuration
 
 Most people will want to load their settings with this method.
 
-Create a :bash:`touch config.py` file to place your settings.
+Create a :code:`touch config.py` file to place your settings.
 
 .. code-block:: python
 
@@ -75,7 +69,7 @@ Create a :bash:`touch config.py` file to place your settings.
 
 
 Now when you run your application make sure you have
-:bash:`INSANIC_SETTINGS_MODULE=example.config` in your
+:code:`INSANIC_SETTINGS_MODULE=example.config` in your
 environment variables.
 
 

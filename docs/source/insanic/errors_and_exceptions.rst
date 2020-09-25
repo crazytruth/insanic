@@ -261,9 +261,6 @@ will default to a :code:`500 Internal Server Error`.
 See Also...
 -------------
 
-
-
-
 - Refer to the :ref:`api-insanic-errors` module for insanic's ErrorCodes.
 - Refer to the :ref:`api-insanic-exceptions` module for Insanic's Exceptions.
 - Refer to the :ref:`api-insanic-status` module for easy status codes.
