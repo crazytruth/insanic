@@ -143,20 +143,18 @@ how to make a contribution to Insanic,
 see the `CONTRIBUTING.rst <CONTRIBUTING.rst>`_ guidelines.
 
 
+Known Issues
+-------------
+
+-   Insanic cannot run with more than 1 worker.
+
+
 Meta
 ----
 
 Distributed under the MIT license. See `LICENSE <LICENSE>`_ for more information.
 
 Thanks to all the people at my prior company that worked with me to make this possible.
-
-
-Known Issues
--------------
-
--   Insanic cannot run with more than 1 worker because, currently
-    Insanic is not thread-safe.
-
 
 Links
 -----
