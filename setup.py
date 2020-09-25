@@ -14,7 +14,7 @@ def read(fname):
     return open(os.path.join(here, fname)).read()
 
 
-version = "0.8.4.dev0"
+version = "0.9.0"
 
 setup(
     name="insanic",
