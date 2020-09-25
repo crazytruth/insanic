@@ -12,6 +12,9 @@ ADMINS: Tuple[tuple] = (("David", "david@example.com"),)
 #: Whether to run in debug mode or not
 DEBUG: bool = False
 
+#: Current environment application is deployed to
+ENVIRONMENT: str = "development"
+
 #: The application version is set here.
 APPLICATION_VERSION: Optional[str] = None
 
