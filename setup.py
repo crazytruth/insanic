@@ -1,4 +1,6 @@
 import os
+import re
+
 from setuptools import setup, find_packages
 
 here = os.path.dirname(__file__)
@@ -14,7 +16,9 @@ def read(fname):
     return open(os.path.join(here, fname)).read()
 
 
-version = "0.9.0"
+with open("insanic/__init__.py", encoding="utf8") as f:
+    version = re.search(r'__version__ = "(.*?)"', f.read()).group(1)
+
 
 setup(
     name="insanic",
@@ -43,7 +47,6 @@ setup(
         "PyJWT",
         "aiotask_context",
         "python-dateutil",
-        "packaging",
         "prometheus-client==0.5.0",
         "psutil==5.4.8",
     ],

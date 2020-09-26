@@ -14,8 +14,7 @@ import os
 import sys
 import datetime
 
-import pkg_resources
-
+import insanic
 from insanic.conf import settings
 
 sys.path.insert(0, os.path.abspath("../.."))
@@ -28,7 +27,10 @@ on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 
 project = "Insanic"
 author = "Kwang Jin Kim"
-version = pkg_resources.get_distribution("insanic").version
+
+
+version = insanic.__version__
+
 release = version
 this_year = datetime.date.today().year
 copyright = "%s, %s" % (this_year, author)
