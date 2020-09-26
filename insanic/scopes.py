@@ -3,7 +3,7 @@ import os
 import socket
 
 from functools import wraps, lru_cache
-from typing import Optional, Callable
+from typing import Optional, Callable, Iterable
 
 from insanic.log import error_logger
 from insanic.errors import GlobalErrorCodes
@@ -14,7 +14,7 @@ AWS_ECS_METADATA_ENDPOINT = "169.254.170.2/v2/metadata"
 
 
 def public_facing(
-    fn: Optional[Callable] = None, *, params: Optional[list] = None
+    fn: Optional[Callable] = None, *, params: Optional[Iterable] = None
 ) -> Callable:
     """
     depending on usage can be used to validate query params
@@ -57,17 +57,18 @@ def public_facing(
                 if params is not None:
                     for o in args:
                         if isinstance(o, Request):
-                            for qp in o.query_params:
-                                if qp not in params:
-                                    error_logger.error(
-                                        f"Request with invalid params detected! "
-                                        f"{qp} not in {', '.join(params)}."
-                                    )
 
-                                    raise BadRequest(
-                                        description=f"Invalid query params. Allowed: {', '.join(params)}",
-                                        error_code=GlobalErrorCodes.invalid_query_params,
-                                    )
+                            diff = set(o.query_params) - set(params)
+                            if diff:
+                                error_logger.error(
+                                    f"Request with invalid params detected! "
+                                    f"{diff} not in {', '.join(params)}."
+                                )
+                                raise BadRequest(
+                                    description=f"Invalid query params. Allowed: {', '.join(params)}",
+                                    error_code=GlobalErrorCodes.invalid_query_params,
+                                )
+
                             break
                     else:
                         """
