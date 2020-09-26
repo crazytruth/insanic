@@ -34,7 +34,6 @@ class Service:
     """
 
     _client = None
-    extra_session_configs = {}
 
     def __init__(self, service_name: str, partial_path: str = None):
 
@@ -108,11 +107,6 @@ class Service:
         if self._client is not None:
             await self._client.aclose()
             await asyncio.sleep(0)
-
-    def add_trace_config(self, trace_config):
-        if "trace_configs" not in self.extra_session_configs:
-            self.extra_session_configs["trace_configs"] = []
-        self.extra_session_configs["trace_configs"].append(trace_config)
 
     def _inject_headers(self, headers: dict):
         # need to coerce to str

@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from typing import Type
 
 from insanic.conf import settings
 from insanic.functional import LazyObject, empty
@@ -7,8 +8,10 @@ from insanic.services import Service
 
 
 class LazyServiceRegistry(LazyObject):
+    service_class = Service
+
     def _setup(self):
-        self._wrapped = ServiceRegistry()
+        self._wrapped = ServiceRegistry(self.service_class)
 
     def __repr__(self):
         if self._wrapped is empty:
@@ -38,9 +41,11 @@ class LazyServiceRegistry(LazyObject):
 
 
 class ServiceRegistry(Mapping):
-    def __init__(self):
+    def __init__(self, service_class: Type[Service] = Service):
         for s in self.available_services:
             self.__dict__[s] = None
+
+        self.service_class = service_class
 
     @property
     def available_services(self) -> set:
@@ -70,12 +75,18 @@ class ServiceRegistry(Mapping):
                 )
         else:
             if value is None:
-                value = Service(item)
+                value = self.service_class(item)
                 self.__dict__[item] = value
         return value
 
     def __iter__(self):
-        return iter(self.__dict__)
+        return iter(
+            {
+                k: v
+                for k, v in self.__dict__.items()
+                if k in self.available_services
+            }
+        )
 
 
 registry = LazyServiceRegistry()
