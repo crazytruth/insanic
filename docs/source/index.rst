@@ -1,15 +1,44 @@
 .. Insanic documentation master file, created by
-   sphinx-quickstart on Fri Sep 11 18:13:35 2020.
+   sphinx-quickstart on Tue Sep 15 13:42:13 2020.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Insanic's documentation!
-===================================
+.. include:: insanic/index.rst
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+   Foreword <insanic/index>
+   insanic/getting_started
+   insanic/settings
+   insanic/errors_and_exceptions
+   insanic/status_codes
+   insanic/request_object
+   insanic/logging
+   insanic/authentication_and_permissions
+   insanic/router
+   insanic/intra_service_communications
+   insanic/monitoring_and_health_checks
+   insanic/deprecation_decorator
+   insanic/datetime_helpers
+   Change Logs <insanic/changelog>
+   Legacy Change Logs <insanic/changelog_legacy>
+   insanic/contributing
+
+
+API Reference
+-------------
+
+If you are looking for information on a specific function, class or
+method, this part of the documentation is for you.
+
+.. toctree::
+   :maxdepth: 2
+
+   insanic/api_configs
+   insanic/api_reference
+   insanic/api_constants
 
 
 Indices and tables

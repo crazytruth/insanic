@@ -1,51 +1,23 @@
-Changelog for insanic
-=====================
+Change Log for Insanic(legacy)
+===============================
 
-
-0.8.4 (unreleased)
-------------------
-
-- BREAKING: `request.user` and `request.service` is now synchronous.
-- MAJOR: only supports sanic>=19.12 because of httpx dependency issues
-- MAJOR: removes all kong registration
-    - HardJSONAuthentication has been removed
-    - InsanicAdminView has been removed
-- MAJOR: removes VaultConfig settings for less opinionated configs
-    - Streamlines sanic and config config initialization
-    - Updated tests to reflect changes
-    - Removes hvac from required dependencies
-- MAJOR: refactor public routes from Insanic to Router
-- MAJOR: removes testing helpers
-- MAJOR: removes translation management object
-- MAJOR: retires aiohttp for httpx
-    - moved `Service` object to client module
-    - created `adapter` module for different httpx version compatibility
-- MAJOR: Removed `responses` module because issue with 204 has been fixed in sanic 19.12 and above
-- MINOR: authentication and permission checks are now only synchronous
-- MINOR: refactor service registry to use mapping collection
-    - Move registry to registry module
-    - Lazy loading for registry
-- MINOR: removes gunicorn worker interface (possibly for future implementation)
-- MINOR: removed `destination_version` in request services model
-- MINOR: moved `ServiceJWTAuthentication to authenication_classes`
-- FEAT: tox testing for python>3.6 and sanic>19.3 versions
-- CHORE: extracts extra requirements into their own requirments files
-- CHORE: reorganizes artwork into its own directory
-- CHORE: removes config that are no longer used
-- CHORE: refactors Insanic object
-- CHORE: refactor jwt handlers and authentication
-- CHORE: simplify connections module
+These are the changelogs for when Insanic was developed and
+released for private use only. This is only for tracking
+purposes. Refer to :doc:`CHANGELOGS.rst <changelog>`
+for current changes.
 
 
 0.8.3 (2019-11-21)
 ------------------
 
 - MAJOR: http dispatch now returns a future object.
+
     - changed from dispatch returning a coroutine
     - dispatch fetch is now shielded to prevent cancel errors
     - dummy cookie jar is set to avoid any cookie handling
     - retry logic on GET methods (defaults to 3)
-    - `retry_count` added to http_dispatch. Use with CAUTION on non GET!
+    - :code:`retry_count` added to http_dispatch. Use with CAUTION on non GET!
+
 - MAJOR: unlimits all default connection limits but now uses semaphores to limit connections(default 1000)
 - FIX: attach lru_cache to get_my_ip because it will never change #240
 - FIX: when encoding service jwt, instead of resolving ip, use get_my_ip #240
@@ -55,8 +27,8 @@ Changelog for insanic
 - UPDATE: updates default backlog connnections to 65535
 - UPDATE: increase graceful shutdown timeout to 29
 - UPDATE: optimizes get_utc_timestamp util function
-- UPDATE: implements `add_trace_config` to Services
-- UPDATE: adds `SERVICE_CONNECTION_MAX_RETRY_COUNT` (default to 4, so max 5 times)
+- UPDATE: implements :code:`add_trace_config` to Services
+- UPDATE: adds :code:`SERVICE_CONNECTION_MAX_RETRY_COUNT` (default to 4, so max 5 times)
 - FEAT: include internal service request headers
 - CHORE: refactor out unused code
 - CHORE: change request service string representation
@@ -155,18 +127,24 @@ Changelog for insanic
 0.7.12 (2019-06-27)
 -------------------
 
-- BREAKING: `request_timeout` arguments of dispatch methods have been changed to
-`response_timeout`.
-- BREAKING: If the response has timed out, Insanic will raise `503 Service Unavailable` with message `{service_name} has timed out.`,
-not `408 Request Timeout` anymore.
-- FIX: All timeout variables will be used as `ClientTimeout` class, not primitive integer.
-See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts)
+- BREAKING: `request_timeout` arguments of dispatch methods have been changed to `response_timeout`.
+
+- BREAKING: If the response has timed out, Insanic will raise `503 Service Unavailable` with message :code:`{service_name} has timed out.`, not `408 Request Timeout` anymore.
+
+- FIX: All timeout variables will be used as `ClientTimeout` class, not primitive integer. See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts)
+
 - UPGRADE: minimum requirement for aiohttp updated from 3.1.0 -> 3.3.0
+
 - UPGRADE: increase log level to critical for uncaught exceptions
+
 - CHORE: changed ttl_dns_cache on service session to reflect dns cache ttl of route53
+
 - UPDATE: default response timeout for inter-service to 5s
+
 - UPDATE: added default connection timeout to 1s
+
 - CHORE: updated config to include sanic's default configs
+
 - FIX: logger now sets value as exception message
 
 
@@ -584,8 +562,10 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 -------------------
 
 - BREAKING: refactor exceptions to be consistent with error responses
+
     - detail -> description
     - default_detail -> message
+
 - FEAT: i18n attribute on exceptions
 - FEAT: prefix servicename or package name on error code response
 - FEAT: add several datetime util functions
@@ -645,7 +625,9 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 ------------------
 
 - FEAT: refactor so test_user_token_factory can be imported for use
+
     - from insanic.testing.plugin import user_token_factory
+
 - FEAT: mock userip sending on tests
 - FEAT: allow query_params arguments in register_mock_dispatch
 - FIX: when authentication headers passed in test_api_endpoint and anonymous user set to true
@@ -761,7 +743,7 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 0.1.10 (2018-04-09)
 -------------------
 
-- BREAKING: remove MMT_ENV in *.config
+- BREAKING: remove MMT_ENV in :code:`*.config`
 - Inject service tokens on service requests
 - add IsServiceOnly permission
 - authorization header overwrite when request headers declared during endpoint tests
@@ -949,8 +931,8 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 0.0.180 (2018-02-06)
 --------------------
 
-- *MAJOR* Remove dependency on MMT_SERVICE environment variable.
-   DO NOT need it anymore!
+- *MAJOR* Remove dependency on MMT_SERVICE environment variable. DO NOT need it anymore!
+
 - Add Pytest setuptools command
 - Migrate runservices pytest marker to insanic
 
@@ -981,3 +963,5 @@ See [https://docs.aiohttp.org/en/stable/client_quickstart.html?#timeouts](https:
 
 0.0.166 (2018-01-25)
 --------------------
+
+- release and start of changelog

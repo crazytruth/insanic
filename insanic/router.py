@@ -3,16 +3,11 @@ from sanic.views import CompositionView
 
 
 class InsanicRouter(SanicRouter):
-    def __init__(self):
-        super().__init__()
-
     @property
     def routes_public(self) -> dict:
         """
         Gathers all the registered routes and determines if they have been
-        decorated with the public_facing decorator.
-
-        :return:
+        decorated with the :code:`public_facing` decorator.
         """
 
         _public_routes = {}

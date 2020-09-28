@@ -4,16 +4,15 @@ import ujson as json
 
 from sanic.response import json as json_response
 
-from insanic import scopes, status
+from insanic import status
 from insanic.app import Insanic
-from insanic.conf import settings
 from insanic.errors import GlobalErrorCodes
 from insanic.exceptions import BadRequest
 from insanic.views import InsanicView
 
 
 class TestLogFormats:
-    @pytest.mark.parametrize("is_json_log", (True, False,))
+    @pytest.mark.parametrize("log_type", ("json", "access",))
     @pytest.mark.parametrize(
         "endpoint,request_path,response_meta",
         (
@@ -34,7 +33,7 @@ class TestLogFormats:
     )
     def test_log_json(
         self,
-        is_json_log,
+        log_type,
         monkeypatch,
         caplog,
         endpoint,
@@ -44,7 +43,7 @@ class TestLogFormats:
         """
         test added for 0.6.8.  Added `error_code`, `method`, `path`, `view` in json formatters
         """
-        monkeypatch.setattr(scopes, "is_docker", is_json_log)
+        monkeypatch.setenv("LOG_TYPE", log_type)
         app = Insanic("test")
 
         class NoAuthPermView(InsanicView):
@@ -110,7 +109,7 @@ class TestLogFormats:
     def test_exception_logging(
         self, exc, expected_message, capsys, monkeypatch
     ):
-        monkeypatch.setattr(scopes, "is_docker", True)
+        monkeypatch.setenv("LOG_TYPE", "json")
         Insanic("test")
         from insanic.log import error_logger
 
@@ -122,53 +121,3 @@ class TestLogFormats:
         logs = [json.loads(m) for m in err.strip().split("\n")]
 
         assert logs[-1]["message"] == expected_message
-
-    @pytest.mark.parametrize(
-        "endpoint,request_path,response_meta",
-        (
-            ("/log", "/log", {"a": "b"}),
-            (
-                "/log/<user_id:[0-9a-fA-F]{32}>",
-                f"/log/{uuid.uuid4().hex}",
-                {"a": "b"},
-            ),
-            ("/exception", "/exception", RuntimeError("help")),
-            ("/exception/<id>", "/exception/aa", RuntimeError("help")),
-            (
-                "/apiexception/<id>",
-                "/apiexception/aa",
-                BadRequest(description="bad request help"),
-            ),
-        ),
-    )
-    def test_squads_in_logging(
-        self, monkeypatch, caplog, endpoint, request_path, response_meta
-    ):
-        """
-        test added for 0.8.0.  Added `squad` in json formatters
-        """
-        monkeypatch.setattr(settings, "SQUAD", "monkey", raising=False)
-        monkeypatch.setattr(scopes, "is_docker", True)
-        app = Insanic("test")
-
-        class NoAuthPermView(InsanicView):
-            authentication_classes = []
-            permission_classes = []
-
-        class MockView(NoAuthPermView):
-            async def get(self, request, *args, **kwargs):
-                if isinstance(response_meta, Exception):
-                    raise response_meta
-                else:
-                    return json_response(
-                        response_meta,
-                        status=status.HTTP_203_NON_AUTHORITATIVE_INFORMATION,
-                    )
-
-        app.add_route(MockView.as_view(), endpoint)
-
-        app.test_client.get(request_path)
-        for r in caplog.records:
-            if r.name == "sanic.access":
-                assert hasattr(r, "squad")
-                assert r.squad == "monkey"

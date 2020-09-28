@@ -1,4 +1,6 @@
 import os
+import re
+
 from setuptools import setup, find_packages
 
 here = os.path.dirname(__file__)
@@ -14,13 +16,15 @@ def read(fname):
     return open(os.path.join(here, fname)).read()
 
 
-version = "0.8.4.dev0"
+with open("insanic/__init__.py", encoding="utf8") as f:
+    version = re.search(r'__version__ = "(.*?)"', f.read()).group(1)
+
 
 setup(
     name="insanic",
     version=version,
     description="API framework for sanic",
-    long_description=(read("README.md") + "\n\n" + read("CHANGELOG.md")),
+    long_description=(read("README.rst") + "\n\n" + read("CHANGELOG.rst")),
     classifiers=[
         "Intended Audience :: Developers",
         "Development Status :: 3 - Alpha",
@@ -39,12 +43,10 @@ setup(
     install_requires=[
         "uvloop",
         "sanic>=19.12",
-        "aiodns",
         "aioredis>=1.1.0",
         "PyJWT",
         "aiotask_context",
         "python-dateutil",
-        "packaging",
         "prometheus-client==0.5.0",
         "psutil==5.4.8",
     ],
