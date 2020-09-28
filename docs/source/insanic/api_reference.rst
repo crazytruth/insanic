@@ -87,6 +87,16 @@ API Reference
     :members:
     :show-inheritance:
 
+.. _`api-insanic-models`:
+
+:code:`insanic.models`
+-----------------------
+
+.. automodule:: insanic.models
+    :members:
+    :show-inheritance:
+    :undoc-members:
+
 
 .. _`api-insanic-services`:
 

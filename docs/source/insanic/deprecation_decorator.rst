@@ -5,13 +5,15 @@ Deprecation Decorator
 ----------------------
 
 Insanic provides a decorator that allows the developer to
-decorate any views that will be deprecated in the future.
-The developer is able to specify when the api will no
-longer be in service.
+decorate any views that will is planned to be deprecated in the future.
 
-The decorator emits a warning when called calling to action
-the service maintainer of the request service or frontend
-developers to update to the newer endpoint.
+The developer is able to specify when the api will no
+longer be in service.  However, actual removal is up to the developer.
+
+The decorator emits a warning to the logger when Insanic receives a request
+to the endpoint, calling to action the service maintainer of
+the request service or frontend developers to update
+their code to the newer endpoint.
 
 .. code-block:: python
 
@@ -52,14 +54,14 @@ will be deprecated.
             return
 
 
-2. Decorate a function.
+2. Decorate a function view.
 
 .. code-block:: python
 
     from insanic.decorators import deprecate
 
     @app.route('/dep')
-    @deprecate(at={some time in the future}, ttl=1111111)
+    @deprecate(at={some time in the future}, ttl=60*60)
     async def some_deprecated_api_handler(request, *args, **kwargs):
         return json_response({})
 

@@ -3,10 +3,10 @@
 Public Route Flagging
 ========================
 
-The reason for this functionality is to provide a list of
+The decision for this functionality is to provide a list of
 endpoints that should be open to the public.  This
 functionality is to facilitate the API Gateway pattern when
-planning for an microservice architecture.
+planning for a microservice architecture.
 
 .. note::
 
@@ -14,10 +14,10 @@ planning for an microservice architecture.
     same as `Sanic's Router`_, so please refer to their documentation
     for exact usage.
 
-`public_facing` usage
-----------------------
+:code:`public_facing` usage
+----------------------------
 
-The only difference is with the :code:`routes_public`
+The only difference with Sanic's Router is the :code:`routes_public`
 attribute that :code:`insanic.router.InsanicRouter` possesses.
 
 To register a public route, we must decorate it with a
@@ -59,18 +59,17 @@ it should be public or not.
 Note we only have 3 of the 4 methods decorated with
 the :code:`public_facing` decorator.
 
-The application's router is analyzed, going
-through all the routes, and route methods looking
-for the `public_facing` decorator where the
-attribute `scope` is attached with the
-value `"public"`.  In our example,
-the methods `["GET", "POST", "DELETE"]` with the
-route `/fast`.
+When accessing the :code:`routes_public` attribute from
+the :code:`InsanicRouter`, the application's router is analyzed, iterating
+through all the registered routes and route methods looking
+for the :code:`public_facing` decorator where the
+attribute :code:`scope` is attached with the
+value :code:`"public"`.
 
-Then when accessing the :code:`routes_public`
-attribute on :code:`InsanicRouter`,
-the registered routes will be traverse to look for the
-routes decorated with the :code:`public_facing` decorator.
+In our example,
+the methods :code:`["GET", "POST", "DELETE"]` with the
+route `/fast` are decorated.
+
 
 .. code-block:: python
 
@@ -85,7 +84,7 @@ Additional Usages
 -------------------
 
 The :code:`public_facing` decorator can be configured to only
-accept only a list of defined query parameters.
+accept a list of defined query parameters.
 
 .. autodecorator:: insanic.scopes.public_facing
 

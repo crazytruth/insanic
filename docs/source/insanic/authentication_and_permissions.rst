@@ -11,20 +11,22 @@ Authentication and Permissions
     `Django-REST-Framework's Permissions`_ pattern
     was referenced for this implementation.
 
-Insanic takes `Sanic's Class-Based Views`_ and modifies
-them to handle authentication and check for permissions.
+Insanic takes `Sanic's Class-Based Views`_ and extends
+it to handle authentication and check for permissions.
 
 To register authentication and permissions, we must
 first create or use the general authentication and
-permission provided by Insanic.
+permissions provided by Insanic.
 
 Insanic only provides :code:`JWT` authentication because
 it is most suitable for microservices.  Session based implementations
 require state and synchronizing states across services introduces
 complexity.  You might wonder, what about verifying if the token
-with its respective key requires state?  One of the better practices,
-in my opinion, is to have an API Gateway that will handle the
-JWT verification for you.
+with its respective key requires state?  In my humble opinion,
+one of the better practices, is to have an API Gateway that will handle the
+JWT verification for you. This way you don't need to verify the request
+in the application, and only use the JWT payload for creating request
+context.
 
 
 Views
@@ -49,12 +51,12 @@ Views
 
 This will authenticate the request with the declared
 :code:`authentication_classes`, in this case the
-:code:`JSONWebTokenAuthentication`. This will decode the
+:code:`JSONWebTokenAuthentication`. The authentication class will decode the
 :code:`jwt` token from the headers and sets the :code:`user`
 attribute on the request object.
 
 Then the :code:`permission_classes` are iterated through to
-determine this use has the necessary permissions to
+determine this user has the necessary permissions to
 access this view.  In this case :code:`AllowAny` allows everyone
 to request this view.
 
@@ -65,23 +67,24 @@ JSONWebTokenAuthentication
 The general flow for the authentication class is as follows:
 
 1. Get the authorization header from the request
-object and compares it to the `JWT_AUTH_HEADER_PREFIX`
+object and compares the prefix it to the `JWT_AUTH_HEADER_PREFIX`
 defined in the settings.
-2. Decodes the `jwt` token.  While decoding the following exceptions may occur
 
-    1. Determines if the signature has expired
-    2. Error decoding signature
-    3. Invalid token
+2. Decode the :code:`JWT` token.  While decoding the following exceptions may occur
 
-3. Deems the user authenticated. And sets the user to the
-request object.
+    1. Exception if it determines the signature has expired
+    2. Exception when decoding signature
+    3. Exception if an Invalid token
+
+3. Lastly, deems the user authenticated and sets the user to the
+:code:`request` object.
 
 
 ServiceJWTAuthentication
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Gets the JWT token was from another Insanic service and sets
-the service to the request object.
+The :code:`ServiceJWTAuthentication` verifies the :code:`JWT` was from
+another Insanic service and sets the service to the request object.
 
 When making intra service requests, both
 the service and user properties become available from the
@@ -112,6 +115,11 @@ View the :ref:`api-insanic-permissions` API Reference for more details.
 
 Custom Permissions
 ^^^^^^^^^^^^^^^^^^^^
+
+If Insanic's permissions are not enough, the developer has option
+to create their own custom permission.  However, it should inherit
+the :code:`BasePermission` class and have it's own :code:`has_permission`
+method implemented.
 
 .. code-block:: python
 

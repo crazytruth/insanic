@@ -44,7 +44,7 @@ Metrics Endpoint
 
 The metrics endpoint is served from :code:`/<your service name>/metrics/`.
 This endpoint is provide basic metrics of the application and
-machine/container that it is running in.  Because tranparent
+machine/container that it is running in.  This is because transparent
 application metrics are very important in a distributed
 system.
 
@@ -94,21 +94,21 @@ Ping Endpoint
 The ping endpoint is served from :code:`/<your service name>/ping/`.
 
 This endpoint pings the service and provides request process duration
-metrics for the respective service's(usually 0ms).  However,
+metrics for the respective service (usually 0ms).  However,
 its real power lies in its ability to ping other services.
 
-This endpoint also gathers the services defined in
+A call to the endpoint gathers the services defined in
 the :code:`SERVICE_CONNECTIONS` and :code:`REQUIRED_SERVICE_CONNECTIONS`
 settings and also sends a :code:`ping` request
 to all of them.  Depth can be set to determine how far in the
 mesh you want to traverse with the :code:`depth` query parameter.
 
 This *could* be useful for creating a trace diagram of which
-service talks to who.
+service talks to who, if you have some sort of tracing stack.
 
 .. warning::
 
-    Requests will a large :code:`depth` value should be avoided
+    Requests with a large :code:`depth` value should be avoided
     in a production environment as it could quickly flood the
     network. Especially if you have circular connections.
 

@@ -1,5 +1,5 @@
-Configs
-============
+API Reference Constants
+========================
 
 .. _`api-insanic-errors`:
 

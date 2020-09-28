@@ -39,18 +39,18 @@ starting.
 As you can see, usage is very similar to Sanic, but with a couple
 differences.
 
-1. Insanic requires you to passing in a :code:`version` argument.
+1. Insanic requires you to pass in a :code:`version` argument.
 This decision was to enforce versioning when deploying
 applications.  We found it especially important in a
-microservice system.
+distributed system.
 
 This however, can be turned off with the
 :code:`ENFORCE_APPLICATION_VERSION` settings. View the
 :doc:`settings documentation <settings>` for more information.
 
 2. An Insanic specific :code:`settings` variable that is accessible
-anywhere in the application.  Some of you may recognize it
-is very similar to how Django works.  Not only can this
+anywhere in the application.  Some of you may recognize as something
+very similar to Django.  Not only can this
 :code:`settings` variable be accessible anywhere in the application,
 it is also compatible with Sanic where the same variables
 can be accessible through :code:`app.config`.  Please read the

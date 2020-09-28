@@ -2,19 +2,18 @@ Intra Service Communications
 =============================
 
 One of the core additional features of :code:`Insanic`,
-that differentiates it from other frameworks,
 is the :code:`Service` object.  The :code:`Service` object
-allows easy http request responses to other services running,
+facilitates easy http request responses to other services running,
 not only :code:`Insanic` (although it will be easier), but to
-other services within the microservice architecture.
+other services within the microservices.
 
 Features of the :code:`Service` object includes:
 
-- Address resolution, especially if you have a pattern for your host names
+- Address resolution, especially if you have a pattern for your host names.
 - Endpoint Construction
 - Error Handling
 - Response Handling
-- Inject User and Service Context headers for the receiving service
+- Injection of User and Service Context headers
 
 Under the hood, the :code:`Service` object uses the :code:`httpx.AsyncClient` for making requests.
 
@@ -39,7 +38,7 @@ Basic Usage
 The function, :code:`get_service`, is a helper method that returns a :code:`Service`
 instance of the service the developer wants to send a request to.
 
-Under the hood, the instances are initialized in a
+The instances are initialized in a
 :code:`ServiceRegistry` with only available services defined
 in the `SERVICE_CONNECTIONS` and `REQUIRED_SERVICE_CONNECTIONS`
 settings.  Attempting to get any services not defined in either

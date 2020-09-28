@@ -3,19 +3,19 @@ Insanic
 
 Welcome to Insanic's Documentation.
 Insanic is framework to make your life easier when
-developing for a microservice architecture.
+developing for a microservice architecture pattern.
 Insanic extends `Sanic <https://github.com/huge-success/sanic>`_, a Python 3.6+ web server
 and web framework that's written to go fast.  Although Sanic lays
 down the basics of a server, we needed a little more in terms
-of easier and centralized service integration.  A framework
+of easier and smoother service integration.  A framework
 that allowed developers to concentrate on the business logic
 without the need to fret over minor details when
-considering deploying a fully functioning application in a
+considering and deploying a fully functioning application in a
 production environment.
 
-Since the goal of this framework was deployment into a
-microservice system, most features are for the simplification of
-either communicating with another service, or for helping with
+Since the initial goal of this framework was deployment into a
+microservice system, most features were for the simplification of
+development, communication with another service, or for helping with
 the automation of deploying the Insanic based application.
 
 
@@ -28,7 +28,7 @@ legacy monolithic application, written with Django 1.6 and
 Python 2.7, to a fully microservice based system in a
 limited time frame.
 
-We only had a handful of Python developers to achieve this task
+We only had a handful of Python developers to achieve this task,
 so we needed a framework to rapidly migrate business logic.
 As a result, most design decisions were based on my experience with
 `Django <https://www.djangoproject.com/>`_ and
@@ -41,7 +41,7 @@ Prerequisites
 -------------
 
 Because this largely based on Sanic, for the basics,
-you should have prior knowledge of Sanic.
+you should have prior working knowledge of Sanic.
 Please refer to
 `Sanic's Documentation <https://sanic.readthedocs.io/en/latest/>`_
 for more information.
