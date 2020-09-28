@@ -3,7 +3,6 @@
 #
 # Modified for framework usage.
 
-
 import copy
 import operator
 from time import time

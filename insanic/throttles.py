@@ -5,7 +5,6 @@
 Default throttles provided by Insanic.
 """
 
-
 import time
 import ujson as json
 from sanic.request import Request
