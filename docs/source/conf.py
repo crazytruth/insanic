@@ -14,10 +14,10 @@ import os
 import sys
 import datetime
 
-import insanic
-from insanic.conf import settings
-
 sys.path.insert(0, os.path.abspath("../.."))
+
+import insanic  # noqa: ignore=E402
+from insanic.conf import settings  # noqa: ignore=E402
 
 settings.configure()
 
@@ -72,7 +72,7 @@ else:
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+html_static_path = []
 
 
 # Autodoc configurations
