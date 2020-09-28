@@ -1,9 +1,15 @@
+# Copyright (c) Django Software Foundation and individual contributors.
+# All rights reserved.
+#
+# Modified for framework usage.
+
+
 import copy
 import operator
 from time import time
 
 
-class cached_property_with_ttl(object):
+class cached_property_with_ttl(object):  # pragma: no cover
     """
     A property that is only computed once per instance and then replaces itself
     with an ordinary attribute. Setting the ttl to a number expresses how long
@@ -57,11 +63,12 @@ class cached_property_with_ttl(object):
             self.__module__ = func.__module__
 
 
-class cached_property(object):
+class cached_property(object):  # pragma: no cover
     """
     Decorator that converts a method with a single self argument into a
     property cached on the instance.
     """
+
     def __init__(self, func):
         self.func = func
 
@@ -75,15 +82,16 @@ class cached_property(object):
 empty = object()
 
 
-def new_method_proxy(func):
+def new_method_proxy(func):  # pragma: no cover
     def inner(self, *args):
         if self._wrapped is empty:
             self._setup()
         return func(self._wrapped, *args)
+
     return inner
 
 
-class LazyObject(object):
+class LazyObject(object):  # pragma: no cover
     """
     A wrapper for another class that can be used to delay instantiation of the
     wrapped class.
@@ -120,7 +128,9 @@ class LazyObject(object):
         """
         Must be implemented by subclasses to initialize the wrapped object.
         """
-        raise NotImplementedError('subclasses of LazyObject must provide a _setup() method')
+        raise NotImplementedError(
+            "subclasses of LazyObject must provide a _setup() method"
+        )
 
     # Because we have messed with __class__ below, we confuse pickle as to what
     # class we are pickling. It also appears to stop __reduce__ from being

@@ -12,16 +12,16 @@ from insanic.scopes import get_hostname
 class JSONFormatter(logging.Formatter):
 
     converter = time.gmtime
-    default_msec_format = '%s.%03d'
+    default_msec_format = "%s.%03d"
 
-    def __init__(self, fmt=None, datefmt=None, style='%'):
+    def __init__(self, fmt=None, datefmt=None, style="%"):
         super().__init__(None, datefmt)
 
         if not fmt:
             self._fmt_dict = {
-                'sys_host': '%(hostname)s',
-                'sys_name': '%(name)s',
-                'sys_module': '%(module)s',
+                "sys_host": "%(hostname)s",
+                "sys_name": "%(name)s",
+                "sys_module": "%(module)s",
             }
         else:
             self._fmt_dict = fmt
@@ -33,15 +33,18 @@ class JSONFormatter(logging.Formatter):
     def extra_fields(self):
         if not self._extra_fields:
             self._extra_fields = {
-                "service": settings.get('SERVICE_NAME', None),
-                "environment": settings.get('MMT_ENV', None),
+                "service": settings.get("SERVICE_NAME", None),
+                "environment": settings.get("ENVIRONMENT", None),
                 "insanic_version": __version__,
-                "service_version": settings.get('SERVICE_VERSION', None),
-                "squad": settings.get('SQUAD', None)
+                "application_version": settings.get(
+                    "APPLICATION_VERSION", None
+                ),
             }
 
         try:
-            correlation_id = aiotask_context.get(settings.TASK_CONTEXT_CORRELATION_ID, default='unknown')
+            correlation_id = aiotask_context.get(
+                settings.TASK_CONTEXT_CORRELATION_ID, default="unknown"
+            )
         except ValueError:
             correlation_id = "not set"
         self._extra_fields.update({"correlation_id": correlation_id})
@@ -72,7 +75,7 @@ class JSONFormatter(logging.Formatter):
         for key, value in self._fmt_dict.items():
             try:
                 value = value % record.__dict__
-            except KeyError as exc:
+            except KeyError:
                 value = None
                 # raise exc
 
@@ -97,8 +100,9 @@ class JSONFormatter(logging.Formatter):
         return json.dumps(data, sort_keys=True)
 
     def usesTime(self):
-        return any([value.find('%(asctime)') >= 0
-                    for value in self._fmt_dict.values()])
+        return any(
+            [value.find("%(asctime)") >= 0 for value in self._fmt_dict.values()]
+        )
 
     def _structuring(self, data, record):
         """ Melds `msg` into `data`.
@@ -119,14 +123,14 @@ class JSONFormatter(logging.Formatter):
                 if isinstance(json_msg, dict):
                     self._add_dic(data, json_msg)
                 else:
-                    self._add_dic(data, {'message': str(json_msg)})
+                    self._add_dic(data, {"message": str(json_msg)})
             except ValueError:
                 msg = record.getMessage()
-                self._add_dic(data, {'message': msg})
+                self._add_dic(data, {"message": msg})
         elif isinstance(msg, Exception) or inspect.isclass(msg):
             self._add_dic(data, {"message": str(msg)})
         else:
-            self._add_dic(data, {'message': msg})
+            self._add_dic(data, {"message": msg})
 
     @staticmethod
     def _add_dic(data, dic):

@@ -1,13 +1,25 @@
-import datetime
+from typing import Optional, Tuple, List, Dict
 
-SECRET_KEY = ''
-SERVICE_TOKEN_KEY = ""
+#: Not required but give your service an alias
+SERVICE_ALIAS: str = ""
 
-ADMINS = (
-    ('David', 'david@mymusictaste.com')
-)
+#
+SERVICE_TOKEN_KEY: str = ""
 
-DEBUG = False
+#: A list of the maintainers of your service.
+ADMINS: Tuple[tuple] = (("David", "david@example.com"),)
+
+#: Whether to run in debug mode or not
+DEBUG: bool = False
+
+#: Current environment application is deployed to
+ENVIRONMENT: str = "development"
+
+#: The application version is set here.
+APPLICATION_VERSION: Optional[str] = None
+
+#: Whether to enforce application versioning
+ENFORCE_APPLICATION_VERSION: bool = True
 
 # sanic default configs
 # DEFAULT_CONFIG = {
@@ -27,140 +39,95 @@ DEBUG = False
 #     "FORWARDED_FOR_HEADER": "X-Forwarded-For",
 #     "REAL_IP_HEADER": "X-Real-IP",
 # }
-KEEP_ALIVE_TIMEOUT = 60
 
+#: Replace Sanic's default value to 60
+KEEP_ALIVE_TIMEOUT: int = 60
 
-GRACEFUL_SHUTDOWN_TIMEOUT = 29.0  # sanic default is 15.0s
+#: Replace Sanic's default value of 15s to 29s
+GRACEFUL_SHUTDOWN_TIMEOUT: float = 29.0  # sanic default is 15.0s
 
-# SERVICE_NAME = None
+#: List is connections this application will have connections to.
+SERVICE_CONNECTIONS: List[str] = []
 
-SERVICE_CONNECTIONS = []
-SERVICE_GLOBAL_SCHEMA = "http"
-SERVICE_GLOBAL_HOST_TEMPLATE = "{}"
-SERVICE_GLOBAL_PORT = "8000"
-SERVICE_CONNECTION_KEEP_ALIVE_TIMEOUT = 15
-SERVICE_CONNECTION_DEFAULT_RETRY_COUNT = 2
-SERVICE_CONNECTION_MAX_RETRY_COUNT = 4
+#: A list of required connections.
+REQUIRED_SERVICE_CONNECTIONS: List[str] = []
 
-SERVICE_CONNECTOR_SEMAPHORE_COUNT = 1000
-SERVICE_CONNECTOR_TTL_DNS_CACHE = 10  # was 60s reduce?
-SERVICE_CONNECTOR_LIMIT_PER_HOST = 0  # for unlimited
-SERVICE_CONNECTOR_LIMIT = 0  # from 200 in 0.8.2
+#: Schema for constructing the url for intra service communications.
+SERVICE_GLOBAL_SCHEMA: str = "http"
 
-SERVICE_TIMEOUT_TOTAL = 15
-SERVICE_TIMEOUT_CONNECT = None
-SERVICE_TIMEOUT_SOCK_READ = None
-SERVICE_TIMEOUT_SOCK_CONNECT = None
+#: Host template for constructing the url for intra service communications
+SERVICE_GLOBAL_HOST_TEMPLATE: str = "{}"
 
+#: Port for constructing the url for intra service communications
+SERVICE_GLOBAL_PORT: str = "8000"
 
-REQUIRED_SERVICE_CONNECTIONS = ["userip", "user"]
-ALLOWED_HOSTS = []
+# httpx configs - start
+#: httpx config for number of connections
+SERVICE_CONNECTOR_MAX: int = 100
+#: httpx config for keep alive
+SERVICE_CONNECTOR_MAX_KEEPALIVE: int = 20
 
-LOG_IP_FAIL_TYPE = "hard"
+#: httpx config for timeout
+SERVICE_TIMEOUT_TOTAL: float = 5.0
+# SERVICE_TIMEOUT_CONNECT: float = None
+# SERVICE_TIMEOUT_READ: float = None
+# SERVICE_TIMEOUT_WRITE: float = None
+# SERVICE_TIMEOUT_POOL: float = None
+# httpx configs - end
 
-INSANIC_CACHES = {
-    "insanic": {
-        "ENGINE": "aioredis",
-        "CONNECTION_INTERFACE": "create_redis_pool",
-        "CLOSE_CONNECTION_INTERFACE": (('close',), ("wait_closed",)),
-        "DATABASE": 1
-    },
-    "throttle": {
-        "ENGINE": "aioredis",
-        "CONNECTION_INTERFACE": "create_redis_pool",
-        "CLOSE_CONNECTION_INTERFACE": (('close',), ("wait_closed",)),
-        "DATABASE": 2
-    },
+#: number of retries the Service object will attempt the GET request
+SERVICE_CONNECTION_DEFAULT_RETRY_COUNT: int = 2
+#: the hard maximum for retries
+SERVICE_CONNECTION_MAX_RETRY_COUNT: int = 4
+
+#: Redis host, port, and db cache settings
+INSANIC_CACHES: Dict[str, dict] = {
+    "insanic": {"HOST": "localhost", "PORT": 6379, "DATABASE": 1},
+    "throttle": {"HOST": "localhost", "PORT": 6379, "DATABASE": 2},
 }
 
-CACHES = {
-    "default": {
-        "ENGINE": "aioredis",
-        "CONNECTION_INTERFACE": "create_redis_pool",
-        "CLOSE_CONNECTION_INTERFACE": (('close',), ("wait_closed",))
-    },
+#: Any other host, port and db redis connections
+CACHES: Dict[str, dict] = {
+    "default": {"HOST": "localhost", "PORT": 6379, "DATABASE": 0},
 }
 
-TASK_CONTEXT_REQUEST_USER = "request_user"
-TASK_CONTEXT_CORRELATION_ID = "correlation_id"
+#: the key for the asyncio task context that hold user information.
+TASK_CONTEXT_REQUEST_USER: str = "request_user"
+#: the key for the asyncio task context that holds the correlation id
+TASK_CONTEXT_CORRELATION_ID: str = "correlation_id"
 
-REDIS_HOST = "localhost"
-REDIS_PORT = 6379
-REDIS_DB = 0
+JWT_AUTH_DECODE_HANDLER: str = "insanic.authentication.handlers.jwt_decode_handler"
 
-JWT_AUTH = {
-    'JWT_ENCODE_HANDLER':
-        'rest_framework_jwt.utils.jwt_encode_handler',
+JWT_AUTH_ALGORITHM: str = "HS256"
+JWT_AUTH_PUBLIC_KEY: Optional[str] = None
+JWT_AUTH_PRIVATE_KEY: Optional[str] = None
 
-    'JWT_DECODE_HANDLER':
-        'rest_framework_jwt.utils.jwt_decode_handler',
+JWT_AUTH_VERIFY: bool = False
+JWT_AUTH_VERIFY_EXPIRATION: bool = True  #
+JWT_AUTH_LEEWAY: int = 0
 
-    'JWT_PAYLOAD_HANDLER':
-        'rest_framework_jwt.utils.jwt_payload_handler',
+JWT_AUTH_AUDIENCE: str = ""
+JWT_AUTH_AUTH_HEADER_PREFIX: str = "Bearer"
 
-    'JWT_PAYLOAD_GET_USER_ID_HANDLER':
-        'rest_framework_jwt.utils.jwt_get_user_id_from_payload_handler',
+JWT_SERVICE_AUTH_ALGORITHM: str = "HS256"
+JWT_SERVICE_AUTH_ROLE: str = "service"
+JWT_SERVICE_AUTH_AUTH_HEADER_PREFIX: str = "MSA"
+JWT_SERVICE_AUTH_VERIFY: bool = True
 
-    'JWT_RESPONSE_PAYLOAD_HANDLER':
-        'rest_framework_jwt.utils.jwt_response_payload_handler',
-
-    'JWT_PUBLIC_KEY': None,
-    'JWT_PRIVATE_KEY': None,
-    'JWT_ALGORITHM': 'HS256',
-    'JWT_VERIFY': False,
-    'JWT_VERIFY_EXPIRATION': True,
-    'JWT_LEEWAY': 0,
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=7),
-    'JWT_AUDIENCE': '.mymusictaste.com',
-    'JWT_ISSUER': 'mymusictaste.com',
-
-    'JWT_ALLOW_REFRESH': True,
-    'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=7),
-    'JWT_ROLE': 'user',
-
-    'JWT_AUTH_HEADER_PREFIX': 'Bearer',
+#: Throttle values for setting throttles in views.
+THROTTLES_DEFAULT_THROTTLE_RATES: Dict[str, Optional[str]] = {
+    "user": None,
+    "anon": None,
 }
 
-JWT_SERVICE_AUTH = {
-    'JWT_ALGORITHM': 'HS256',
-    'JWT_ROLE': 'service',
-    'JWT_AUTH_HEADER_PREFIX': 'MSA',
-    'JWT_VERIFY': True,
-}
+#: Header key for setting the request id during intra service requests
+REQUEST_ID_HEADER_FIELD: str = "X-Insanic-Request-ID"
+#: Header key for setting request user context in intra service requests
+INTERNAL_REQUEST_USER_HEADER: str = "x-insanic-request-user"
+#: Header key for setting request service context during intra service requests
+INTERNAL_REQUEST_SERVICE_HEADER: str = "x-insanic-request-service"
 
-INTERNAL_IPS = ()
+SERVICE_UNAVAILABLE_MESSAGE: str = "{} is currently unavailable."
 
-
-
-# THROTTLES_NUM_PROXIES = None # deprecated
-THROTTLES_DEFAULT_THROTTLE_RATES = {
-    'user': None,
-    'anon': None
-}
-
-PROXIES_COUNT = -1
-FORWARDED_FOR_HEADER = "X-Forwarded-For"
-REAL_IP_HEADER = "X-Real-IP"
-
-
-GATEWAY_REGISTRATION_ENABLED = True
-
-KONG_HOST = "kong"
-KONG_ADMIN_PORT = 18001
-
-KONG_ROUTE_REGEX_PRIORITY = {"local": 10,
-                             "development": 5}
-KONG_ROUTE_REGEX_DEFAULT = 10
-KONG_FAIL_SOFT_ENVIRONMENTS = ("local", "test",)
-
-KONG_PLUGIN = {"JSONWebTokenAuthentication": "jwt",
-               "HardJSONWebTokenAuthentication": "jwt", }
-
-# VAULT_APPROLE_BIND_SECRET = "pull" # value can be pull or push
-REQUEST_ID_HEADER_FIELD = "X-Insanic-Request-ID"
-INTERNAL_REQUEST_USER_HEADER = 'x-insanic-request-user'
-INTERNAL_REQUEST_SERVICE_HEADER = "x-insanic-request-service"
-
-SERVICE_UNAVAILABLE_MESSAGE = "{} is currently unavailable."
-
-REQUIRED_PLUGINS = ()
+#: if there should be any required plugins when running Insanic
+REQUIRED_PLUGINS: Tuple[str] = ()

@@ -12,5 +12,5 @@ ROUTES = (
     "/{type}/<{type}:[A-z]+>",
     "/{type}/<{type}:[A-z]+>/",
     "/{type}/<{type}:[A-z0-9]{{0,4}}>",
-    "/{type}/<{type}:[A-z0-9]{{0,4}}>/"
+    "/{type}/<{type}:[A-z0-9]{{0,4}}>/",
 )

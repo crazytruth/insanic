@@ -1,81 +1,95 @@
-import asyncio
+import inspect
+from typing import Optional, Callable
 
-from ujson import loads as jsonloads, dumps as jsondumps
+from sanic.views import HTTPMethodView
 from functools import wraps
 
 from insanic.conf import settings
-from insanic.connections import get_connection
-from sanic.response import json
 
-SEGMENT_DELIMITER = ":"
-QUERY_PARAM_DELIMITER = "|"
+from insanic.exceptions import ImproperlyConfigured
+from insanic.log import logger
+from insanic.request import Request
+from insanic.utils import datetime
+from insanic.utils.datetime import (
+    timestamp_seconds_to_datetime,
+    get_utc_timestamp,
+    get_utc_datetime,
+)
 
 
-class cache_get_response:
+class deprecate:
     """
-    On the request to a view method with GET,
-        first check if the relevant news_item can be found from Redis and update if it does not exist.
-
-    :param ttl: time to live for the cache
-    :param status: status code for other than 200
-    :return:
+    emits a warning if an request is made to the decorated method/path
+    :param at: datetime object or timestamp
+    :param ttl: (default 1 day) the frequency at which the warning messages will be logged
     """
 
-    def __init__(self, ttl=300):
+    last_call = {}
+
+    def __init__(
+        self, *, at: [datetime.datetime, int], ttl: Optional[int] = None
+    ) -> None:
+
+        if isinstance(at, datetime.datetime):
+            ts = datetime.datetime.timestamp(at)
+            at = at.replace(tzinfo=datetime.timezone.utc)
+        else:
+            ts = at
+            at = timestamp_seconds_to_datetime(ts)
+
+        ttl = ttl or settings.DEPRECATION_WARNING_FREQUENCY
+
+        self.dt = at
+        self.ts = ts
         self.ttl = ttl
 
-    def __call__(self, func):
+    def __call__(self, func_or_cls: [HTTPMethodView, Callable]):
+        @wraps(func_or_cls)
+        def wrapper(*args, **kwargs):
 
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            view = args[0]
-            request = view.request
-            assert request.method == "GET", "Can only cache GET methods."
+            request = None
+            for arg in args:
+                if isinstance(arg, Request):
+                    request = arg
+                    break
 
-            redis = await get_connection('insanic')
-            key = self.get_key(request)
-            response = await self.get(redis, key)
-            if response:
-                return response
-            view_response = await func(*args, **kwargs)
+            view_response = func_or_cls(*args, **kwargs)
 
-            # only cache if response status is 200
-            if 200 <= view_response.status < 300:
-                asyncio.ensure_future(self.update(view_response, redis, key, self.ttl))
+            if request:
+                now = get_utc_timestamp()
+
+                request_service = (
+                    f"@{request.service.request_service.upper() or 'FE'}"
+                )
+                request_type = f"{request.method} {request.uri_template}"
+                key = (request_service, request.method, request.uri_template)
+
+                if key not in self.last_call:
+                    self.last_call[key] = now - self.ttl
+
+                if self.last_call[key] + self.ttl <= now:
+                    logger.warning(
+                        f"[DEPRECATION WARNING] For maintainers of {request_service}! "
+                        f"{request_type} will be deprecated on {self.dt}. "
+                        f"You have {get_utc_datetime() - self.dt} left!"
+                    )
+                    self.last_call[key] = now
+
             return view_response
 
-        return wrapper
+        if inspect.isclass(func_or_cls):
+            if issubclass(func_or_cls, HTTPMethodView):
+                for m in func_or_cls.http_method_names:
+                    handler = getattr(func_or_cls, m.lower(), None)
+                    if handler is None:
+                        continue
 
-    def get_key(self, request):
-        """
-        Returns the Key for Redis in the following format:
-        "{service_name}:{endpoint}:<query_param1>:{query_param1}:<query_param2>:{query_param2}....
-        """
+                    setattr(func_or_cls, m.lower(), self.__call__(handler))
 
-        service_name = settings.SERVICE_NAME
-        uri = request.path
-
-        to_join = [service_name, uri]
-        query_params = request.query_params
-        for key in sorted(list(query_params.keys())):
-            query_param = QUERY_PARAM_DELIMITER.join(query_params.getlist(key))
-            to_join.extend([key, query_param])
-
-        key = SEGMENT_DELIMITER.join(to_join)
-        return key
-
-    async def get(self, redis, key):
-        with await redis as conn:
-            value = await conn.get(key)
-            if value:
-                value = jsonloads(value)
-                return json(value['body'], status=value['status'])
+                return func_or_cls
             else:
-                return None
-
-    async def update(self, response, redis, key, ttl):
-
-        cache_data = jsondumps({"status": response.status, "body": jsonloads(response.body)})
-
-        with await redis as conn:
-            await conn.set(key, cache_data, expire=ttl)
+                raise ImproperlyConfigured(
+                    "Must wrap a HTTPMethodView subclass."
+                )
+        else:
+            return wrapper

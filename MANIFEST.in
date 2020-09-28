@@ -1,17 +1,15 @@
-recursive-include insanic *.py
+include README.rst
+include CHANGELOG.rst
+include CHANGELOG_LEGACY.rst
+include CONTRIBUTING.rst
 include LICENSE
-include README.md
-include CHANGELOG.md
-exclude Dockerfile*
-exclude insanic/log/templates
-exclude insanic/log/templates/500.html
-exclude fixtures
-exclude commands
-exclude *.png
-exclude insanic_ascii
-exclude tests
-exclude tests/intest
-exclude tests/tracing
+include requirements/*.txt
+include tox.ini
+exclude .pre-commit-config.yaml
+recursive-exclude requirements *.in
+graft artwork
+graft docs
+graft tests
 graft .github
-recursive-exclude tests *.py
-recursive-exclude insanic *.proto
+prune docs/build
+global-exclude *.pyc

@@ -1,3 +1,8 @@
+# Copyright © 2011-present, Encode OSS Ltd. All rights reserved.
+#
+# Modified for framework usage.
+
+
 import asyncio
 from inspect import isawaitable
 
@@ -8,11 +13,23 @@ from insanic.errors import GlobalErrorCodes
 
 
 class InsanicView(HTTPMethodView):
-    http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
+    http_method_names = [
+        "get",
+        "post",
+        "put",
+        "patch",
+        "delete",
+        "head",
+        "options",
+        "trace",
+    ]
 
     permission_classes = [permissions.IsAuthenticated]
     throttle_classes = []
-    authentication_classes = [authentication.JSONWebTokenAuthentication, ]
+    authentication_classes = [
+        authentication.ServiceJWTAuthentication,
+        authentication.JSONWebTokenAuthentication,
+    ]
 
     def _allowed_methods(self):
         return [m.upper() for m in self.http_method_names if hasattr(self, m)]
@@ -27,11 +44,11 @@ class InsanicView(HTTPMethodView):
     @property
     def default_response_headers(self):
         headers = {
-            'Allow': ', '.join(self.allowed_methods),
+            "Allow": ", ".join(self.allowed_methods),
         }
         return headers
 
-    async def perform_authentication(self, request):
+    def perform_authentication(self, request):
         """
         Perform authentication on the incoming request.
 
@@ -39,15 +56,15 @@ class InsanicView(HTTPMethodView):
         will instead be performed lazily, the first time either
         `request.user` or `request.auth` is accessed.
         """
-        await request.user
+        request.user
 
-    async def check_permissions(self, request):
+    def check_permissions(self, request):
         """
         Check if the request should be permitted.
         Raises an appropriate exception if the request is not permitted.
         """
         for permission in self.get_permissions():
-            if not await permission.has_permission(request, self):
+            if not permission.has_permission(request, self):
                 self.permission_denied(request)
 
     def permission_denied(self, request, message=None):
@@ -55,8 +72,12 @@ class InsanicView(HTTPMethodView):
         If request is not permitted, determine what kind of exception to raise.
         """
         if not request.successful_authenticator:
-            raise exceptions.NotAuthenticated(error_code=GlobalErrorCodes.authentication_credentials_missing)
-        raise exceptions.PermissionDenied(message, error_code=GlobalErrorCodes.permission_denied)
+            raise exceptions.NotAuthenticated(
+                error_code=GlobalErrorCodes.authentication_credentials_missing
+            )
+        raise exceptions.PermissionDenied(
+            message, error_code=GlobalErrorCodes.permission_denied
+        )
 
     def get_permissions(self):
         """
@@ -82,8 +103,9 @@ class InsanicView(HTTPMethodView):
         Raises an appropriate exception if the request is throttled.
         """
         throttles = self.get_throttles()
-        throttle_results = await asyncio.gather(*[t.allow_request(request, self)
-                                                  for t in throttles])
+        throttle_results = await asyncio.gather(
+            *[t.allow_request(request, self) for t in throttles]
+        )
 
         if not all(throttle_results):
             for i in range(len(throttles)):
@@ -94,7 +116,7 @@ class InsanicView(HTTPMethodView):
         """
         Instantiates and returns the list of authenticators that this view can use.
         """
-        return [authentication.ServiceJWTAuthentication()] + [auth() for auth in self.authentication_classes]
+        return [auth() for auth in self.authentication_classes]
 
     async def convert_keywords(self):
         pass
@@ -109,8 +131,8 @@ class InsanicView(HTTPMethodView):
         self.headers = self.default_response_headers  # deprecate?
 
         await self.convert_keywords()
-        await self.perform_authentication(self.request)
-        await self.check_permissions(self.request)
+        self.perform_authentication(self.request)
+        self.check_permissions(self.request)
         await self.check_throttles(self.request)
 
     async def dispatch_request(self, request, *args, **kwargs):
@@ -130,8 +152,3 @@ class InsanicView(HTTPMethodView):
         if isawaitable(response):
             response = await response
         return response
-
-
-class InsanicAdminView(InsanicView):
-    permission_classes = [permissions.IsAuthenticated, permissions.IsServiceOnly]
-    authentication_classes = [authentication.HardJSONWebTokenAuthentication, ]

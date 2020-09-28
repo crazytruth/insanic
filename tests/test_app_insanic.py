@@ -1,99 +1,228 @@
+import inspect
+
 import pytest
-from sanic.response import json
-from sanic.router import RouteExists
+from sanic import Sanic
 
-from insanic import Insanic
+from insanic import Insanic, middleware as insanic_middleware
+from insanic.app import LISTENER_TYPES, MIDDLEWARE_TYPES
+from insanic.conf import LazySettings, settings
+from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import empty
-from insanic.views import InsanicView
-from insanic.scopes import public_facing
-
-from .conftest_constants import ROUTES
 
 
 class TestInsanic:
-    routes = []
+    def test_insanic_app_basic_initialization(self):
+        """
+        Just basic Insanic initialization
+        :return:
+        """
 
-    @pytest.fixture("module")
-    def insanic_application(self):
-        return Insanic("test")
+        app = Insanic("taels")
 
-    def add_route(self, insanic_application, route):
-        try:
-            @insanic_application.route(route)
-            @public_facing
-            def get(self, request, *args, **kwargs):
-                return json({}, status=200)
-        except RouteExists:
-            pass
-        else:
-            self.routes.append(route)
+        assert app.initialized_plugins == {}
+        assert isinstance(app.config, LazySettings)
+        assert app.config.SERVICE_NAME == "taels"
+        assert app.config.APPLICATION_VERSION == "UNKNOWN"
+        assert "monitor" in app.blueprints
 
-    @pytest.mark.parametrize("route", ROUTES)
-    def test_public_routes(self, insanic_application, route):
+    def test_insanic_dont_attach_monitor_endpoints(self):
+        """
+        Tests to skip monitor endpoints
 
-        self.add_route(insanic_application, route)
+        :return:
+        """
 
-        public_routes = insanic_application.public_routes()
+        app = Insanic("taels", attach_monitor_endpoints=False)
 
-        assert len(public_routes) == len(self.routes)
-        # need this to recalculate public routes, otherwise just returns the saved routes
-        insanic_application._public_routes = empty
+        assert app.metrics is empty
+        assert app.blueprints == {}
 
-    @pytest.mark.parametrize("route", ROUTES)
-    def test_public_routes_classes(self, insanic_application, route):
+    def test_insanic_app_config_argument(self):
+        """
+        Test to make sure the configs get loaded into settings
 
-        self.add_route(insanic_application, route)
+        :return:
+        """
 
-        public_routes = insanic_application.public_routes()
+        class SomeConfig:
+            SOME_CONFIG = "hello"
+            I_STILL_SURVIVE = "!"
 
-        assert len(public_routes) == len(self.routes)
+        class SomeOtherConfig:
+            SOME_CONFIG = "bye"
 
-        insanic_application._public_routes = empty
+        Insanic("taels", app_config=(SomeConfig, SomeOtherConfig))
 
-    def test_public_routes_class_view(self):
-        insanic_application = Insanic('test2')
+        assert settings.SOME_CONFIG == "bye"
+        assert settings.I_STILL_SURVIVE == "!"
 
-        class ClassView(InsanicView):
-            @public_facing
-            def get(self, request, *args, **kwargs):
-                return {"method": "get"}
+    def test_sanic_argument_compatibility(self):
+        """
+        This test is to ensure the sanic arguments are a subset of
+        insanic's arguments. Probably use case would be when a new
+        version of sanic gets released with added/modified arguments.
 
-            @public_facing
-            def post(self, request, *args, **kwargs):
-                return {"method": "post"}
+        :return:
+        """
 
-            def put(self, request, *args, **kwargs):
-                return {"method": "put"}
+        # for __init__
+        sanic_args = set(inspect.signature(Sanic).parameters.keys())
+        insanic_args = set(inspect.signature(Insanic).parameters.keys())
+        # tests arguments are subset
+        assert (
+            sanic_args <= insanic_args
+        ), f"{sanic_args - insanic_args} is/are missing."
 
-        insanic_application.add_route(handler=ClassView.as_view(), uri='/insanic/',
-                                      name="ClassView", strict_slashes=True)
+        # for Sanic.run
+        sanic_run_args = set(inspect.signature(Sanic.run).parameters.keys())
+        insanic_run_args = set(inspect.signature(Insanic.run).parameters.keys())
+        assert (
+            sanic_run_args <= insanic_run_args
+        ), f"{sanic_run_args - insanic_run_args} is/are missing."
 
-        routes = insanic_application.public_routes()
-        assert "^/insanic/$" in routes
-        assert sorted(routes["^/insanic/$"]['public_methods']) == sorted(["GET", "POST"])
+        # for Sanic._helper
+        sanic_helper_args = set(
+            inspect.signature(Sanic._helper).parameters.keys()
+        )
+        insanic_helper_args = set(
+            inspect.signature(Insanic._helper).parameters.keys()
+        )
+        assert (
+            sanic_helper_args <= insanic_helper_args
+        ), f"{sanic_helper_args - insanic_helper_args} is/are missing."
 
-    def test_public_routes_same_endpoint_different_views(self):
-        insanic_application = Insanic('test2')
+    def test_version_configuration_not_enforced(self):
+        """
+        When version configuration is not enforced.
 
-        class GetOnlyView(InsanicView):
-            @public_facing
-            def get(self, request, *args, **kwargs):
-                return {"method": "get"}
+        :return:
+        """
 
-            def delete(self, request, *args, **kwargs):
-                return {"method": "delete"}
+        # ENFORCE_APPLICATION_VERSION should be False right now
+        app = Insanic("good")
+        assert app.config.APPLICATION_VERSION == "UNKNOWN"
 
-        class PostOnlyView(InsanicView):
-            @public_facing
-            def post(self, request, *args, **kwargs):
-                return {"method": "post"}
+        app = Insanic("good", version="1.1.1")
+        assert app.config.APPLICATION_VERSION == "1.1.1"
 
-        insanic_application.add_route(handler=GetOnlyView.as_view(), uri='/insanic/',
-                                      methods=['GET'], name="GetOnlyView", strict_slashes=True)
-        insanic_application.add_route(handler=PostOnlyView.as_view(), uri='/insanic/',
-                                      methods=['POST'], name="PostOnlyView", strict_slashes=True)
+    def test_version_configuration_enforced(self, monkeypatch):
+        """
+        Test when version is enforced.
+        Also checks any fallbacks.
 
-        routes = insanic_application.public_routes()
+        :param monkeypatch:
+        :return:
+        """
+        monkeypatch.setattr(settings, "ENFORCE_APPLICATION_VERSION", True)
 
-        assert "^/insanic/$" in routes
-        assert sorted(routes["^/insanic/$"]['public_methods']) == sorted(["GET", "POST"])
+        with pytest.raises(ImproperlyConfigured):
+            Insanic("bad")
+
+        with pytest.raises(ImproperlyConfigured):
+            Insanic("bad", version=None)
+
+        app = Insanic("good", version="2.2.2")
+        assert app.config.APPLICATION_VERSION == "2.2.2"
+        assert settings.APPLICATION_VERSION == "2.2.2"
+
+    def test_version_configuration_from_settings(self, monkeypatch):
+        """
+        Tests version precedence.
+
+        :param monkeypatch:
+        :return:
+        """
+        monkeypatch.setattr(settings, "ENFORCE_APPLICATION_VERSION", True)
+        monkeypatch.setattr(settings, "APPLICATION_VERSION", "1.1.1")
+
+        app = Insanic("good")
+        assert app.config.APPLICATION_VERSION == "1.1.1"
+        assert settings.APPLICATION_VERSION == "1.1.1"
+
+        app = Insanic("good", version="2.2.2")
+        assert app.config.APPLICATION_VERSION == "2.2.2"
+        assert settings.APPLICATION_VERSION == "2.2.2"
+
+    @staticmethod
+    def get_attached_listeners(app: Insanic) -> set:
+
+        initialized_listener_list = set()
+        for _type, func_list in app.listeners.items():
+            for func in func_list:
+                initialized_listener_list.add(func.__name__)
+        return initialized_listener_list
+
+    @staticmethod
+    def get_attached_middlewares(app: Insanic) -> set:
+        return set([f.__name__ for f in app.request_middleware]).union(
+            set([f.__name__ for f in app.response_middleware])
+        )
+
+    def test_initialize_listeners(self) -> None:
+        """
+        Tests if the default listeners for insanic were initialized
+        :return:
+        """
+
+        app = Insanic("good")
+
+        from insanic import listeners
+
+        listener_list = set()
+        for attribute in dir(listeners):
+            for listener in LISTENER_TYPES:
+                if attribute.startswith(listener):
+                    listener_list.add(attribute)
+
+        initialized_listener_list = self.get_attached_listeners(app)
+        assert listener_list == initialized_listener_list
+
+    def test_dont_initialize_listener(self):
+
+        app = Insanic("good", initialize_insanic_listeners=False)
+
+        initialized_listener_list = self.get_attached_listeners(app)
+        assert initialized_listener_list == set()
+
+    def test_initialize_middlewares(self):
+        """
+        This may not work in debug mode because of Sanic's
+        `asgi_client` property. Because debug will evaluate all
+        attributes and while evaluating asgi_client,
+        the SanicASGITestClient attaches it's own middleware.
+
+        :return:
+        """
+
+        app = Insanic("good")
+
+        middleware_list = set()
+
+        for attrib in dir(insanic_middleware):
+            for middleware in MIDDLEWARE_TYPES:
+                if attrib.startswith(middleware):
+                    middleware_list.add(attrib)
+
+        initialized_middleware_list = self.get_attached_middlewares(app)
+
+        assert middleware_list == initialized_middleware_list
+
+    def test_dont_initialize_middlewares(self):
+        """
+        Same condition as test_initialize_middlewares.
+
+        :return:
+        """
+        app = Insanic("good", initialize_insanic_middlewares=False)
+        initialized_middleware_list = self.get_attached_middlewares(app)
+        assert initialized_middleware_list == set()
+
+    def test_helper_method(self):
+        """
+        Checks if the port is set in the settings.
+
+        :return:
+        """
+        app = Insanic("taels")
+        app._helper(port=10000)
+        assert settings.SERVICE_PORT == 10000

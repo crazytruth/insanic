@@ -10,11 +10,10 @@ from insanic.conf import settings
 from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import cached_property
 
-logger = logging.getLogger('root')
+logger = logging.getLogger("root")
 
 
 class ConnectionHandler:
-
     def __init__(self):
         """
         databases is an optional dictionary of database definitions (structured
@@ -42,8 +41,10 @@ class ConnectionHandler:
 
             for k, v in settings.CACHES.items():
                 if k in caches:
-                    raise ImproperlyConfigured(f"Cannot override {k}.  This is a "
-                                               f"protected cache reserved for insanic use.")
+                    raise ImproperlyConfigured(
+                        f"Cannot override {k}.  This is a "
+                        f"protected cache reserved for insanic use."
+                    )
                 caches.update({k: v})
 
             self._caches = caches
@@ -60,14 +61,14 @@ class ConnectionHandler:
         # if alias == "redis_client":
         connection_config = self.caches[alias]
 
-        if connection_config['ENGINE'] == "aioredis":
-            _pool = await aioredis.create_pool((settings.REDIS_HOST, settings.REDIS_PORT),
-                                               encoding='utf-8',
-                                               db=int(connection_config.get("DATABASE", settings.REDIS_DB)),
-                                               loop=self.loop,
-                                               minsize=1, maxsize=10)
-        else:
-            raise ImproperlyConfigured(f"This engine has not been implemented in insanic yet.")
+        _pool = await aioredis.create_pool(
+            (connection_config["HOST"], connection_config["PORT"]),
+            encoding="utf-8",
+            db=int(connection_config.get("DATABASE", 0)),
+            loop=self.loop,
+            minsize=1,
+            maxsize=10,
+        )
 
         return _pool
 
@@ -106,7 +107,7 @@ class ConnectionHandler:
 
     async def close(self, alias):
         try:
-            logger.info("Start Closing database connection: {0}".format(alias))
+            logger.debug("Start Closing database connection: {0}".format(alias))
             if hasattr(self._connections, alias):
                 _conn = getattr(self._connections, alias)
             else:
@@ -114,23 +115,9 @@ class ConnectionHandler:
 
             # if isawaitable(_conn):
             #     _conn = await _conn
-
-            close_connection_interface = self.caches[alias].get('CLOSE_CONNECTION_INTERFACE', [])
-
-            logger.info("Closing database connection: {0}".format(alias))
-            for close_attr in close_connection_interface:
-                close_database = _conn
-                for m in close_attr:
-                    if hasattr(close_database, m):
-                        close_database = getattr(close_database, m)
-                    else:
-                        break
-
-                if _conn != close_database:
-                    closing = close_database()
-
-                    if isawaitable(closing):
-                        await closing
+            _conn.close()
+            await _conn.wait_closed()
+            logger.debug("Closing database connection: {0}".format(alias))
         except AttributeError:
             pass
         except Exception as e:

@@ -1,22 +1,31 @@
 import aiotask_context
+import datetime
+import jwt
 import pytest
 import uuid
 
-import requests
+from calendar import timegm
 
 from insanic import Insanic
 from insanic.authentication import handlers
 from insanic.choices import UserLevels
 from insanic.conf import settings
+from insanic.functional import empty
 from insanic.models import User
 
 from pytest_redis import factories
 
-settings.configure(SERVICE_NAME="insanic", GATEWAY_REGISTRATION_ENABLED=False, MMT_ENV="test",
-                   TRACING_ENABLED=False)
+settings.configure(
+    SERVICE_NAME="insanic",
+    GATEWAY_REGISTRATION_ENABLED=False,
+    TRACING_ENABLED=False,
+    ENFORCE_APPLICATION_VERSION=False,
+)
 
 for cache_name, cache_config in settings.INSANIC_CACHES.items():
-    globals()[f"redisdb_{cache_name}"] = factories.redisdb('redis_proc', db=cache_config.get('DATABASE'))
+    globals()[f"redisdb_{cache_name}"] = factories.redisdb(
+        "redis_proc", dbnum=cache_config.get("DATABASE")
+    )
 
 
 @pytest.fixture(scope="session")
@@ -28,73 +37,93 @@ def session_id():
 def function_session_id():
     return uuid.uuid4().hex
 
+
 @pytest.fixture
 def insanic_application():
     yield Insanic("test")
+
 
 @pytest.fixture(autouse=True)
 def loop(loop):
     loop.set_task_factory(aiotask_context.copying_task_factory)
     return loop
 
+
 @pytest.fixture(autouse=True)
 def set_redis_connection_info(redisdb, monkeypatch):
-    port = redisdb.connection_pool.connection_kwargs['path'].split('/')[-1].split('.')[1]
-    db = redisdb.connection_pool.connection_kwargs['db']
+    port = (
+        redisdb.connection_pool.connection_kwargs["path"]
+        .split("/")[-1]
+        .split(".")[1]
+    )
 
-    monkeypatch.setattr(settings, 'REDIS_PORT', int(port))
-    monkeypatch.setattr(settings, 'REDIS_HOST', '127.0.0.1')
-    monkeypatch.setattr(settings, 'REDIS_DB', db)
+    insanic_caches = settings.INSANIC_CACHES.copy()
+
+    for cache_name in insanic_caches.keys():
+        insanic_caches[cache_name]["HOST"] = "127.0.0.1"
+        insanic_caches[cache_name]["PORT"] = int(port)
+
+    caches = settings.CACHES.copy()
+
+    for cache_name in caches.keys():
+        caches[cache_name]["HOST"] = "127.0.0.1"
+        caches[cache_name]["PORT"] = int(port)
+
+    monkeypatch.setattr(settings, "INSANIC_CACHES", insanic_caches)
+    monkeypatch.setattr(settings, "CACHES", caches)
+
+
+def jwt_payload_handler(user, issuer):
+
+    payload = {
+        "user_id": user.id,
+        "level": user.level,
+        "iss": issuer,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7),
+        "orig_iat": timegm(datetime.datetime.utcnow().utctimetuple()),
+        "rol": "user",
+    }
+
+    # Include original issued at time for a brand new token,
+    # to allow token refresh
+
+    if settings.JWT_AUTH_AUDIENCE is not None:
+        payload["aud"] = settings.JWT_AUTH_AUDIENCE
+
+    return payload
 
 
 @pytest.fixture(scope="session")
 def test_user_token_factory():
-    created_test_user_ids = set()
+    # created_test_user_ids = set()
 
     def factory(id=None, *, level, return_with_user=False):
         if not id:
             id = uuid.uuid4().hex
 
         user = User(id=id, level=level)
-        created_test_user_ids.add(user.id)
-        # Create test consumer
-        requests.post(f"http://kong.msa.swarm:18001/consumers/", json={'username': user.id})
 
-        # Generate JWT information
-        response = requests.post(f'http://kong.msa.swarm:18001/consumers/{user.id}/jwt/')
-        response.raise_for_status()
+        mock_issuer = uuid.uuid4().hex
+        mock_secret = uuid.uuid4().hex
 
-        token_data = response.json()
-
-        payload = handlers.jwt_payload_handler(user, token_data['key'])
-        token = handlers.jwt_encode_handler(payload, token_data['secret'], token_data['algorithm'])
+        payload = jwt_payload_handler(user, mock_issuer)
+        token = jwt.encode(payload, mock_secret, "HS256").decode()
 
         if return_with_user:
-            return user, " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], token])
+            return (
+                user,
+                " ".join([settings.JWT_AUTH_AUTH_HEADER_PREFIX, token]),
+            )
 
-        return " ".join([settings.JWT_AUTH['JWT_AUTH_HEADER_PREFIX'], token])
+        return " ".join([settings.JWT_AUTH_AUTH_HEADER_PREFIX, token])
 
     yield factory
-
-    for user_id in created_test_user_ids:
-        # Delete JWTs
-        response = requests.get(f'http://kong.msa.swarm:18001/consumers/{user_id}/jwt/')
-        response.raise_for_status()
-
-        jwt_ids = (response.json())['data']
-        for jwt in jwt_ids:
-            response = requests.delete(f"http://kong.msa.swarm:18001/consumers/{user_id}/jwt/{jwt['id']}/")
-            response.raise_for_status()
-
-        # Delete test consumer
-        response = requests.delete(f"http://kong.msa.swarm:18001/consumers/{user_id}/")
-        response.raise_for_status()
 
 
 @pytest.fixture(scope="session")
 def test_service_token_factory():
     class MockService:
-        service_name = 'test'
+        service_name = "test"
 
     def factory():
 
@@ -102,7 +131,11 @@ def test_service_token_factory():
         service = MockService()
         payload = handlers.jwt_service_payload_handler(service)
         return " ".join(
-            [settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_service_encode_handler(payload)])
+            [
+                settings.JWT_SERVICE_AUTH_AUTH_HEADER_PREFIX,
+                handlers.jwt_service_encode_handler(payload),
+            ]
+        )
 
     return factory
 
@@ -110,18 +143,26 @@ def test_service_token_factory():
 @pytest.fixture(scope="session")
 def test_service_token_factory_pre_0_4():
     class MockService:
-        service_name = 'test'
+        service_name = "test"
 
     def factory(user=None):
         if user is None:
-            user = User(id=uuid.uuid4().hex, email='service@token.factory', level=UserLevels.ACTIVE)
+            user = User(
+                id=uuid.uuid4().hex,
+                email="service@token.factory",
+                level=UserLevels.ACTIVE,
+            )
         # source, aud, source_ip, destination_version, is_authenticated):
         service = MockService()
         payload = handlers.jwt_service_payload_handler(service)
         payload.update({"user": dict(user)})
 
         return " ".join(
-            [settings.JWT_SERVICE_AUTH['JWT_AUTH_HEADER_PREFIX'], handlers.jwt_service_encode_handler(payload)])
+            [
+                settings.JWT_SERVICE_AUTH_AUTH_HEADER_PREFIX,
+                handlers.jwt_service_encode_handler(payload),
+            ]
+        )
 
     return factory
 
@@ -131,4 +172,11 @@ def clear_prometheus_registry():
     yield
 
     from insanic.metrics import InsanicMetrics
+
     InsanicMetrics.reset()
+
+
+@pytest.fixture(autouse=True)
+def reset_settings():
+    settings._wrapped = empty
+    settings.configure(SERVICE_NAME="test", ENFORCE_APPLICATION_VERSION=False)

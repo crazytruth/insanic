@@ -1,11 +1,16 @@
 import math
+from enum import Enum
+from typing import Optional
+
 from insanic.errors import GlobalErrorCodes
 from insanic import status
 
 from insanic.utils import _unpack_enum_error_message
 
+
 class ImproperlyConfigured(Exception):
     """Insanic is somehow improperly configured"""
+
     pass
 
 
@@ -13,21 +18,26 @@ class APIException(Exception):
     """
     Base class for REST framework exceptions.
     Subclasses should provide `.status_code`, `.error_code` and `.message`  properties.
-    rename
-        default_detail -> message
-        detail -> description
 
+    :param description: A description of the error.
+    :param error_code: The error code associated with the exception.
+    :param status_code: The status code to set for this exception.
     """
+
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    message = 'An unknown error occurred'
+    message = "An unknown error occurred"
     error_code = GlobalErrorCodes.unknown_error
     i18n = False
 
-    def __init__(self, description=None, *, error_code=None, status_code=None):
-        if description is not None:
-            self.description = description
-        else:
-            self.description = self.message
+    def __init__(
+        self,
+        description: Optional[str] = None,
+        *,
+        error_code: Optional[Enum] = None,
+        status_code: Optional[int] = None,
+    ):
+
+        self.description = description or self.message
 
         if status_code is not None:
             self.status_code = status_code
@@ -44,12 +54,16 @@ class APIException(Exception):
         return self.__str__()
 
     def __dict__(self):
-        return {"description": self.description, "message": self.message,
-                "error_code": _unpack_enum_error_message(self.error_code)}
+        return {
+            "description": self.description,
+            "message": self.message,
+            "error_code": _unpack_enum_error_message(self.error_code),
+        }
+
 
 class ParseError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
-    message = 'Malformed request.'
+    message = "Malformed request."
 
 
 class BadRequest(APIException):
@@ -59,7 +73,7 @@ class BadRequest(APIException):
 
 class InvalidUsage(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
-    message = 'Invalid Usage'
+    message = "Invalid Usage"
 
 
 class ValidationError(APIException):
@@ -69,27 +83,27 @@ class ValidationError(APIException):
 
 class NotFound(APIException):
     status_code = status.HTTP_404_NOT_FOUND
-    message = 'Not found.'
+    message = "Not found."
 
 
 class AuthenticationFailed(APIException):
     status_code = status.HTTP_401_UNAUTHORIZED
-    message = 'Incorrect authentication credentials.'
+    message = "Incorrect authentication credentials."
 
 
 class ServiceAuthenticationFailed(APIException):
     status_code = status.HTTP_401_UNAUTHORIZED
-    message = 'Incorrect authentication credentials from service.'
+    message = "Incorrect authentication credentials from service."
 
 
 class NotAuthenticated(APIException):
     status_code = status.HTTP_401_UNAUTHORIZED
-    message = 'Authentication credentials were not provided.'
+    message = "Authentication credentials were not provided."
 
 
 class PermissionDenied(APIException):
     status_code = status.HTTP_403_FORBIDDEN
-    message = 'You do not have permission to perform this action.'
+    message = "You do not have permission to perform this action."
 
 
 class MethodNotAllowed(APIException):
@@ -106,7 +120,7 @@ class MethodNotAllowed(APIException):
 
 class NotAcceptable(APIException):
     status_code = status.HTTP_406_NOT_ACCEPTABLE
-    message = 'Could not satisfy the request Accept header'
+    message = "Could not satisfy the request Accept header"
 
 
 class UnsupportedMediaType(APIException):
@@ -123,9 +137,11 @@ class UnsupportedMediaType(APIException):
 
 class Throttled(APIException):
     status_code = status.HTTP_429_TOO_MANY_REQUESTS
-    message = 'Request was throttled.'
-    extra_detail = ('Expected available in %(wait)d second.',
-                    'Expected available in %(wait)d seconds.')
+    message = "Request was throttled."
+    extra_detail = (
+        "Expected available in %(wait)d second.",
+        "Expected available in %(wait)d seconds.",
+    )
     error_code = GlobalErrorCodes.throttled
 
     def __init__(self, wait=None, description=None):
@@ -138,14 +154,19 @@ class Throttled(APIException):
             self.wait = None
         else:
             self.wait = math.ceil(wait)
-            if self.wait is 1:
-                self.description += ' ' + (self.extra_detail[0] % {'wait': self.wait})
+            if self.wait == 1:
+                self.description += " " + (
+                    self.extra_detail[0] % {"wait": self.wait}
+                )
             else:
-                self.description += ' ' + (self.extra_detail[1] % {'wait': self.wait})
+                self.description += " " + (
+                    self.extra_detail[1] % {"wait": self.wait}
+                )
 
 
 class FieldError(Exception):
     """Some kind of problem with a model field."""
+
     pass
 
 
@@ -155,6 +176,7 @@ class RawPostDataException(Exception):
     multipart/* POST data if it has been accessed via POST,
     FILES, etc..
     """
+
     pass
 
 
@@ -172,6 +194,7 @@ class ResponseTimeoutError(APIException):
 class RequestTimeoutError(APIException):
     status_code = status.HTTP_408_REQUEST_TIMEOUT
     message = "Request timeout."
+
 
 class UnprocessableEntity422Error(APIException):
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
