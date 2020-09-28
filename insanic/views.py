@@ -1,8 +1,7 @@
-"""
-Copyright © 2011-present, Encode OSS Ltd. All rights reserved.
+# Copyright © 2011-present, Encode OSS Ltd. All rights reserved.
+#
+# Modified for framework usage.
 
-Modified for framework usage.
-"""
 
 import asyncio
 from inspect import isawaitable

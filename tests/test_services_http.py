@@ -30,7 +30,6 @@ from insanic.models import (
 from insanic.permissions import AllowAny
 from insanic.services import Service
 from insanic.services.adapters import TransportError, HTTPStatusError
-from insanic.services.registry import LazyServiceRegistry
 from insanic.views import InsanicView
 
 IMAGE_PATH = "artwork/insanic.png"
@@ -68,34 +67,6 @@ def test_image_file():
 
 
 settings.TRACING_ENABLED = False
-
-
-class TestServiceRegistry:
-    @pytest.fixture(autouse=True)
-    def initialize_service_registry(self, monkeypatch):
-        monkeypatch.setattr(settings, "SERVICE_CONNECTIONS", ["test1"])
-        self.registry = LazyServiceRegistry()
-
-    def test_set_item(self):
-        with pytest.raises(TypeError):
-            self.registry["some_service"] = {}
-
-    def test_get_item(self):
-        service = self.registry["test1"]
-
-        assert isinstance(service, Service)
-        assert service.service_name == "test1"
-
-        with pytest.raises(RuntimeError):
-            self.registry["test2"]
-
-    def test_repr(self):
-        self.registry.reset()
-
-        assert repr(self.registry).endswith("[Unevaluated]")
-        len(self.registry)
-
-        assert repr(self.registry).endswith("ServiceRegistry")
 
 
 class TestServiceClass:

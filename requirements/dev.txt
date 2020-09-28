@@ -64,8 +64,10 @@ requests==2.24.0          # via -r tests.in, requests-toolbelt, sphinx, twine, z
 rfc3986==1.4.0            # via twine
 six==1.15.0               # via bleach, packaging, pip-tools, readme-renderer, tox, virtualenv, zest.releaser
 snowballstemmer==2.0.0    # via sphinx
+sphinx-autodoc-typehints==1.11.0  # via -r docs.in
 sphinx-issues==1.2.0      # via -r docs.in
-sphinx==3.2.1             # via -r docs.in, sphinx-issues, sphinxcontrib-log-cabinet
+sphinx-rtd-theme==0.5.0   # via -r docs.in
+sphinx==3.2.1             # via -r docs.in, sphinx-autodoc-typehints, sphinx-issues, sphinx-rtd-theme, sphinxcontrib-log-cabinet
 sphinxcontrib-applehelp==1.0.2  # via sphinx
 sphinxcontrib-devhelp==1.0.2  # via sphinx
 sphinxcontrib-htmlhelp==1.0.3  # via sphinx

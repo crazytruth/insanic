@@ -34,12 +34,11 @@ class JSONFormatter(logging.Formatter):
         if not self._extra_fields:
             self._extra_fields = {
                 "service": settings.get("SERVICE_NAME", None),
-                "environment": settings.get("MMT_ENV", None),
+                "environment": settings.get("ENVIRONMENT", None),
                 "insanic_version": __version__,
                 "application_version": settings.get(
                     "APPLICATION_VERSION", None
                 ),
-                "squad": settings.get("SQUAD", None),
             }
 
         try:

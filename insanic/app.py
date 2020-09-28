@@ -1,8 +1,7 @@
-"""
-Copyright (c) 2016-present Sanic Community
+# Copyright (c) 2016-present Sanic Community
+#
+# Modified for framework usage
 
-Modified for framework usage
-"""
 
 from asyncio import Protocol
 from socket import socket
@@ -35,6 +34,24 @@ MIDDLEWARE_TYPES = ("request", "response")
 
 
 class Insanic(Sanic):
+    """
+    Initialize Insanic Application.
+
+    :param name: Name of your service!
+    :param router: If you want to pass in your own router
+    :param error_handler: If you want to use your own ErrorHandler
+    :param load_env: If you want to load environment variables.
+    :param request_class: The request class that insanic will use.
+    :param strict_slashes: Always append a "/" to the end of all routes.
+    :param log_config: Your log configuration.
+    :param configure_logging: To configure logging
+    :param app_config: order matters! Any configs later in the
+            iterable will overwrite previous set settings
+    :param version: your application version!
+    :param initialize_insanic_listeners: Determines if you want to attach insanic's default listeners.
+    :param initialize_insanic_middlewares: Determines if you want to attach insanic's default middlewares.
+    :param attach_monitor_endpoints: Determines if you want to attach insanic's default monitoring endpoints.
+    """
 
     metrics = empty
     initialized_plugins = {}
@@ -57,24 +74,7 @@ class Insanic(Sanic):
         initialize_insanic_middlewares: bool = True,
         attach_monitor_endpoints: bool = True,
     ) -> None:
-        """
-        Initialize Insanic Application.
 
-        :param name:
-        :param router:
-        :param error_handler:
-        :param load_env:
-        :param request_class:
-        :param strict_slashes:
-        :param log_config:
-        :param configure_logging:
-        :param app_config: order matters! Any configs later in the
-                iterable will overwrite previous set settings
-        :param version:
-        :param initialize_insanic_listeners:
-        :param initialize_insanic_middlewares:
-        :param attach_monitor_endpoints:
-        """
         router = router or InsanicRouter()
         error_handler = error_handler or ErrorHandler()
         request_class = request_class or Request
@@ -131,12 +131,14 @@ class Insanic(Sanic):
         necessary for microservices.
 
         Precedence
+
         1. `version` argument
+
         2. APPLICATION_VERSION in settings
+
         3. defaults to `UNKNOWN`
 
         :param version: version of the service or application
-        :return:
         """
 
         if (
@@ -157,8 +159,6 @@ class Insanic(Sanic):
     def initialize_listeners(self) -> None:
         """
         Initializes the default listeners for insanic.
-
-        :return:
         """
 
         from insanic import listeners
@@ -173,8 +173,6 @@ class Insanic(Sanic):
     def initialize_middleware(self) -> None:
         """
         Initializes default middlewares for insanic.
-
-        :return:
         """
         from insanic import middleware
 
@@ -189,8 +187,6 @@ class Insanic(Sanic):
         """
         Checks if the required plugins set in `REQUIRED_PLUGINS` have been
         installed and initialized.
-
-        :return:
         """
 
         for plugin in self.config.REQUIRED_PLUGINS:
@@ -207,9 +203,8 @@ class Insanic(Sanic):
 
         >>> app.plugin_initialized('name_of_plugin', self)
 
-        :param plugin_name:
-        :param instance:
-        :return:
+        :param plugin_name: The name of your plugin. For plugin developers
+        :param instance: The initialized plugin instance.
         """
         self.initialized_plugins.update({plugin_name: instance})
 

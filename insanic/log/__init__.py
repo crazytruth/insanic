@@ -1,5 +1,4 @@
 import os
-
 import logging
 import sys
 
@@ -8,9 +7,7 @@ from functools import lru_cache
 
 @lru_cache(maxsize=1)
 def get_log_level() -> str:
-    from insanic.scopes import is_docker
-
-    return os.environ.get("INSANIC_LOG_LEVEL", "INFO" if is_docker else "DEBUG")
+    return os.environ.get("INSANIC_LOG_LEVEL", "INFO")
 
 
 @lru_cache(maxsize=1)
@@ -20,7 +17,6 @@ def get_access_log_level() -> str:
 
 def get_logging_config() -> dict:
     log_level = get_log_level()
-    from insanic.scopes import is_docker
 
     LOGGING_CONFIG_DEFAULTS = dict(
         version=1,
@@ -111,15 +107,13 @@ def get_logging_config() -> dict:
                     "method": "%(method)s",
                     "path": "%(path)s",
                     "uri_template": "%(uri_template)s",
-                    # added in 0.8.0
-                    "squad": "%(squad)s",
                 },
                 "datefmt": "%Y-%m-%dT%H:%M:%S.%%(msecs)d%z",
             },
         },
     )
 
-    if not is_docker or os.getenv("LOG_TYPE", "json") == "access":
+    if os.getenv("LOG_TYPE", "access") == "access":
         LOGGING_CONFIG_DEFAULTS["handlers"]["console"]["formatter"] = "generic"
         LOGGING_CONFIG_DEFAULTS["handlers"]["error_console"][
             "formatter"

@@ -1,9 +1,8 @@
-"""
-Copyright (c) Django Software Foundation and individual contributors.
-All rights reserved.
+# Copyright (c) Django Software Foundation and individual contributors.
+# All rights reserved.
+#
+# Modified for framework usage.
 
-Modified for framework usage.
-"""
 
 import copy
 import operator
