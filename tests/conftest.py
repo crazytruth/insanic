@@ -24,8 +24,10 @@ settings.configure(
 
 for cache_name, cache_config in settings.INSANIC_CACHES.items():
     globals()[f"redisdb_{cache_name}"] = factories.redisdb(
-        "redis_proc", dbnum=cache_config.get("DATABASE")
+        "redis_nooproc", dbnum=cache_config.get("DATABASE")
     )
+
+redisdb = factories.redisdb("redis_nooproc")
 
 
 @pytest.fixture(scope="session")
@@ -51,16 +53,14 @@ def loop(loop):
 
 @pytest.fixture(autouse=True)
 def set_redis_connection_info(redisdb, monkeypatch):
-    port = (
-        redisdb.connection_pool.connection_kwargs["path"]
-        .split("/")[-1]
-        .split(".")[1]
-    )
+
+    host = redisdb.connection_pool.connection_kwargs["host"]
+    port = redisdb.connection_pool.connection_kwargs["port"]
 
     insanic_caches = settings.INSANIC_CACHES.copy()
 
     for cache_name in insanic_caches.keys():
-        insanic_caches[cache_name]["HOST"] = "127.0.0.1"
+        insanic_caches[cache_name]["HOST"] = host
         insanic_caches[cache_name]["PORT"] = int(port)
 
     caches = settings.CACHES.copy()
