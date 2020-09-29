@@ -10,8 +10,8 @@ Insanic
 
 |PyPI pyversions| |PyPI version| |PyPI license| |Black|
 
-.. |Build Status| image:: https://img.shields.io/github/workflow/status/crazytruth/insanic/python-package
-    :target: https://github.com/crazytruth/insanic/actions?query=workflow%3A%22Python+package%22
+.. |Build Status| image:: https://github.com/crazytruth/insanic/workflows/Python%20Tests/badge.svg
+    :target: https://github.com/crazytruth/insanic/actions?query=workflow%3A%22Python+Tests%22
 
 .. |Documentation Status| image:: https://readthedocs.org/projects/insanic/badge/?version=latest
     :target: http://insanic.readthedocs.io/?badge=latest
