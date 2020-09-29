@@ -19,17 +19,17 @@ Insanic
 .. |Codecov| image:: https://codecov.io/gh/crazytruth/insanic/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/crazytruth/insanic
 
-.. |PyPI version| image:: https://img.shields.io/pypi/v/insanic
-    :target: https://pypi.python.org/pypi/insanic/
+.. |PyPI version| image:: https://img.shields.io/pypi/v/insanic-framework
+    :target: https://pypi.org/project/insanic-framework/
 
-.. |PyPI pyversions| image:: https://img.shields.io/pypi/pyversions/insanic
-    :target: https://pypi.python.org/pypi/insanic/
+.. |PyPI pyversions| image:: https://img.shields.io/pypi/pyversions/insanic-framework
+    :target: https://pypi.org/project/insanic-framework/
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
 .. |PyPI license| image:: https://img.shields.io/github/license/crazytruth/insanic?style=flat-square
-    :target: https://pypi.python.org/pypi/insanic/
+    :target: https://pypi.org/project/insanic-framework/
 
 .. end-badges
 
@@ -187,7 +187,7 @@ Links
 -----
 
 - Documentation: https://readthedocs.org/
-- Releases: https://pypi.org/project/insanic/
+- Releases: https://pypi.org/project/insanic-framework/
 - Code: https://www.github.com/crazytruth/insanic/
 - Issue Tracker: https://www.github.com/crazytruth/insanic/issues
 - Sanic Documentation: https://sanic.readthedocs.io/en/latest/index.html
