@@ -18,6 +18,7 @@ jobs:
         sanic-version: [sanic1912, sanic2003, sanic2006]
     env:
       PYTHON: ${{ matrix.python-version }}
+      SANIC: ${{ matrix.sanic-version }}
     # Service containers to run with `runner-job`
     services:
       # Label used to access the service container
@@ -44,7 +45,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/tests.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
           ${{ runner.os }}-
@@ -63,5 +64,5 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         fail_ci_if_error: true
-        env_vars: PYTHON
+        env_vars: PYTHON, SANIC
         name: insanic
