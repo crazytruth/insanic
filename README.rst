@@ -6,6 +6,33 @@
 Insanic
 =======
 
+|Build Status| |Documentation Status| |Codecov|
+
+|PyPI pyversions| |PyPI version| |PyPI license| |Black|
+
+.. |Build Status| image:: https://img.shields.io/github/workflow/status/crazytruth/insanic/python-package
+    :target: https://github.com/crazytruth/insanic/actions?query=workflow%3A%22Python+package%22
+
+.. |Documentation Status| image:: https://readthedocs.org/projects/insanic/badge/?version=latest
+    :target: http://insanic.readthedocs.io/?badge=latest
+
+.. |Codecov| image:: https://codecov.io/gh/crazytruth/insanic/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/crazytruth/insanic
+
+.. |PyPI version| image:: https://img.shields.io/pypi/v/insanic
+    :target: https://pypi.python.org/pypi/insanic/
+
+.. |PyPI pyversions| image:: https://img.shields.io/pypi/pyversions/insanic
+    :target: https://pypi.python.org/pypi/insanic/
+
+.. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/psf/black
+
+.. |PyPI license| image:: https://img.shields.io/github/license/crazytruth/insanic?style=flat-square
+    :target: https://pypi.python.org/pypi/insanic/
+
+.. end-badges
+
     A microservice framework that extends `sanic`_.
 
 Insanic is a pretty opinionated framework.  It tries to include all the best practices for
