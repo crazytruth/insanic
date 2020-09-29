@@ -51,7 +51,7 @@ setup(
         "aiotask_context",
         "python-dateutil",
         "prometheus-client==0.5.0",
-        "psutil==5.4.8",
+        "psutil==5.6.6",
     ],
     test_suite="tests",
     include_package_data=True,
