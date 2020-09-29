@@ -6,6 +6,12 @@ time when Insanic was developed and released privately.
 Refer to `CHANGELOG_LEGACY.rst <CHANGELOG_LEGACY.rst>`_
 for changes during that time.
 
+0.9.2 (unreleased)
+------------------
+
+- Nothing changed yet.
+
+
 0.9.1 (2020-09-29)
 ------------------
 
