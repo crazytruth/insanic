@@ -8,7 +8,7 @@ Insanic
 
 |Build Status| |Documentation Status| |Codecov|
 
-|PyPI pyversions| |Black| |PyPI license|
+|PyPI pyversions| |PyPI version| |Code style black| |PyPI license|
 
 .. |Build Status| image:: https://img.shields.io/github/workflow/status/crazytruth/insanic/python-package
     :target: https://github.com/crazytruth/insanic/actions?query=workflow%3A%22Python+package%22
@@ -19,13 +19,16 @@ Insanic
 .. |Codecov| image:: https://codecov.io/gh/crazytruth/insanic/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/crazytruth/insanic
 
-.. |PyPI pyversions| image:: https://img.shields.io/pypi/pyversions/insanic.svg
+.. |PyPI version| image:: https://img.shields.io/pypi/v/insanic
+    :target: https://pypi.python.org/pypi/insanic/
+
+.. |PyPI pyversions| image:: https://img.shields.io/pypi/pyversions/insanic
     :target: https://pypi.python.org/pypi/insanic/
 
 .. |PyPI license| image:: https://img.shields.io/github/license/crazytruth/insanic?style=flat-square
     :target: https://pypi.python.org/pypi/insanic/
 
-.. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+.. |Code style black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
 
