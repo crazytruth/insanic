@@ -10,7 +10,7 @@ starting.
 
 .. code-block:: bash
 
-    pip install insanic
+    pip install insanic-framework
 
 2. Create a file called `app.py`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

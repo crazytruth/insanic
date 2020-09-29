@@ -83,7 +83,7 @@ To install:
 
 .. code-block::
 
-    $ pip install insanic
+    $ pip install insanic-framework
 
 .. _sanic: https://github.com/huge-success/sanic
 .. _httpx: https://github.com/encode/httpx

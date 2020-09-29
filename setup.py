@@ -21,7 +21,7 @@ with open("insanic/__init__.py", encoding="utf8") as f:
 
 
 setup(
-    name="insanic",
+    name="insanic-framework",
     version=version,
     description="An API framework that extends sanic with a focus on microservices.",
     long_description=read("README.rst"),
