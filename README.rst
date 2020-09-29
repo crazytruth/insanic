@@ -6,12 +6,12 @@
 Insanic
 =======
 
-|Build Status| |Documentation Status| |Coverage|
+|Build Status| |Documentation Status| |Codecov|
 
 |PyPI pyversions| |black| |PyPI license|
 
-.. |Coverage| image:: https://img.shields.io/gitlab/coverage/crazytruth/insanic/master
-    :target: https://github.com/crazytruth/insanic
+.. |Codecov| image:: https://codecov.io/gh/crazytruth/insanic/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/crazytruth/insanic
 
 .. |Documentation Status| image:: https://readthedocs.org/projects/insanic/badge/?version=latest
     :target: http://insanic.readthedocs.io/?badge=latest
