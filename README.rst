@@ -31,6 +31,7 @@ Insanic
 .. |PyPI license| image:: https://img.shields.io/github/license/crazytruth/insanic?style=flat-square
     :target: https://pypi.python.org/pypi/insanic/
 
+.. end-badges
 
     A microservice framework that extends `sanic`_.
 
