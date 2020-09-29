@@ -33,10 +33,10 @@ Insanic
 
 .. end-badges
 
-    A microservice framework that extends `sanic`_.
 
-Insanic is a pretty opinionated framework.  It tries to include all the best practices for
-developing in a microservice architecture.  To do this, certain technologies needed to be used.
+Insanic is a microservice framework that extends `sanic`_. It tries to include all the best practices for
+developing in a microservice architecture.  To do this, certain stacks were needed, as a result Insanic is
+a pretty opinionated framework.
 
 Think of this as django-rest-framework is to django but for microservice usage (and a lot less functionality than drf).
 
