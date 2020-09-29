@@ -61,6 +61,7 @@ jobs:
         tox -estyle
   upload:
     needs: test
+    runs-on: ubuntu-latest
     steps:
     - name: Upload coverage report
       uses: codecov/codecov-action@v1
