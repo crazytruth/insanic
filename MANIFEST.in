@@ -5,7 +5,7 @@ include CONTRIBUTING.rst
 include LICENSE
 include requirements/*.txt
 include tox.ini
-exclude .pre-commit-config.yaml
+exclude *.yaml
 recursive-exclude requirements *.in
 graft artwork
 graft docs
