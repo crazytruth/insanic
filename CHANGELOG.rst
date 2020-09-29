@@ -6,7 +6,7 @@ time when Insanic was developed and released privately.
 Refer to `CHANGELOG_LEGACY.rst <CHANGELOG_LEGACY.rst>`_
 for changes during that time.
 
-0.9.0 (2020-09-25)
+0.9.1 (2020-09-29)
 ------------------
 
 - BREAKING: :code:`request.user` and :code:`request.service` is now synchronous.
