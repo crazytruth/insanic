@@ -24,7 +24,7 @@ setup(
     name="insanic",
     version=version,
     description="An API framework that extends sanic with a focus on microservices.",
-    long_description=(read("README.rst") + "\n\n" + read("CHANGELOG.rst")),
+    long_description=read("README.rst"),
     classifiers=[
         "Intended Audience :: Developers",
         "Development Status :: 3 - Alpha",
