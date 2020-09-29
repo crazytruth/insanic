@@ -30,7 +30,10 @@ setup(
         "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Topic :: Software Development :: Libraries :: Application Frameworks",
+        "Framework :: Sanic"
     ],
     keywords="api framework sanic async asyncio microservice msa",
     url="http://github.com/crazytruth/insanic",
