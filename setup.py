@@ -33,7 +33,6 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Topic :: Software Development :: Libraries :: Application Frameworks",
-        "Framework :: Sanic",
     ],
     keywords="api framework sanic async asyncio microservice msa python python3",
     url="https://github.com/crazytruth/insanic",
