@@ -31,7 +31,6 @@ Insanic
 .. |Code style black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
-
     A microservice framework that extends `sanic`_.
 
 Insanic is a pretty opinionated framework.  It tries to include all the best practices for
