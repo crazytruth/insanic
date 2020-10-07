@@ -44,7 +44,7 @@ setup(
     ),
     install_requires=[
         "uvloop",
-        "sanic>=19.12",
+        "sanic>=19.12,<20.7",
         "aioredis>=1.1.0",
         "PyJWT",
         "aiotask_context",
