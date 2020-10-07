@@ -9,7 +9,7 @@ for changes during that time.
 0.9.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- FIX: restrict sanic dependency to <20.7
 
 
 0.9.1 (2020-09-29)
