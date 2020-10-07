@@ -1,0 +1,3 @@
+-r tests.in
+sanic>=20.6.0,<20.7
+respx==0.10.0
