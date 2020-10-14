@@ -186,11 +186,11 @@ Thanks to all the people at my prior company that worked with me to make this po
 Links
 -----
 
-- Documentation: https://readthedocs.org/
+- Documentation: http://insanic.readthedocs.io/
 - Releases: https://pypi.org/project/insanic-framework/
 - Code: https://www.github.com/crazytruth/insanic/
 - Issue Tracker: https://www.github.com/crazytruth/insanic/issues
 - Sanic Documentation: https://sanic.readthedocs.io/en/latest/index.html
 - Sanic Repository: https://github.com/huge-success/sanic
 
-.. _documentation: https://readthedocs.org/
+.. _documentation: http://insanic.readthedocs.io/
