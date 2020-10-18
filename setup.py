@@ -51,6 +51,7 @@ setup(
         "python-dateutil",
         "prometheus-client==0.5.0",
         "psutil",
+        "packaging",
     ],
     test_suite="tests",
     include_package_data=True,
