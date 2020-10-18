@@ -12,7 +12,6 @@ import respx
 import uuid
 import ujson
 
-from httpx.config import UNSET
 from sanic.response import json
 
 from insanic import status
@@ -29,7 +28,7 @@ from insanic.models import (
 )
 from insanic.permissions import AllowAny
 from insanic.services import Service
-from insanic.services.adapters import TransportError, HTTPStatusError
+from insanic.services.adapters import TransportError, HTTPStatusError, UNSET
 from insanic.views import InsanicView
 
 IMAGE_PATH = "artwork/insanic.png"
@@ -100,13 +99,13 @@ class TestServiceClass:
         )
 
         test_endpoint = "/api/v1/insanic"
-        url = self.service.client.merge_url(test_endpoint)
+        url = self.service.client._merge_url(test_endpoint)
 
         assert url.path == test_endpoint
 
         test_query_params = {"a": "b"}
-        query_params = self.service.client.merge_queryparams(test_query_params)
-        url = self.service.client.merge_url(f"{test_endpoint}")
+        query_params = self.service.client._merge_queryparams(test_query_params)
+        url = self.service.client._merge_url(f"{test_endpoint}")
 
         assert url.path == test_endpoint
         assert dict(query_params) == test_query_params
@@ -116,14 +115,12 @@ class TestServiceClass:
         mock_status_code = random.randint(200, 300)
 
         with respx.mock:
-            respx.request(
-                method="GET",
+            respx.get(
                 url=f"http://{self.service.url.host}:{self.service.url.port}/",
                 status_code=mock_status_code,
                 content=mock_response,
             )
-            respx.request(
-                method="GET",
+            respx.get(
                 url=f"http://{self.service.url.host}:{self.service.url.port}/",
                 status_code=mock_status_code,
                 content=mock_response,
@@ -310,7 +307,7 @@ class TestServiceClass:
     @pytest.mark.parametrize(
         "exception",
         (
-            TransportError("hello"),
+            TransportError("hello", request="request"),
             HTTPStatusError("request", request="request", response="response"),
             ConnectionResetError(),
         ),
@@ -388,12 +385,6 @@ class TestServiceClassErrorPropagations:
         ),
     )
     def test_http_dispatch_raise_for_httpx_exception(self, exception_class):
-        """
-
-
-        :param monkeypatch:
-        :return:
-        """
 
         loop = uvloop.new_event_loop()
 
@@ -404,11 +395,14 @@ class TestServiceClassErrorPropagations:
             request=httpx.Request("GET", "http://example.com/"),
         )
 
-        raise_exception = exception_class(
-            "help!",
+        exception_signature = match_signature(
+            exception_class,
+            message="help!",
             request=httpx.Request("GET", "http://example.com/"),
             response=httpx.Response(**response_signature),
         )
+
+        raise_exception = exception_class(**exception_signature)
 
         with respx.mock:
             respx.get("http://test:8000/a", content=raise_exception)

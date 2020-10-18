@@ -15,9 +15,12 @@ def match_signature(func: Callable, **kwargs) -> dict:
     """
     signature = inspect.signature(func)
 
-    last_param, last_param_type = OrderedDict(signature.parameters).popitem(
-        last=True
-    )
+    ordered_signature = OrderedDict(signature.parameters)
+
+    if ordered_signature:
+        last_param, last_param_type = ordered_signature.popitem(last=True)
+    else:
+        return {}
 
     if last_param_type.kind == last_param_type.VAR_KEYWORD:
         sig = kwargs

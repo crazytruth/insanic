@@ -1,8 +1,9 @@
 import asyncio
+from json import JSONDecodeError
+
 import httpx
 import socket
 from httpx import URL, Headers, Request, codes, StatusCode
-from httpx.config import UNSET
 
 from insanic import exceptions, status
 from insanic.authentication.handlers import (
@@ -20,6 +21,12 @@ from insanic.services.adapters import (
     HTTPStatusError,
     RequestError,
     TransportError,
+    UNSET,
+    HTTPError,
+    InvalidURL,
+    NotRedirectResponse,
+    CookieConflict,
+    StreamError,
 )
 from insanic.services.utils import context_user, context_correlation_id
 from insanic.utils.datetime import get_utc_datetime
@@ -42,7 +49,7 @@ class Service:
             jwt_service_payload_handler(self)
         )
 
-        partial_path = partial_path or "/api/"
+        partial_path = partial_path or "/"
         self.url = URL(
             f"{settings.SERVICE_GLOBAL_SCHEMA}://"
             f"{settings.SERVICE_GLOBAL_HOST_TEMPLATE.format(self.service_name)}"
@@ -227,17 +234,26 @@ class Service:
             else:
                 return response
         except HTTPStatusError as e:
-
-            response = e.response.json()
+            try:
+                response = e.response.json()
+            except JSONDecodeError:
+                response = e.response.text
+                description = response
+                error_code = GlobalErrorCodes.unknown_error
+                message = error_code.name
+            else:
+                description = response.get("description", response)
+                error_code = response.get(
+                    "error_code", GlobalErrorCodes.unknown_error
+                )
+                message = response.get("message", error_code.name)
 
             exc = exceptions.APIException(
-                description=response.get("description", response),
-                error_code=response.get(
-                    "error_code", GlobalErrorCodes.unknown_error
-                ),
+                description=description,
+                error_code=error_code,
                 status_code=e.response.status_code,
             )
-            exc.message = response.get("message", exc.error_code.name)
+            exc.message = message
 
             base_error_message = (
                 f"ClientResponseError: {e.request.method} {e.request.url} {e.response.status_code} "
@@ -258,16 +274,59 @@ class Service:
             )
             raise exc
 
-        except RequestError as e:
+        except InvalidURL as e:
             exc = exceptions.APIException(
                 description=str(e),
-                error_code=GlobalErrorCodes.service_unavailable,
-                status_code=getattr(
+                error_code=GlobalErrorCodes.invalid_url,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+            raise exc
+        except NotRedirectResponse as e:
+
+            exc = exceptions.APIException(
+                description=str(e),
+                error_code=GlobalErrorCodes.invalid_url,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+            raise exc
+        except CookieConflict as e:
+            exc = exceptions.APIException(
+                description=str(e),
+                error_code=GlobalErrorCodes.client_payload_error,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+            raise exc
+        except StreamError as e:
+
+            exc = exceptions.APIException(
+                description=str(e),
+                error_code=GlobalErrorCodes.stream_error,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+            raise exc
+
+        except RequestError as e:
+            if hasattr(e, "response"):
+                status_code = getattr(
                     e.response,
                     "status_code",
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                 )
-                or status.HTTP_503_SERVICE_UNAVAILABLE,
+            else:
+                status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
+            exc = exceptions.APIException(
+                description=str(e),
+                error_code=GlobalErrorCodes.service_unavailable,
+                status_code=status_code,
+            )
+            raise exc
+        except HTTPError as e:
+
+            exc = exceptions.APIException(
+                description=str(e),
+                error_code=GlobalErrorCodes.transport_error,
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
             raise exc
         except socket.gaierror as e:

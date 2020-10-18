@@ -2,44 +2,74 @@ import typing
 
 from packaging import version
 from httpx import __version__, Timeout as HTTPXTimeout, Request, Response
-from httpx.config import (
-    UnsetType,
-    UNSET,
-    TimeoutTypes,
-    VerifyTypes,
-    CertTypes,
-    DEFAULT_TIMEOUT_CONFIG,
-    DEFAULT_MAX_REDIRECTS,
-)
-from httpx.models import (
-    QueryParamTypes,
-    HeaderTypes,
-    CookieTypes,
-    URLTypes,
-)
 
 try:
+    from httpx.config import (
+        UnsetType,
+        UNSET,
+        TimeoutTypes,
+        VerifyTypes,
+        CertTypes,
+        DEFAULT_TIMEOUT_CONFIG,
+        DEFAULT_MAX_REDIRECTS,
+    )
+except ModuleNotFoundError:
+    from httpx._config import (
+        UnsetType,
+        UNSET,
+        TimeoutTypes,
+        VerifyTypes,
+        CertTypes,
+        DEFAULT_TIMEOUT_CONFIG,
+        DEFAULT_MAX_REDIRECTS,
+    )
+
+try:
+    from httpx.models import (
+        QueryParamTypes,
+        HeaderTypes,
+        CookieTypes,
+        URLTypes,
+    )
+except ModuleNotFoundError:
+    from httpx._models import (
+        QueryParamTypes,
+        HeaderTypes,
+        CookieTypes,
+        URLTypes,
+    )
+
+try:
+
     from httpx.models import AuthTypes, ProxiesTypes
+except ModuleNotFoundError:
+    from httpx._types import AuthTypes, ProxiesTypes
 except ImportError:
     from httpx.auth import AuthTypes
     from httpx.config import ProxiesTypes
 
-
+IS_HTTPX_VERSION_0_15 = version.parse("0.15") <= version.parse(__version__)
 IS_HTTPX_VERSION_0_14 = version.parse("0.14") <= version.parse(__version__)
 IS_HTTPX_VERSION_0_11 = (
     version.parse("0.11") <= version.parse(__version__) < version.parse("0.12")
 )
 
 
-if IS_HTTPX_VERSION_0_14:
+if IS_HTTPX_VERSION_0_15:
     from httpx import (  # noqa: ignore=F401
         Limits as HTTPXLimits,
         AsyncClient as HTTPXClient,
-        AsyncHTTPTransport,
+        HTTPError,
         HTTPStatusError,
-        TransportError,
         RequestError,
+        TransportError,
+        InvalidURL,
+        NotRedirectResponse,
+        CookieConflict,
+        StreamError,
     )
+
+    from httpcore import AsyncHTTPTransport
 elif IS_HTTPX_VERSION_0_11:
     from httpx import PoolLimits as HTTPXLimits
 
@@ -58,6 +88,18 @@ elif IS_HTTPX_VERSION_0_11:
         ) -> None:
             super().__init__(message, request=request)
             self.response = response
+
+    class InvalidURL(HTTPError):
+        pass
+
+    class NotRedirectResponse(HTTPError):
+        pass
+
+    class CookieConflict(HTTPError):
+        pass
+
+    class StreamError(HTTPError):
+        pass
 
     RequestError = HTTPError
     TransportError = HTTPError
@@ -81,6 +123,18 @@ else:
 
     RequestError = HTTPError
     TransportError = HTTPError
+
+    class InvalidURL(HTTPError):
+        pass
+
+    class NotRedirectResponse(HTTPError):
+        pass
+
+    class CookieConflict(HTTPError):
+        pass
+
+    class StreamError(HTTPError):
+        pass
 
 
 class Limits(HTTPXLimits):
@@ -188,3 +242,17 @@ class AsyncClient(HTTPXClient):
             return super().aclose()
         else:
             return super().close()
+
+    def _merge_url(self, url: URLTypes):
+        if not IS_HTTPX_VERSION_0_15:
+            return super().merge_url(url)
+        else:
+            return super()._merge_url(url)
+
+    def _merge_queryparams(
+        self, params: QueryParamTypes = None
+    ) -> typing.Optional[QueryParamTypes]:
+        if not IS_HTTPX_VERSION_0_15:
+            return super().merge_queryparams(params)
+        else:
+            return super()._merge_queryparams(params)

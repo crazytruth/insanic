@@ -38,6 +38,8 @@ class GlobalErrorCodes(Enum):
     service_timeout = 999604
     invalid_url = 999610
     client_payload_error = 999620
+    transport_error = 999630
+    stream_error = 999640
 
     error_unspecified = 999998
     unknown_error = 999999
