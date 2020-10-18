@@ -9,7 +9,6 @@ alabaster==0.7.12         # via sphinx
 appdirs==1.4.4            # via black, virtualenv
 async-generator==1.10     # via pytest-sanic
 async-timeout==3.0.1      # via aiohttp
-asynctest==0.13.0         # via -r tests.in
 attrs==19.3.0             # via aiohttp, black, pytest
 babel==2.8.0              # via sphinx
 black==19.10b0            # via -r tests.in
@@ -21,6 +20,7 @@ check-manifest==0.42      # via zest.releaser
 click==7.1.2              # via black, pip-tools
 colorama==0.4.3           # via twine, zest.releaser
 coverage==5.2.1           # via -r tests.in, pytest-cov
+dataclasses==0.7 ; python_version < "3.7"  # via -r tests.in
 distlib==0.3.1            # via virtualenv
 docutils==0.16            # via pyroma, readme-renderer, sphinx
 filelock==3.0.12          # via tox, virtualenv

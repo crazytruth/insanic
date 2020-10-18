@@ -6,7 +6,7 @@ time when Insanic was developed and released privately.
 Refer to `CHANGELOG_LEGACY.rst <CHANGELOG_LEGACY.rst>`_
 for changes during that time.
 
-0.9.2 (unreleased)
+0.9.2 (2020-10-18)
 ------------------
 
 - FIX: support for sanic 20.9
