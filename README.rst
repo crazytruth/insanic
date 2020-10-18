@@ -1,4 +1,4 @@
-.. image:: artwork/insanic200px.png
+.. image:: https://github.com/crazytruth/insanic/raw/master/artwork/insanic200px.png
     :width: 200px
     :alt: Insanic
 
