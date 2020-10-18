@@ -16,10 +16,7 @@ from insanic.models import User
 from pytest_redis import factories
 
 settings.configure(
-    SERVICE_NAME="insanic",
-    GATEWAY_REGISTRATION_ENABLED=False,
-    TRACING_ENABLED=False,
-    ENFORCE_APPLICATION_VERSION=False,
+    SERVICE_NAME="insanic", ENFORCE_APPLICATION_VERSION=False,
 )
 
 for cache_name, cache_config in settings.INSANIC_CACHES.items():
