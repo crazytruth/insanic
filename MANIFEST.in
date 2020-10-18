@@ -6,6 +6,7 @@ include LICENSE
 include requirements/*.txt
 include tox.ini
 exclude *.yaml
+exclude *.toml
 recursive-exclude requirements *.in
 graft artwork
 graft docs
