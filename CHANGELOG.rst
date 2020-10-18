@@ -9,8 +9,9 @@ for changes during that time.
 0.9.2 (unreleased)
 ------------------
 
-- FIX: restrict sanic dependency to <20.7
+- FIX: support for sanic 20.9
 - FIX: add packaging to requirements
+- BREAKING: drop support for 19.12
 
 
 0.9.1 (2020-09-29)
