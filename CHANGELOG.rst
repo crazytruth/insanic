@@ -10,6 +10,7 @@ for changes during that time.
 ------------------
 
 - FIX: restrict sanic dependency to <20.7
+- FIX: add packaging to requirements
 
 
 0.9.1 (2020-09-29)
